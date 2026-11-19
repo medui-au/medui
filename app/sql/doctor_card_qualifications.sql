@@ -1,0 +1,5 @@
+-- A user's qualifications as entered in BP (ADR-125).
+SELECT RTRIM(LTRIM(q.QUALIFICATION)) AS qualification
+FROM USERQUALIFICATIONS q
+WHERE q.USERID = ? AND q.RECORDSTATUS = 1
+ORDER BY q.RECORDID

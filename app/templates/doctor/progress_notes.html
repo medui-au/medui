@@ -1,0 +1,243 @@
+{% extends 'doctor/base.html' %}
+
+{% block doctor_content %}
+
+<div class="doctor-content-header">
+    <h2>Progress Notes</h2>
+    <p>
+        {{ display_name }} · {{ start_date.strftime('%d/%m/%Y') }} – {{ end_date.strftime('%d/%m/%Y') }}
+        {% if search %} · search: <em>{{ search }}</em>{% endif %}
+        · {{ notes|length }} note{{ 's' if notes|length != 1 }}{% if limit_reached %} <span style="color:var(--accent-warning); font-size:0.7rem;">(limit reached)</span>{% endif %}
+    </p>
+</div>
+
+<!-- In-page live filter -->
+<div style="flex-shrink:0; display:flex; align-items:center; gap:0.5rem;">
+    <input type="text" id="pnLiveFilter" class="filter-input"
+           placeholder="Filter visible notes…" autocomplete="off"
+           style="flex:1; min-width:0;">
+    <span id="pnCount" style="font-size:0.7rem; color:var(--text-muted); white-space:nowrap; display:none;"></span>
+</div>
+
+<!-- Notes list -->
+<div id="pn-list" style="display:flex; flex-direction:column; gap:0.5rem;">
+    {% for note in notes %}
+    <div class="pn-card" data-text="{{ note.visit_notes | lower }}">
+        <div class="pn-card-header">
+            <a href="{{ url_for('clinical.patient', patient_id=note.patient_id) }}"
+               class="pn-patient-link" target="_blank">{{ note.patient_name }}</a>
+            <span class="pn-meta">DOB {{ note.dob }}</span>
+            <span class="pn-sep">·</span>
+            <span class="pn-meta">{{ note.visit_date }}</span>
+            {% if note.start_time is not none %}
+            <span class="pn-meta pn-time">{{ '%02d:%02d' % (note.start_time // 3600, (note.start_time % 3600) // 60) }}</span>
+            {% endif %}
+            {% if note.dr_name %}
+            <span class="pn-sep">·</span>
+            <span class="pn-meta">{{ note.dr_name }}</span>
+            {% endif %}
+        </div>
+        <div class="pn-body">{{ note.visit_notes }}</div>
+    </div>
+    {% else %}
+    <div style="text-align:center; color:var(--text-muted); padding:2rem;">
+        No progress notes found for this period.
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
+
+
+{% block doctor_styles %}
+.pn-card {
+    border: 1px solid var(--border-color);
+    border-radius: 0.4rem;
+    background: var(--bg-primary);
+    padding: 0.6rem 0.75rem;
+    flex-shrink: 0;
+}
+.pn-card-header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.35rem;
+}
+.pn-patient-link {
+    font-weight: 600;
+    font-size: var(--text-sm);
+    color: var(--accent-primary);
+    text-decoration: none;
+}
+.pn-patient-link:hover { text-decoration: underline; }
+.pn-meta {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+.pn-sep { color: var(--border-color); font-size: 0.72rem; }
+.pn-body {
+    font-size: var(--text-sm);
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+.pn-body mark {
+    background: rgba(255,200,0,0.35);
+    border-radius: 2px;
+    padding: 0 1px;
+}
+.pn-card.pn-hidden { display: none; }
+{% endblock %}
+
+
+{% block doctor_filters %}
+<form method="GET" action="{{ url_for('doctor.progress_notes') }}" id="pnForm">
+
+    {% if is_admin %}
+    <span class="filter-label">Doctor</span>
+    <select name="doctor_id" class="filter-select" onchange="this.form.submit()">
+        <option value="">All Doctors</option>
+        {% for d in doctors %}
+        <option value="{{ d.bpsdb_userid }}"
+                {{ 'selected' if selected_doctor_id|string == d.bpsdb_userid|string }}>
+            {{ d.full_name }}
+        </option>
+        {% endfor %}
+    </select>
+    <hr class="filter-sep">
+    {% endif %}
+
+    <span class="filter-label">Period</span>
+    <select name="period" id="periodSelect" class="filter-select">
+        <option value="today"      {{ 'selected' if period == 'today'      }}>Today</option>
+        <option value="2days"      {{ 'selected' if period == '2days'      }}>Last 2 Days</option>
+        <option value="7days"      {{ 'selected' if period == '7days'      }}>Last 7 Days</option>
+        <option value="month"      {{ 'selected' if period == 'month'      }}>This Month</option>
+        <option value="last_month" {{ 'selected' if period == 'last_month' }}>Last Month</option>
+        <option value="year"       {{ 'selected' if period == 'year'       }}>This Year</option>
+        <option value="last_year"  {{ 'selected' if period == 'last_year'  }}>Last Year</option>
+        <option value="custom"     {{ 'selected' if period == 'custom'     }}>Custom Range</option>
+    </select>
+
+    <hr class="filter-sep">
+    <span class="filter-label">From</span>
+    <input type="date" name="date_from" id="dateFrom" class="filter-input"
+           value="{{ start_date.isoformat() }}">
+
+    <span class="filter-label">To</span>
+    <input type="date" name="date_to" id="dateTo" class="filter-input"
+           value="{{ end_date.isoformat() }}">
+
+    <hr class="filter-sep">
+    <span class="filter-label">Search</span>
+    <input type="text" name="search" id="searchInput" class="filter-input"
+           placeholder="keyword…" value="{{ search | e }}"
+           autocomplete="off">
+
+    <hr class="filter-sep">
+    <button type="submit" class="btn btn-primary"
+            style="width:100%; font-size:var(--text-sm);">Apply</button>
+
+</form>
+{% endblock %}
+
+
+{% block doctor_scripts %}
+<script>
+(function () {
+    // ── Period / date filter (server-side) ─────────────────────────────────
+    const form      = document.getElementById('pnForm');
+    const periodSel = document.getElementById('periodSelect');
+    const dateFrom  = document.getElementById('dateFrom');
+    const dateTo    = document.getElementById('dateTo');
+
+    function fmt(d) { return d.toISOString().slice(0, 10); }
+
+    periodSel.addEventListener('change', function () {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        let s = new Date(today), e = new Date(today);
+
+        switch (this.value) {
+            case 'today':      break;
+            case '2days':      s.setDate(today.getDate() - 1); break;
+            case '7days':      s.setDate(today.getDate() - 6); break;
+            case 'month':      s.setDate(1); break;
+            case 'last_month':
+                e.setDate(0);
+                s = new Date(e); s.setDate(1); break;
+            case 'year':       s.setMonth(0, 1); break;
+            case 'last_year':
+                s = new Date(today.getFullYear() - 1, 0, 1);
+                e = new Date(today.getFullYear() - 1, 11, 31); break;
+            case 'custom':     return;
+        }
+        dateFrom.value = fmt(s);
+        dateTo.value   = fmt(e);
+        form.submit();
+    });
+
+    [dateFrom, dateTo].forEach(input => {
+        input.addEventListener('change', () => { periodSel.value = 'custom'; });
+    });
+
+    // ── In-page live filter with highlight ─────────────────────────────────
+    const liveFilter = document.getElementById('pnLiveFilter');
+    const pnCount    = document.getElementById('pnCount');
+    const cards      = Array.from(document.querySelectorAll('.pn-card'));
+
+    function escapeRe(s) {
+        return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    cards.forEach(card => {
+        const b = card.querySelector('.pn-body');
+        if (b && !b.getAttribute('data-raw')) {
+            b.setAttribute('data-raw', b.textContent);
+        }
+    });
+
+    function highlight(el, term) {
+        const b = el.querySelector('.pn-body');
+        if (!b) return;
+        const raw = b.getAttribute('data-raw') || '';
+        if (!term) {
+            b.textContent = raw;
+            return;
+        }
+        const re = new RegExp('(' + escapeRe(term) + ')', 'gi');
+        b.innerHTML = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                         .replace(re, '<mark>$1</mark>');
+    }
+
+    let _timer = null;
+    liveFilter.addEventListener('input', function () {
+        clearTimeout(_timer);
+        const raw = this.value.trim();
+        _timer = setTimeout(() => {
+            const lower = raw.toLowerCase();
+            let visible = 0;
+            cards.forEach(card => {
+                const text = card.getAttribute('data-text') || '';
+                if (!lower || text.includes(lower)) {
+                    card.classList.remove('pn-hidden');
+                    highlight(card, raw);
+                    visible++;
+                } else {
+                    card.classList.add('pn-hidden');
+                    highlight(card, '');
+                }
+            });
+            if (lower) {
+                pnCount.textContent = `${visible} of ${cards.length} displayed`;
+                pnCount.style.display = '';
+            } else {
+                pnCount.style.display = 'none';
+            }
+        }, 150);
+    });
+}());
+</script>
+{% endblock %}

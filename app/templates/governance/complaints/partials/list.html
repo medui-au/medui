@@ -1,0 +1,39 @@
+{% for complaint in complaints %}
+<a class="gov-list-row{% if complaint.voided_at %} gov-list-row-voided{% endif %}"
+   style="{{ 'opacity:0.5;' if complaint.voided_at }}"
+   hx-get="{{ url_for('governance.complaints_detail', complaint_id=complaint.id) }}"
+   hx-target="#complaints-detail-panel"
+   hx-swap="innerHTML"
+   href="{{ url_for('governance.complaints_detail', complaint_id=complaint.id) }}">
+    <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+        <span class="gov-list-ref">{{ complaint.reference_no }}</span>
+        {% if complaint.voided_at %}
+        <span class="badge-status" style="background:#fce4ec;color:#880e4f;">VOIDED</span>
+        {% else %}
+        <span class="badge-status badge-{{ complaint.status.value }}">
+            {{ complaint.status.value.replace('_',' ') }}
+        </span>
+        {% if overdue_fn(complaint) %}
+        <span class="badge-status badge-overdue">OVERDUE</span>
+        {% endif %}
+        {% endif %}
+    </div>
+    <div class="gov-list-subject">{{ complaint.subject }}</div>
+    <div class="gov-list-meta">
+        {{ complaint.category.value.replace('_',' ').title() }}
+        &middot;
+        {{ complaint.received_at | short_date if complaint.received_at else '—' }}
+        {% if complaint.complainant_type.value == 'patient' and complaint.patient_id %}
+        &middot; Patient #{{ complaint.patient_id }}
+        {% elif complaint.complainant_type.value != 'anonymous' and complaint.complainant_type.value != 'patient' %}
+        &middot; {{ complaint.complainant_type.value.replace('_',' ').title() }}
+        {% else %}
+        &middot; Anonymous
+        {% endif %}
+    </div>
+</a>
+{% else %}
+<div style="padding:1.5rem; text-align:center; color:var(--text-muted); font-size:var(--text-sm);">
+    No complaints match the current filters.
+</div>
+{% endfor %}

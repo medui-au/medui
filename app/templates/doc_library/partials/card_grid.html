@@ -1,0 +1,74 @@
+{% if docs %}
+<div class="lib-card-grid" id="lib-card-grid">
+  {% for doc in docs %}
+  <div class="lib-card{% if active_filter == 'deleted' %} lib-card--deleted{% endif %}"
+       id="lib-card-{{ doc.id }}">
+
+    {# Delete button — owner or admin only; hidden in deleted view #}
+    {% if active_filter != 'deleted' and (doc.created_by_id == current_user.id or current_user.is_local_admin) %}
+    <button class="lib-card-delete" title="Delete document"
+            onclick="libDeleteDoc({{ doc.id }}, this)"
+            aria-label="Delete">×</button>
+    {% endif %}
+
+    {# Title row — title links to rendered view; edit link appended inline #}
+    <div class="lib-card-title-row">
+      <a href="{{ url_for('doc_library.editor_edit', doc_id=doc.id, view='rendered', patient_id=patient_id) if patient_id else url_for('doc_library.editor_edit', doc_id=doc.id, view='rendered') }}"
+         class="lib-card-title" title="{{ doc.title }}">{{ doc.title }}</a>
+      {% if active_filter != 'deleted' %}
+      <a href="{{ url_for('doc_library.editor_edit', doc_id=doc.id, expand_prompt='1', patient_id=patient_id) if patient_id else url_for('doc_library.editor_edit', doc_id=doc.id, expand_prompt='1') }}"
+         class="lib-card-edit-inline">edit</a>
+      {% endif %}
+    </div>
+
+    {# Body link — badges + keywords link to rendered view #}
+    <a href="{{ url_for('doc_library.editor_edit', doc_id=doc.id, view='rendered', patient_id=patient_id) if patient_id else url_for('doc_library.editor_edit', doc_id=doc.id, view='rendered') }}"
+       class="lib-card-body-link" title="Open rendered view">
+
+      <div class="lib-card-badges">
+        {% if active_filter == 'deleted' %}
+          <span class="lib-badge lib-badge-deleted">Deleted</span>
+        {% endif %}
+        {% if doc.visibility.value == 'private' %}
+          <span class="lib-badge lib-badge-private" title="Only visible to you">Private</span>
+        {% elif doc.visibility.value == 'doctors_only' %}
+          <span class="lib-badge lib-badge-doctors" title="Visible to doctors">Doctors</span>
+        {% else %}
+          <span class="lib-badge lib-badge-all" title="Visible to all users">All users</span>
+        {% endif %}
+        {% if doc.patient_id %}
+          <span class="lib-badge lib-badge-patient" title="Created in patient context">Patient</span>
+        {% endif %}
+      </div>
+
+      {% if doc.keywords %}
+      <div class="lib-card-keywords" title="{{ doc.keywords }}">{{ doc.keywords }}</div>
+      {% endif %}
+
+    </a>{# /lib-card-body-link #}
+
+    {# Footer — date · author · hide/unhide (if not owner and not deleted view) #}
+    <div class="lib-card-footer">
+      <span class="lib-card-date">
+        {{ (doc.updated_at or doc.created_at).strftime('%-d %b %Y') if (doc.updated_at or doc.created_at) else '' }}
+      </span>
+      <span class="lib-card-footer-right">
+        <span class="lib-card-author">{{ (doc.created_by.display_name or doc.created_by.username) if doc.created_by else '' }}</span>
+        {% if active_filter != 'deleted' and doc.created_by_id != current_user.id %}
+        <button class="lib-card-link lib-card-link-btn"
+                onclick="libHideDoc({{ doc.id }}, this)"
+                title="{{ 'Unhide this document' if active_filter == 'hidden' else 'Hide this document from your library view' }}">
+          {{ 'Unhide' if active_filter == 'hidden' else 'Hide' }}
+        </button>
+        {% endif %}
+      </span>
+    </div>
+
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div id="lib-card-grid" class="lib-empty">
+  <p>No documents found.</p>
+</div>
+{% endif %}

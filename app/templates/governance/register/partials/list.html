@@ -1,0 +1,44 @@
+{% set sac_map = {
+    'sac1_catastrophic': ('SAC 1','badge-sac1'),
+    'sac2_major':        ('SAC 2','badge-sac2'),
+    'sac3_moderate':     ('SAC 3','badge-sac3'),
+    'sac4_minor':        ('SAC 4','badge-sac4'),
+    'sac5_near_miss':    ('SAC 5','badge-sac5'),
+} %}
+{% for entry in entries %}
+<a class="gov-list-row"
+   hx-get="{{ url_for('governance.register_detail', record_type=entry.record_type, record_id=entry.id) }}"
+   hx-target="#register-detail-panel"
+   hx-swap="innerHTML"
+   href="{{ url_for('governance.register_detail', record_type=entry.record_type, record_id=entry.id) }}">
+    <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+        <span class="gov-list-ref">{{ entry.reference_no }}</span>
+        {% if entry.record_type == 'adverse_event' %}
+        <span class="badge-status badge-recordtype-ae">Adverse Event</span>
+        {% else %}
+        <span class="badge-status badge-recordtype-cmp">Complaint</span>
+        {% endif %}
+        {% if entry.severity %}
+        {% set sac_label, sac_cls = sac_map.get(entry.severity, ('?','')) %}
+        <span class="badge-status {{ sac_cls }}">{{ sac_label }}</span>
+        {% endif %}
+        <span class="badge-status badge-{{ entry.status }}">{{ entry.status_label }}</span>
+        {% if entry.patient_linked %}
+        <span class="badge-status badge-redacted" title="Patient-linked — content redacted on this page">REDACTED</span>
+        {% endif %}
+    </div>
+    <div class="gov-list-subject">{{ entry.title }}</div>
+    <div class="gov-list-meta">
+        {{ entry.category_label }}
+        &middot;
+        {{ entry.date | short_date if entry.date else '—' }}
+        {% if entry.patient_id %}
+        &middot; Patient #{{ entry.patient_id }}
+        {% endif %}
+    </div>
+</a>
+{% else %}
+<div style="padding:1.5rem; text-align:center; color:var(--text-muted); font-size:var(--text-sm);">
+    No items match the current filters.
+</div>
+{% endfor %}

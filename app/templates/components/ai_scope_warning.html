@@ -1,0 +1,24 @@
+{# Out-of-scope warning (ADR-087). The AI was told to flag requests for a diagnosis,
+   treatment, dose, prognosis or clinical opinion about a particular patient that the material
+   doesn't state; a flagged reply is still shown, under this warning, and the flag is recorded
+   on the run. The legality line (ADR-103) is quieter: a neutral note, never a block.
+   Include once per page; panels call aiScopeWarning() for a fresh element. #}
+<template id="ai-scope-warning-tpl"><div class="ai-scope-warning" role="alert"
+     style="font-size:0.8rem; line-height:1.4; color:var(--warning, #b45309); background:var(--warning-light, rgba(245,158,11,0.12));
+            border:1px solid var(--warning, #b45309); border-left-width:4px; padding:0.45rem 0.7rem; margin:0 0 0.5rem 0; border-radius:3px;">
+  <strong>⚠ Warning:</strong> this request or its response has been flagged as going beyond the intended
+  scope of this software. Checking the accuracy of the AI response is your responsibility.
+  Please let your IT manager know about this warning.
+</div></template>
+<template id="ai-legality-note-tpl"><div class="ai-legality-note" role="note"
+     style="font-size:0.75rem; line-height:1.35; color:var(--text-muted); padding:0.15rem 0; margin:0 0 0.4rem 0;">
+  This request touched on questions of legality.
+</div></template>
+<script>
+window.aiScopeWarning = function () {
+  return document.getElementById('ai-scope-warning-tpl').content.firstElementChild.cloneNode(true);
+};
+window.aiLegalityNote = function () {
+  return document.getElementById('ai-legality-note-tpl').content.firstElementChild.cloneNode(true);
+};
+</script>

@@ -1,0 +1,125 @@
+{% extends 'clinical/patient_workspace.html' %}
+{# One patient's results outside range, each as a chart of every result for the test (ADR-097). #}
+
+{% block title %}Results Outside Range — {{ patient.get('SURNAME','') | upper }}, {{ patient.get('FIRSTNAME','') }} — {{ app_name }}{% endblock %}
+
+{% block head %}
+<script src="{{ url_for('static', filename='vendor/moment-2.29.4/moment.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/chartjs-4.6.1/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/chartjs-adapter-moment-1.0.1/chartjs-adapter-moment.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/path_chart.js') }}"></script>
+<style>
+.oor-bar   { display:flex; flex-wrap:wrap; gap:0.5rem 1rem; align-items:baseline; justify-content:space-between;
+             border-bottom:1px solid var(--border-color); padding-bottom:0.5rem; margin-bottom:0.6rem; }
+.oor-bar h2 { margin:0; font-size:1.05rem; font-weight:700; }
+.oor-links { display:flex; gap:0.9rem; font-size:0.8rem; }
+.oor-links a { color:var(--accent-primary); text-decoration:none; }
+.oor-note  { font-size:0.75rem; color:var(--text-muted); line-height:1.45; margin:0 0 0.9rem; max-width:62rem; }
+.oor-section { font-size:0.72rem; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;
+               color:var(--text-muted); margin:1.1rem 0 0.5rem; }
+.oor-card  { border:1px solid var(--border-color); border-radius:0.4rem; background:var(--bg-primary);
+             padding:0.6rem 0.8rem 0.4rem; margin-bottom:0.8rem; }
+.oor-card.clicked { border-color:var(--accent-primary); box-shadow:0 0 0 1px var(--accent-primary); }
+.oor-card h3 { margin:0; font-size:0.9rem; font-weight:700; display:flex; gap:0.6rem; align-items:baseline; flex-wrap:wrap; }
+.oor-flag  { font-size:0.72rem; font-weight:600; padding:0.05rem 0.4rem; border-radius:0.25rem;
+             border:1px solid var(--border-color); background:var(--bg-secondary); }
+.oor-loinc { font-size:0.7rem; font-weight:400; color:var(--text-muted); }
+.oor-card h3 a { font-size:0.72rem; font-weight:400; color:var(--accent-primary); text-decoration:none; }
+.oor-caption { font-size:0.76rem; color:var(--text-secondary); margin:0.25rem 0 0.35rem; line-height:1.45; }
+.oor-caption .muted { color:var(--text-muted); }
+.oor-chart { position:relative; height:220px; }
+.oor-older summary { cursor:pointer; font-size:0.8rem; color:var(--text-secondary); margin:0.4rem 0 0.6rem; }
+.oor-empty { font-size:0.82rem; color:var(--text-muted); padding:1rem 0; }
+</style>
+{% endblock %}
+
+{% macro flag_text(c) -%}
+    {%- if c.flag_from_lab -%}Lab flag: {{ c.flag }}
+    {%- elif c.flag == 'H' -%}Above range
+    {%- elif c.flag == 'L' -%}Below range
+    {%- else -%}{{ c.flag }}{%- endif -%}
+{%- endmacro %}
+
+{% macro card(c, key) %}
+<div class="oor-card{{ ' clicked' if clicked and c.loinc == clicked }}">
+    <h3>{{ c.name }}
+        <span class="oor-loinc">LOINC {{ c.loinc }}</span>
+        <span class="oor-flag">{{ flag_text(c) }}</span>
+        <a href="{{ url_for('clinical.pathatom_dashboard', patient_id=patient_id, loinccode=c.loinc) }}">all results charts →</a>
+    </h3>
+    <div class="oor-caption">
+        Latest <strong>{{ c.latest.value }}{{ ' ' ~ c.units if c.units }}</strong>
+        {% if c.range %}(range {{ c.range }}){% else %}<span class="muted">(no range reported)</span>{% endif %},
+        {{ c.latest.date }}.
+        {% if c.previous %}
+        <span class="muted">Previous:
+            {%- for p in c.previous %} {{ p.value }} ({{ p.date }}){{ ',' if not loop.last }}{% endfor %}.</span>
+        {% endif %}
+    </div>
+    <div class="oor-chart"><canvas data-chart="{{ key }}"></canvas></div>
+</div>
+{% endmacro %}
+
+{% block patient_main %}
+<div style="padding:0.9rem 1.2rem; overflow-y:auto; height:100%; box-sizing:border-box;">
+
+    <div class="oor-bar">
+        <h2>Results outside range — {{ patient.get('SURNAME','') | upper }}, {{ patient.get('FIRSTNAME','') }}</h2>
+        <div class="oor-links">
+            <a href="{{ url_for('inbox.outliers') }}">← Results outside range (inbox)</a>
+            <a href="{{ url_for('clinical.patient', patient_id=patient_id) }}">Patient summary</a>
+            <a href="{{ url_for('clinical.pathatom_dashboard', patient_id=patient_id, loinccode=clicked) if clicked else url_for('clinical.pathatom_dashboard', patient_id=patient_id) }}">All results charts</a>
+        </div>
+    </div>
+
+    <p class="oor-note">
+        Each chart shows all of this patient's results for one test. The shaded band is the reference
+        range the laboratory reported with the most recent result; a flag is the laboratory's own, or
+        "above / below range" where it gave none. MedUI doesn't grade, rank or interpret these results.
+    </p>
+
+    <div class="oor-section">In the inbox{{ help('results-outside-range.charts') }}</div>
+    {% for c in charts.latest %}{{ card(c, 'latest-' ~ loop.index0) }}{% else %}
+    <div class="oor-empty">No result in the inbox for this patient is outside its range.</div>
+    {% endfor %}
+
+    {% if charts.earlier or charts.earlier_older %}
+    <div class="oor-section">Outside range when last tested (not in the latest results)</div>
+    {% for c in charts.earlier %}{{ card(c, 'earlier-' ~ loop.index0) }}{% endfor %}
+    {% if charts.earlier_older %}
+    <details class="oor-older" id="oor-older">
+        <summary>Last tested more than 5 years ago ({{ charts.earlier_older | length }})</summary>
+        {% for c in charts.earlier_older %}{{ card(c, 'earlier_older-' ~ loop.index0) }}{% endfor %}
+    </details>
+    {% endif %}
+    {% endif %}
+</div>
+
+<script>
+(function () {
+    'use strict';
+    const chartData = {{ chart_data_json | safe }};
+    const drawn = new Set();
+    function draw(canvas) {
+        const key = canvas.dataset.chart;
+        if (drawn.has(key)) return;
+        const data = chartData[key];
+        if (!data || !data.data || !data.data.length) return;
+        drawn.add(key);
+        PathChart.draw(canvas, data, data.title, {highlightLast: true});
+    }
+    // Each chart is drawn when it comes into view (and the older ones only once
+    // their section is opened), so a long page shows its first charts at once.
+    document.addEventListener('DOMContentLoaded', function () {
+        const canvases = document.querySelectorAll('canvas[data-chart]');
+        if (!('IntersectionObserver' in window)) { canvases.forEach(draw); return; }
+        const seen = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+                if (e.isIntersecting) { seen.unobserve(e.target); draw(e.target); }
+            });
+        }, {rootMargin: '300px 0px'});
+        canvases.forEach(function (c) { seen.observe(c); });
+    });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,195 @@
+{# Results Rollup modal — global, included once from base.html.
+   Trigger: components/topnav.html's "Patient Data" dropdown calls
+   openResultsRollupModal(patientId). Rolls up full unredacted pathology/radiology report
+   text for a best-guess (editable) batch of investigations and copies it to the clipboard. #}
+<style>
+.results-rollup-modal { display:none; position:fixed; inset:0; z-index:9500; background:rgba(0,0,0,0.45); align-items:center; justify-content:center; }
+.results-rollup-modal.open { display:flex; }
+.results-rollup-box { background:var(--bg-primary); border:1px solid var(--border-color); border-radius:0.5rem; padding:1.25rem; max-width:640px; width:92%; max-height:80vh; box-shadow:0 8px 32px rgba(0,0,0,0.25); display:flex; flex-direction:column; }
+.results-rollup-box h4 { font-size:0.9rem; font-weight:700; margin:0 0 0.3rem; }
+.results-rollup-sub { font-size:0.72rem; color:var(--text-muted); margin-bottom:0.6rem; }
+.results-rollup-list { flex:1; overflow-y:auto; border:1px solid var(--border-color); border-radius:0.3rem; min-height:100px; }
+.results-rollup-row { display:flex; align-items:center; gap:0.5rem; padding:0.4rem 0.6rem; border-bottom:1px solid var(--border-color); cursor:pointer; font-size:0.76rem; }
+.results-rollup-row:last-child { border-bottom:none; }
+.results-rollup-row:hover { background:var(--bg-secondary); }
+.results-rollup-row-date { flex-shrink:0; width:4.2rem; color:var(--text-muted); }
+.results-rollup-row-provider { flex-shrink:0; width:11rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-secondary); }
+.results-rollup-row-test { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-primary); }
+.results-rollup-actions { display:flex; align-items:center; gap:0.6rem; margin-top:0.8rem; }
+.results-rollup-count { font-size:0.72rem; color:var(--text-muted); margin-right:auto; }
+.results-rollup-tick { display:inline-block; color:var(--success); font-size:0.9rem; font-weight:700; opacity:0; }
+.results-rollup-tick.show { animation: resultsRollupTickPop 1.3s ease; }
+@keyframes resultsRollupTickPop {
+  0%   { opacity:0; transform:scale(0.5); }
+  25%  { opacity:1; transform:scale(1.2); }
+  40%  { opacity:1; transform:scale(1); }
+  75%  { opacity:1; transform:scale(1); }
+  100% { opacity:0; transform:scale(1); }
+}
+.results-rollup-spinner {
+  display:inline-block; width:0.7rem; height:0.7rem;
+  border:2px solid rgba(255,255,255,0.35); border-top-color:#fff;
+  border-radius:50%; animation:resultsRollupSpin 0.7s linear infinite;
+  vertical-align:middle; margin-right:0.35rem;
+}
+@keyframes resultsRollupSpin { to { transform:rotate(360deg); } }
+</style>
+
+<div id="results-rollup-modal" class="results-rollup-modal" role="dialog" aria-modal="true"
+     aria-labelledby="results-rollup-title" onclick="if(event.target===this)closeResultsRollupModal()">
+  <div class="results-rollup-box">
+    <h4 id="results-rollup-title">Results Rollup</h4>
+    <div class="results-rollup-sub" id="results-rollup-sub">Loading investigations…</div>
+    <div class="results-rollup-list" id="results-rollup-list"></div>
+    <div class="results-rollup-actions">
+      <span class="results-rollup-count" id="results-rollup-count"></span>
+      <button type="button" class="btn btn-outline" style="font-size:0.78rem;" onclick="closeResultsRollupModal()">Close</button>
+      <button type="button" id="results-rollup-generate-btn" class="btn btn-primary" style="font-size:0.78rem;" onclick="generateResultsRollup()"><span id="results-rollup-generate-label">Generate &amp; Copy</span></button>
+      <span class="results-rollup-tick" id="results-rollup-tick">✓</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  let rrCandidates = [];
+  let rrPatientId  = null;
+
+  window.openResultsRollupModal = function (patientId) {
+    rrPatientId = patientId;
+    const modal = document.getElementById('results-rollup-modal');
+    const list  = document.getElementById('results-rollup-list');
+    const sub   = document.getElementById('results-rollup-sub');
+    list.innerHTML = '';
+    sub.textContent = 'Loading investigations…';
+    document.getElementById('results-rollup-count').textContent = '';
+    modal.classList.add('open');
+
+    fetch(`/clinical/patient/${patientId}/results-rollup/candidates`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) { sub.textContent = d.error; return; }
+        rrCandidates = d.candidates || [];
+        renderResultsRollupList();
+      })
+      .catch(() => { sub.textContent = 'Failed to load investigations.'; });
+  };
+
+  window.closeResultsRollupModal = function () {
+    document.getElementById('results-rollup-modal').classList.remove('open');
+  };
+
+  function renderResultsRollupList() {
+    const list = document.getElementById('results-rollup-list');
+    const sub  = document.getElementById('results-rollup-sub');
+    list.innerHTML = '';
+
+    if (!rrCandidates.length) {
+      sub.textContent = 'No investigations found for this patient.';
+      updateResultsRollupCount();
+      return;
+    }
+    sub.textContent = 'Best-guess batch is pre-selected — tick or untick any report before generating.';
+
+    rrCandidates.forEach((c, idx) => {
+      const row = document.createElement('label');
+      row.className = 'results-rollup-row';
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !!c.is_default;
+      cb.dataset.idx = idx;
+      cb.onchange = updateResultsRollupCount;
+      row.appendChild(cb);
+
+      const dateSpan = document.createElement('span');
+      dateSpan.className = 'results-rollup-row-date';
+      dateSpan.textContent = c.report_date || c.collection_date || '';
+      row.appendChild(dateSpan);
+
+      const providerSpan = document.createElement('span');
+      providerSpan.className = 'results-rollup-row-provider';
+      providerSpan.textContent = c.provider || '';
+      row.appendChild(providerSpan);
+
+      const testSpan = document.createElement('span');
+      testSpan.className = 'results-rollup-row-test';
+      testSpan.textContent = c.test_name || '';
+      row.appendChild(testSpan);
+
+      list.appendChild(row);
+    });
+
+    updateResultsRollupCount();
+  }
+
+  function updateResultsRollupCount() {
+    const count = document.querySelectorAll('#results-rollup-list input[type="checkbox"]:checked').length;
+    document.getElementById('results-rollup-count').textContent =
+      count ? (count + (count === 1 ? ' report selected' : ' reports selected')) : 'Nothing selected';
+  }
+
+  window.generateResultsRollup = function () {
+    const checked = Array.from(
+      document.querySelectorAll('#results-rollup-list input[type="checkbox"]:checked')
+    );
+    if (!checked.length) { alert('Select at least one report.'); return; }
+
+    const selections = checked.map(cb => {
+      const c = rrCandidates[parseInt(cb.dataset.idx, 10)];
+      return {
+        report_id:   c.report_id,
+        is_inbox:    c.is_inbox,
+        provider:    c.provider,
+        test_name:   c.test_name,
+        report_date: c.report_date,
+      };
+    });
+
+    setResultsRollupBusy(true);
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    fetch(`/clinical/patient/${rrPatientId}/results-rollup/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+      body: JSON.stringify({ selections: selections }),
+    })
+    .then(r => r.json())
+    .then(d => {
+      setResultsRollupBusy(false);
+      if (d.error) { alert('Generate failed: ' + d.error); return; }
+      navigator.clipboard.writeText(d.text).then(() => {
+        const tick = document.getElementById('results-rollup-tick');
+        tick.classList.remove('show');
+        void tick.offsetWidth;
+        tick.classList.add('show');
+      }).catch(() => alert('Rollup generated, but the clipboard write was blocked by the browser.'));
+    })
+    .catch(() => {
+      setResultsRollupBusy(false);
+      alert('Generate failed — please try again.');
+    });
+  };
+
+  // Swaps the Generate button's label for a spinner + "Generating…" while the request is
+  // in flight — OCR on scanned/image reports can take a noticeable moment.
+  function setResultsRollupBusy(isBusy) {
+    const btn   = document.getElementById('results-rollup-generate-btn');
+    const label = document.getElementById('results-rollup-generate-label');
+    btn.disabled = isBusy;
+    if (isBusy) {
+      label.innerHTML = '';
+      const spinner = document.createElement('span');
+      spinner.className = 'results-rollup-spinner';
+      label.appendChild(spinner);
+      label.appendChild(document.createTextNode('Generating…'));
+    } else {
+      label.textContent = 'Generate & Copy';
+    }
+  }
+
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape') closeResultsRollupModal();
+  });
+})();
+</script>

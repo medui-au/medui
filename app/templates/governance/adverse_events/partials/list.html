@@ -1,0 +1,47 @@
+{% set sac_map = {
+    'sac1_catastrophic': ('SAC 1','badge-sac1'),
+    'sac2_major':        ('SAC 2','badge-sac2'),
+    'sac3_moderate':     ('SAC 3','badge-sac3'),
+    'sac4_minor':        ('SAC 4','badge-sac4'),
+    'sac5_near_miss':    ('SAC 5','badge-sac5'),
+} %}
+{% for event in events %}
+{% set sac_label, sac_cls = sac_map.get(event.severity.value, ('?','')) %}
+<a class="gov-list-row"
+   hx-get="{{ url_for('governance.ae_detail', event_id=event.id) }}"
+   hx-target="#ae-detail-panel"
+   hx-swap="innerHTML"
+   href="{{ url_for('governance.ae_detail', event_id=event.id) }}">
+    <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+        <span class="gov-list-ref">{{ event.reference_no }}</span>
+        <span class="badge-status {{ sac_cls }}">{{ sac_label }}</span>
+        <span class="badge-status badge-{{ event.status.value }}">
+            {{ event.status.value.replace('_',' ') }}
+        </span>
+        {% if overdue_fn(event) %}
+        <span class="badge-status badge-overdue">OVERDUE TRIAGE</span>
+        {% endif %}
+        {% if event.rca_required and not event.rca_completed_at %}
+        <span class="badge-status" style="background:#e8eaf6;color:#283593;">RCA</span>
+        {% endif %}
+        {% if event.open_disclosure_required and not event.open_disclosure_completed_at %}
+        <span class="badge-status" style="background:#fff3e0;color:#e65100;">OD</span>
+        {% endif %}
+    </div>
+    <div class="gov-list-subject">{{ event.title }}</div>
+    <div class="gov-list-meta">
+        {{ event.event_type.value.replace('_',' ').title() }}
+        &middot;
+        {{ event.occurred_at | short_date if event.occurred_at else '—' }}
+        {% if event.involved_person_type.value == 'patient' and event.patient_id %}
+        &middot; Patient #{{ event.patient_id }}
+        {% elif event.involved_person_type.value != 'patient' %}
+        &middot; {{ event.involved_person_type.value.replace('_',' ').title() }}
+        {% endif %}
+    </div>
+</a>
+{% else %}
+<div style="padding:1.5rem; text-align:center; color:var(--text-muted); font-size:var(--text-sm);">
+    No events match the current filters.
+</div>
+{% endfor %}

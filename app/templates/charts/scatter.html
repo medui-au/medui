@@ -1,0 +1,637 @@
+{% extends 'base.html' %}
+
+{% block title %}Patient Scatter — {{ app_name }}{% endblock %}
+
+{% block head %}
+<script src="{{ url_for('static', filename='vendor/chartjs-4.6.1/chart.umd.min.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="viz-page" style="max-width:none; padding-bottom:var(--space-6);">
+
+    <div class="viz-header" style="margin-bottom:var(--space-4);">
+        <h2>{{ page_title }}</h2>
+        <p>One point per patient. Click any point to open the patient summary. Filters apply instantly.</p>
+    </div>
+
+    <div class="scatter-layout">
+
+        {# ── SIDEBAR ────────────────────────────────────────────────────────── #}
+        <aside class="scatter-sidebar">
+
+            {# Numeric filters #}
+            <div class="filter-section">
+                <div class="filter-section-hdr">Numeric Filters</div>
+                {% set slider_defs = [
+                    ('Age',           'Age (years)'),
+                    ('AgeAtWeight',   'Age at Last Weight (yrs)'),
+                    ('SystolicBP',    'Systolic BP'),
+                    ('DiastolicBP',   'Diastolic BP'),
+                    ('Height',        'Height (cm)'),
+                    ('Weight',        'Weight (kg)'),
+                    ('BMI',           'BMI'),
+                    ('ExcessWeight',  'Excess Weight (kg)'),
+                    ('WeeklyAlcohol', 'Weekly Alcohol'),
+                    ('LastPSA',       'Last PSA'),
+                    ('LasteGFR',      'Last eGFR'),
+                    ('LastHbA1c',     'Last HbA1c'),
+                ] %}
+                {% for col, label in slider_defs %}
+                <div class="slider-group" id="sg-{{ col }}">
+                    <div class="slider-label-row">
+                        <span>{{ label }}</span>
+                        <span class="slider-vals" id="{{ col }}-vals">—</span>
+                    </div>
+                    <div class="slider-track" id="{{ col }}-track">
+                        <input type="range" id="{{ col }}-min" data-col="{{ col }}" data-role="min">
+                        <input type="range" id="{{ col }}-max" data-col="{{ col }}" data-role="max">
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {# Conditions #}
+            <div class="filter-section">
+                <div class="filter-section-hdr" title="Active, coded past history items, from Admin → Mapping Tables → condition_codes (the same list as the Disease Profile)">Conditions <span style="font-weight:400; font-size:0.65rem;">(show only)</span></div>
+                {% set cond_defs = [
+                    ('IsDiabetic',           'Diabetic'),
+                    ('IsAF',                 'Atrial Fibrillation'),
+                    ('IsOSA',                'Sleep Apnoea'),
+                    ('IsWBOA',               'Weight-bearing OA'),
+                    ('IsDepressionOrAnxiety','Depression / Anxiety'),
+                    ('IsHT',                 'Hypertension'),
+                    ('IsSmoker',             'Smoker'),
+                ] %}
+                {% for col, label in cond_defs %}
+                <label class="check-row">
+                    <input type="checkbox" id="chk-{{ col }}" data-flag="{{ col }}">
+                    <span>{{ label }}</span>
+                </label>
+                {% endfor %}
+            </div>
+
+            {# Patient group #}
+            <div class="filter-section">
+                <div class="filter-section-hdr">Patient Group</div>
+                <label class="check-row">
+                    <input type="checkbox" id="chk-Female" checked> <span>Female</span>
+                </label>
+                <label class="check-row">
+                    <input type="checkbox" id="chk-Male" checked> <span>Male</span>
+                </label>
+                <label class="check-row" style="margin-top:0.35rem;">
+                    <input type="checkbox" id="chk-IncludeInactive"> <span>Include Inactive</span>
+                </label>
+                <label class="check-row">
+                    <input type="checkbox" id="chk-IsDeceased"> <span>Include Deceased</span>
+                </label>
+            </div>
+
+        </aside>{# /sidebar #}
+
+        {# ── CHART AREA ──────────────────────────────────────────────────────── #}
+        <div class="scatter-main">
+
+            <div class="scatter-controls">
+                <span id="patient-count"
+                      style="font-size:0.72rem; color:var(--text-muted);
+                             padding:0.15rem 0.5rem; border-radius:var(--radius-sm);
+                             background:var(--bg-tertiary); border:1px solid var(--border-subtle);">
+                    Loading…
+                </span>
+                <label style="font-size:0.7rem; color:var(--text-muted); display:flex; align-items:center; gap:0.25rem; cursor:pointer;"
+                       title="Draw patients who have no value for an axis in a grey strip along that axis">
+                    <input type="checkbox" id="chk-strips"> Show patients with no value
+                </label>
+                <div style="display:flex; align-items:center; gap:0.35rem;">
+                    <label style="font-size:0.7rem; color:var(--text-muted);">X axis</label>
+                    <select id="x-axis" class="form-control-xs" style="width:170px;"></select>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.35rem;">
+                    <label style="font-size:0.7rem; color:var(--text-muted);">Y axis</label>
+                    <select id="y-axis" class="form-control-xs" style="width:170px;"></select>
+                </div>
+                <button id="refresh-btn" class="btn btn-outline"
+                        style="padding:0.2rem 0.55rem; font-size:0.72rem; margin-left:auto;"
+                        onclick="scatterRefresh()">↺ Refresh</button>
+            </div>
+
+            {# Loading state #}
+            <div id="scatter-loading"
+                 style="text-align:center; padding:5rem 2rem; color:var(--text-muted);
+                        border:1px dashed var(--border-subtle); border-radius:var(--radius);">
+                <div style="font-size:2rem; margin-bottom:0.75rem; opacity:0.4;">◌</div>
+                <div id="scatter-loading-msg">Loading patient data…</div>
+                <div style="font-size:0.7rem; margin-top:0.35rem; opacity:0.7;">
+                    First load may take a moment while the database query runs
+                </div>
+            </div>
+
+            {# Error state #}
+            <div id="scatter-error" class="alert alert-danger" style="display:none;"></div>
+
+            {# Canvas — hidden until data arrives #}
+            <div id="scatter-canvas-wrap" style="display:none; position:relative;">
+                <canvas id="scatterChart" style="max-height:72vh;"></canvas>
+                <div id="scatter-tooltip"></div>
+            </div>
+
+            {# Patient list (ADR-147) #}
+            <div id="scatter-list" style="display:none; margin-top:var(--space-4);">
+                <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; margin-bottom:var(--space-2);">
+                    <strong style="font-size:0.8rem;">Patients matching the filters</strong>
+                    <select id="list-scope" class="form-control-xs" style="width:auto;">
+                        <option value="all">All matching</option>
+                        <option value="missing">No value for an axis</option>
+                    </select>
+                    <span id="list-count" style="font-size:0.72rem; color:var(--text-muted);"></span>
+                    <span id="list-actions" style="margin-left:auto; display:flex; gap:0.35rem;">
+                        <button type="button" class="btn btn-outline btn-sm" data-format="csv">Download CSV</button>
+                        <button type="button" class="btn btn-outline btn-sm" data-format="md">Download Markdown</button>
+                    </span>
+                </div>
+                <div id="list-limit" class="text-muted" style="display:none; font-size:0.75rem; padding:0.5rem 0;"></div>
+                <div class="table-container" id="list-table-wrap" style="max-height:28rem; overflow-y:auto;">
+                    <table class="data-table" id="list-table"><thead></thead><tbody></tbody></table>
+                </div>
+            </div>
+
+        </div>{# /scatter-main #}
+    </div>{# /scatter-layout #}
+</div>
+
+<script>
+(function () {
+'use strict';
+
+/* ── Constants ──────────────────────────────────────────────────────────────── */
+const DATA_URL    = "{{ url_for('charts.scatter_data') }}";
+const REFRESH_URL = "{{ url_for('charts.scatter_refresh') }}";
+const EXPORT_URL  = "{{ url_for('charts.scatter_export') }}";
+const EXPORT_LIMIT = {{ export_limit }};   // list and download only up to this many (ADR-147)
+const CSRF        = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+const NUMERIC_COLS = [
+    'Age','AgeAtWeight','SystolicBP','DiastolicBP','Height','Weight',
+    'BMI','ExcessWeight','WeeklyAlcohol','LastPSA','LasteGFR','LastHbA1c',
+];
+const COL_LABELS = {
+    Age:           'Age (years)',
+    AgeAtWeight:   'Age at Last Weight (years)',
+    SystolicBP:    'Systolic BP (mmHg)',
+    DiastolicBP:   'Diastolic BP (mmHg)',
+    Height:        'Height (cm)',
+    Weight:        'Weight (kg)',
+    BMI:           'BMI',
+    ExcessWeight:  'Excess Weight (kg)',
+    WeeklyAlcohol: 'Weekly Alcohol (units)',
+    LastPSA:       'Last PSA (ng/mL)',
+    LasteGFR:      'Last eGFR (mL/min)',
+    LastHbA1c:     'Last HbA1c (mmol/mol)',
+};
+const FLAG_COLS = [
+    'IsDiabetic','IsAF','IsOSA','IsWBOA','IsDepressionOrAnxiety','IsHT','IsSmoker',
+];
+
+function esc(v) {
+    return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function shortLabel(col) { return (COL_LABELS[col] || col).replace(/\s*\(.*\)$/, ''); }
+function flagLabel(f) {
+    const el = document.getElementById('chk-' + f);
+    return el ? el.closest('label').textContent.trim() : f;
+}
+// A stable 0..1 for each patient, so a strip's dots don't move on every redraw.
+function jitter(id, salt) {
+    let h = (Math.imul(id, 2654435761) ^ Math.imul(salt, 40503)) >>> 0;
+    h ^= h >>> 15; h = Math.imul(h, 2246822519) >>> 0; h ^= h >>> 13;
+    return (h >>> 0) % 10000 / 10000;
+}
+
+/* ── State ──────────────────────────────────────────────────────────────────── */
+let allPatients = [], bounds = {};
+let matched = [], listRows = [];   // patients matching the filters; those in the list
+let stripGeom = null;              // where the no-value strips are, when shown
+const sliderState = {};   // col → {min, max}
+const checkState  = {
+    Female: true, Male: true,
+    IncludeInactive: false, IsDeceased: false,
+};
+FLAG_COLS.forEach(f => { checkState[f] = false; });
+
+/* ── DOM refs ───────────────────────────────────────────────────────────────── */
+const canvas     = document.getElementById('scatterChart');
+const tooltipEl  = document.getElementById('scatter-tooltip');
+const countEl    = document.getElementById('patient-count');
+const loadingEl  = document.getElementById('scatter-loading');
+const errorEl    = document.getElementById('scatter-error');
+const canvasWrap = document.getElementById('scatter-canvas-wrap');
+
+/* ── Chart instance ─────────────────────────────────────────────────────────── */
+let chart = null;
+
+// Grey bands for the no-value strips, with their labels (ADR-147).
+const stripPlugin = {
+    id: 'noValueStrips',
+    beforeDatasetsDraw(c) {
+        const g = stripGeom;
+        if (!g) return;
+        const { ctx, chartArea: a, scales: { x, y } } = c;
+        const muted = getComputedStyle(document.body).getPropertyValue('--text-muted').trim() || '#666';
+        ctx.save();
+        ctx.fillStyle = 'rgba(128,128,128,0.10)';
+        ctx.font = '10px sans-serif';
+        if (g.noY) {
+            const top = y.getPixelForValue(g.yBand[1]), bot = y.getPixelForValue(g.yBand[0]);
+            ctx.fillRect(a.left, top, a.right - a.left, bot - top);
+            ctx.fillStyle = muted;
+            ctx.fillText(`No ${g.yLabel} (${g.noY})`, x.getPixelForValue(g.xmin) + 4, top + 10);
+            ctx.fillStyle = 'rgba(128,128,128,0.10)';
+        }
+        if (g.noX) {
+            const left = x.getPixelForValue(g.xBand[0]), right = x.getPixelForValue(g.xBand[1]);
+            ctx.fillRect(left, a.top, right - left, a.bottom - a.top);
+            ctx.save();
+            ctx.fillStyle = muted;
+            ctx.translate(left + 10, y.getPixelForValue(g.ymin) - 4);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText(`No ${g.xLabel} (${g.noX})`, 0, 0);
+            ctx.restore();
+        }
+        if (g.noBoth) {
+            ctx.fillStyle = muted;
+            ctx.fillText(`${g.noBoth} with neither: see the list`, a.left + 4, a.bottom - 4);
+        }
+        ctx.restore();
+    },
+};
+
+function initChart() {
+    chart = new Chart(canvas, {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                data: [],
+                backgroundColor: 'rgba(37,99,235,0.35)',
+                borderColor:     'rgba(37,99,235,0.7)',
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointHoverBorderWidth: 2,
+            }, {
+                data: [],          // patients with no value for an axis, in its strip
+                backgroundColor: 'rgba(120,120,120,0.30)',
+                borderColor:     'rgba(120,120,120,0.55)',
+                pointRadius: 3,
+                pointHoverRadius: 5,
+            }],
+        },
+        plugins: [stripPlugin],
+        options: {
+            animation: false,
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    enabled: false,
+                    external: externalTooltip,
+                },
+            },
+            scales: {
+                x: { title: { display: true, text: '', font: { size: 11 } },
+                     ticks: { callback(v) { return stripGeom && v < stripGeom.xmin ? '' : this.getLabelForValue(v); } } },
+                y: { title: { display: true, text: '', font: { size: 11 } },
+                     ticks: { callback(v) { return stripGeom && v < stripGeom.ymin ? '' : this.getLabelForValue(v); } } },
+            },
+            onHover: (_evt, elements) => {
+                canvas.style.cursor = elements.length ? 'pointer' : 'default';
+            },
+            onClick: (_evt, elements) => {
+                if (!elements.length) return;
+                const el = elements[0];
+                const pt = chart.data.datasets[el.datasetIndex].data[el.index];
+                if (pt && pt.id) window.open('/clinical/patient/' + pt.id, '_blank');
+            },
+        },
+    });
+}
+
+/* ── External HTML tooltip ──────────────────────────────────────────────────── */
+function externalTooltip(context) {
+    const model = context.tooltip;
+    if (model.opacity === 0) { tooltipEl.style.opacity = '0'; return; }
+    if (!model.dataPoints || !model.dataPoints.length) return;
+
+    const dp  = model.dataPoints[0];
+    const pt  = chart.data.datasets[dp.datasetIndex].data[dp.dataIndex];
+    if (!pt) return;
+
+    const xCol = document.getElementById('x-axis').value;
+    const yCol = document.getElementById('y-axis').value;
+    const weightCols = new Set(['Weight','BMI','ExcessWeight','AgeAtWeight']);
+    const showDate   = pt.weightDate && (weightCols.has(xCol) || weightCols.has(yCol));
+    tooltipEl.innerHTML =
+        `<strong style="display:block;margin-bottom:2px;">${esc(pt.name)}</strong>` +
+        `<span style="color:var(--text-muted);">${COL_LABELS[xCol] || xCol}:</span> ${pt.rx ?? 'no value'}<br>` +
+        `<span style="color:var(--text-muted);">${COL_LABELS[yCol] || yCol}:</span> ${pt.ry ?? 'no value'}` +
+        (showDate ? `<br><span style="color:var(--text-muted);font-size:0.68rem;">Weight recorded: ${pt.weightDate}</span>` : '');
+
+    tooltipEl.style.opacity  = '1';
+    tooltipEl.style.left     = (model.caretX + 14) + 'px';
+    tooltipEl.style.top      = Math.max(0, model.caretY - 10) + 'px';
+}
+
+/* ── Filtering ──────────────────────────────────────────────────────────────── */
+function applyFilters() {
+    return allPatients.filter(p => {
+        // Status
+        if (p.PatientStatus === 2 && !checkState.IncludeInactive) return false;
+        if (p.PatientStatus === 3 && !checkState.IsDeceased)      return false;
+        // Gender — if neither checked show nothing; if both show all
+        const showF = checkState.Female, showM = checkState.Male;
+        if (!showF && !showM) return false;
+        if (showF && !showM && p.Gender !== 'Female') return false;
+        if (showM && !showF && p.Gender !== 'Male')   return false;
+        // Conditions (opt-in: checked = must have flag)
+        for (const flag of FLAG_COLS)
+            if (checkState[flag] && !p[flag]) return false;
+        // Numeric ranges. A slider left at its full range filters nothing; one you've
+        // moved keeps only patients with a value inside it (ADR-147).
+        for (const col of NUMERIC_COLS) {
+            const s = sliderState[col], b = bounds[col];
+            if (!s || !b || (s.min <= b.min && s.max >= b.max)) continue;
+            const v = p[col];
+            if (v === null || v === undefined || v < s.min || v > s.max) return false;
+        }
+        return true;
+    });
+}
+
+function updateChart() {
+    if (!chart) return;
+    const xCol = document.getElementById('x-axis').value;
+    const yCol = document.getElementById('y-axis').value;
+    const has = (p, c) => p[c] !== null && p[c] !== undefined;
+    matched = applyFilters();
+    const plotted = matched.filter(p => has(p, xCol) && has(p, yCol));
+    const noY     = matched.filter(p => has(p, xCol) && !has(p, yCol));
+    const noX     = matched.filter(p => !has(p, xCol) && has(p, yCol));
+    const noBoth  = matched.length - plotted.length - noY.length - noX.length;
+    const mk = (p, x, y) => ({ x, y, rx: p[xCol], ry: p[yCol], id: p.InternalId,
+                               name: p.PatientName, weightDate: p.WeightDate || null });
+    chart.data.datasets[0].data = plotted.map(p => mk(p, p[xCol], p[yCol]));
+
+    const sx = chart.options.scales.x, sy = chart.options.scales.y;
+    if (document.getElementById('chk-strips').checked && plotted.length < matched.length) {
+        const range = (col) => {
+            let lo = Infinity, hi = -Infinity;
+            for (const p of matched) if (has(p, col)) { lo = Math.min(lo, p[col]); hi = Math.max(hi, p[col]); }
+            const b = bounds[col] || { min: 0, max: 1 };
+            return lo <= hi ? [lo, hi] : [b.min, b.max];
+        };
+        const [xmin, xmax] = range(xCol), [ymin, ymax] = range(yCol);
+        const xr = (xmax - xmin) || 1, yr = (ymax - ymin) || 1;
+        const gx = xr * 0.04, bx = xr * 0.08, gy = yr * 0.04, by = yr * 0.08;
+        stripGeom = {
+            xmin, ymin, xBand: [xmin - gx - bx, xmin - gx], yBand: [ymin - gy - by, ymin - gy],
+            noX: noX.length, noY: noY.length, noBoth,
+            xLabel: shortLabel(xCol), yLabel: shortLabel(yCol),
+        };
+        chart.data.datasets[1].data =
+            noY.map(p => mk(p, p[xCol], stripGeom.yBand[0] + by * (0.1 + 0.8 * jitter(p.InternalId, 1))))
+            .concat(noX.map(p => mk(p, stripGeom.xBand[0] + bx * (0.1 + 0.8 * jitter(p.InternalId, 2)), p[yCol])));
+        sx.min = stripGeom.xBand[0] - gx / 2; sx.max = xmax + gx;
+        sy.min = stripGeom.yBand[0] - gy / 2; sy.max = ymax + gy;
+    } else {
+        stripGeom = null;
+        chart.data.datasets[1].data = [];
+        sx.min = sx.max = sy.min = sy.max = undefined;
+    }
+    sx.title.text = COL_LABELS[xCol] || xCol;
+    sy.title.text = COL_LABELS[yCol] || yCol;
+    chart.update('none');
+
+    // The honest count: who is plotted, and who isn't (ADR-147).
+    const n = (v) => v.toLocaleString();
+    const missY = noY.length + noBoth, missX = noX.length + noBoth;
+    let text = `${n(plotted.length)} plotted of ${n(matched.length)} matching the filters`;
+    if (missY) text += ` · ${n(missY)} have no ${shortLabel(yCol)}`;
+    if (missX && xCol !== yCol) text += ` · ${n(missX)} have no ${shortLabel(xCol)}`;
+    countEl.textContent = text;
+    renderList();
+}
+
+/* ── Patient list and download (ADR-147) ───────────────────────────────────── */
+const listEl     = document.getElementById('scatter-list');
+const listScope  = document.getElementById('list-scope');
+const listCount  = document.getElementById('list-count');
+const listLimit  = document.getElementById('list-limit');
+const listWrap   = document.getElementById('list-table-wrap');
+const listActs   = document.getElementById('list-actions');
+
+function renderList() {
+    const xCol = document.getElementById('x-axis').value;
+    const yCol = document.getElementById('y-axis').value;
+    const rows = listScope.value === 'missing'
+        ? matched.filter(p => p[xCol] == null || p[yCol] == null) : matched;
+    listEl.style.display = 'block';
+    listCount.textContent = rows.length.toLocaleString() + ' patient' + (rows.length !== 1 ? 's' : '');
+    const tooMany = rows.length > EXPORT_LIMIT;
+    listLimit.style.display = tooMany || !rows.length ? 'block' : 'none';
+    listLimit.textContent = !rows.length ? 'No patients.'
+        : `The list and its download are for ${EXPORT_LIMIT} patients or fewer. Narrow the filters (sex, age, conditions) to see them.`;
+    listWrap.style.display = tooMany || !rows.length ? 'none' : 'block';
+    listActs.style.display = tooMany || !rows.length ? 'none' : 'flex';
+    listRows = tooMany ? [] : rows.slice().sort((a, b) => String(a.PatientName).localeCompare(String(b.PatientName)));
+    if (tooMany) return;
+    const cols = [xCol, yCol].filter((c, i, a) => c !== 'Age' && a.indexOf(c) === i);
+    const table = document.getElementById('list-table');
+    table.tHead.innerHTML = '<tr><th>Name</th><th>Age</th><th>Sex</th>' +
+        cols.map(c => `<th>${esc(COL_LABELS[c] || c)}</th>`).join('') + '<th>Next appointment</th></tr>';
+    table.tBodies[0].innerHTML = listRows.map(p =>
+        `<tr><td><a href="/clinical/patient/${encodeURIComponent(p.InternalId)}" target="_blank">${esc(p.PatientName)}</a></td>` +
+        `<td>${esc(p.Age)}</td><td>${esc(p.Gender)}</td>` +
+        cols.map(c => `<td>${p[c] == null ? '<span class="text-muted">no value</span>' : esc(p[c])}</td>`).join('') +
+        `<td>${esc(p.NextApptDate)}</td></tr>`).join('');
+}
+
+function describeFilters() {
+    const parts = [];
+    if (!(checkState.Female && checkState.Male))
+        parts.push(checkState.Female ? 'Female' : checkState.Male ? 'Male' : 'no sex selected');
+    parts.push(['Active', checkState.IncludeInactive && 'inactive', checkState.IsDeceased && 'deceased']
+        .filter(Boolean).join(' + '));
+    FLAG_COLS.forEach(f => { if (checkState[f]) parts.push(flagLabel(f)); });
+    NUMERIC_COLS.forEach(c => {
+        const sl = sliderState[c], b = bounds[c];
+        if (sl && b && (sl.min > b.min || sl.max < b.max)) parts.push(`${shortLabel(c)} ${sl.min}–${sl.max}`);
+    });
+    if (listScope.value === 'missing') parts.push('no value for an axis');
+    return parts.join('; ');
+}
+
+function download(fmt) {
+    fetch(EXPORT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({
+            format: fmt, filters: describeFilters(),
+            x: document.getElementById('x-axis').value, y: document.getElementById('y-axis').value,
+            ids: listRows.map(p => p.InternalId),
+        }),
+    })
+    .then(r => {
+        if (!r.ok) return r.json().catch(() => ({})).then(j => { throw new Error(j.error || 'HTTP ' + r.status); });
+        const m = (r.headers.get('Content-Disposition') || '').match(/filename="([^"]+)"/);
+        return r.blob().then(blob => ({ blob, name: m ? m[1] : 'patient_list.' + fmt }));
+    })
+    .then(({ blob, name }) => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    })
+    .catch(e => alert('Download failed: ' + e.message));
+}
+listScope.addEventListener('change', renderList);
+listActs.querySelectorAll('button[data-format]').forEach(b =>
+    b.addEventListener('click', () => download(b.dataset.format)));
+document.getElementById('chk-strips').addEventListener('change', updateChart);
+
+/* ── Sliders ────────────────────────────────────────────────────────────────── */
+function initSliders() {
+    NUMERIC_COLS.forEach(col => {
+        const b    = bounds[col] || { min: 0, max: 100 };
+        const minEl  = document.getElementById(col + '-min');
+        const maxEl  = document.getElementById(col + '-max');
+        const valsEl = document.getElementById(col + '-vals');
+        const track  = document.getElementById(col + '-track');
+        if (!minEl || !maxEl) return;
+
+        const range = b.max - b.min;
+        const step  = range > 200 ? 1 : range > 20 ? 0.5 : 0.1;
+        [minEl, maxEl].forEach(el => {
+            el.min = b.min; el.max = b.max; el.step = step;
+        });
+        minEl.value = b.min;
+        maxEl.value = b.max;
+        sliderState[col] = { min: b.min, max: b.max };
+
+        function refreshGradient(lo, hi) {
+            const span = b.max - b.min || 1;
+            const p1   = ((lo - b.min) / span * 100).toFixed(1) + '%';
+            const p2   = ((hi - b.min) / span * 100).toFixed(1) + '%';
+            track.style.setProperty('--pct1', p1);
+            track.style.setProperty('--pct2', p2);
+        }
+
+        function onInput() {
+            let lo = parseFloat(minEl.value), hi = parseFloat(maxEl.value);
+            if (lo > hi) { minEl.value = hi; lo = hi; }
+            // A handle snaps to its step, so within a step of an end counts as the end:
+            // back at both ends, the slider filters nothing again.
+            if (lo - b.min < step) lo = b.min;
+            if (b.max - hi < step) hi = b.max;
+            sliderState[col] = { min: lo, max: hi };
+            valsEl.textContent = lo + ' – ' + hi;
+            refreshGradient(lo, hi);
+            updateChart();
+        }
+        minEl.addEventListener('input', onInput);
+        maxEl.addEventListener('input', onInput);
+
+        // Initial state
+        valsEl.textContent = b.min + ' – ' + b.max;
+        refreshGradient(b.min, b.max);
+    });
+}
+
+/* ── Axis selectors ─────────────────────────────────────────────────────────── */
+function initAxisSelectors() {
+    const xSel = document.getElementById('x-axis');
+    const ySel = document.getElementById('y-axis');
+    NUMERIC_COLS.forEach(col => {
+        xSel.appendChild(new Option(COL_LABELS[col] || col, col));
+        ySel.appendChild(new Option(COL_LABELS[col] || col, col));
+    });
+    xSel.value = 'Age';
+    ySel.value = 'BMI';
+    xSel.addEventListener('change', updateChart);
+    ySel.addEventListener('change', updateChart);
+}
+
+/* ── Checkboxes ─────────────────────────────────────────────────────────────── */
+function initCheckboxes() {
+    FLAG_COLS.forEach(flag => {
+        const el = document.getElementById('chk-' + flag);
+        if (!el) return;
+        el.addEventListener('change', () => { checkState[flag] = el.checked; updateChart(); });
+    });
+    ['Female', 'Male', 'IncludeInactive', 'IsDeceased'].forEach(key => {
+        const el = document.getElementById('chk-' + key);
+        if (!el) return;
+        el.addEventListener('change', () => { checkState[key] = el.checked; updateChart(); });
+    });
+}
+
+/* ── Data load ──────────────────────────────────────────────────────────────── */
+function loadData() {
+    fetch(DATA_URL)
+        .then(r => {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        })
+        .then(data => {
+            if (data.error) { showError(data.error); return; }
+            allPatients = data.patients;
+            bounds      = data.bounds;
+
+            loadingEl.style.display  = 'none';
+            canvasWrap.style.display = 'block';
+
+            initAxisSelectors();
+            initSliders();
+            initCheckboxes();
+            initChart();
+            updateChart();
+        })
+        .catch(e => showError(e.message));
+}
+
+function showError(msg) {
+    loadingEl.style.display = 'none';
+    errorEl.style.display   = 'block';
+    errorEl.textContent     = 'Failed to load patient data: ' + msg;
+}
+
+window.scatterRefresh = function () {
+    const btn = document.getElementById('refresh-btn');
+    btn.disabled    = true;
+    btn.textContent = '⏳';
+    fetch(REFRESH_URL, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF },
+    })
+    .then(() => {
+        allPatients = []; bounds = {};
+        canvasWrap.style.display = 'none';
+        loadingEl.style.display  = 'block';
+        document.getElementById('scatter-loading-msg').textContent = 'Refreshing data…';
+        if (chart) { chart.destroy(); chart = null; }
+        // Reset axis selectors and sliders for re-initialisation
+        ['x-axis','y-axis'].forEach(id => {
+            const el = document.getElementById(id);
+            while (el.firstChild) el.removeChild(el.firstChild);
+        });
+        loadData();
+    })
+    .catch(e => { errorEl.style.display = 'block'; errorEl.textContent = e.message; })
+    .finally(() => { btn.disabled = false; btn.textContent = '↺ Refresh'; });
+};
+
+document.addEventListener('DOMContentLoaded', loadData);
+
+}());
+</script>
+{% endblock %}

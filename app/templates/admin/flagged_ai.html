@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}Flagged AI requests — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+.fa-wrap   { max-width:1150px; margin:0 auto; padding:1rem 1.25rem; }
+.fa-wrap h1 { font-size:1.1rem; margin:0 0 0.25rem 0; }
+.fa-intro  { font-size:var(--text-sm); color:var(--text-muted); margin:0 0 0.75rem 0; max-width:860px; }
+.fa-warn   { font-size:var(--text-sm); line-height:1.5; max-width:860px; margin:0 0 1rem 0; padding:0.6rem 0.8rem;
+             border:1px solid rgba(255,193,7,0.55); background:rgba(255,193,7,0.10); border-radius:var(--radius-sm); }
+.fa-filters { display:flex; flex-wrap:wrap; gap:0.6rem; align-items:flex-end; margin:0 0 1rem 0; font-size:var(--text-sm); }
+.fa-filters label { display:flex; flex-direction:column; gap:0.2rem; color:var(--text-muted); font-size:0.75rem; }
+.fa-filters select, .fa-filters input { padding:0.3rem 0.45rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);
+             background:var(--bg-primary); color:var(--text-primary); font-size:var(--text-sm); }
+.fa-table  { width:100%; border-collapse:collapse; font-size:var(--text-sm); }
+.fa-table th, .fa-table td { text-align:left; vertical-align:top; padding:0.4rem 0.5rem; border-bottom:1px solid var(--border-color); }
+.fa-table th { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); }
+.fa-tag    { display:inline-block; font-size:0.72rem; padding:0.05rem 0.4rem; margin:0 0.25rem 0.15rem 0;
+             border:1px solid var(--border-color); border-radius:999px; }
+.fa-tag-reply { border-color:rgba(255,193,7,0.7); }
+.fa-note   { font-size:0.72rem; color:var(--text-muted); }
+.fa-show   { font-size:0.75rem; background:none; border:1px solid var(--border-color); border-radius:var(--radius-sm);
+             padding:0.1rem 0.45rem; cursor:pointer; color:var(--text-secondary); }
+.fa-detail { padding:0.4rem 0 0.6rem 0; }
+.fa-detail-h { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); margin:0.4rem 0 0.2rem 0; }
+.fa-text   { white-space:pre-wrap; font-family:inherit; font-size:0.8rem; line-height:1.45; margin:0; max-height:320px; overflow:auto;
+             background:var(--bg-subtle, rgba(0,0,0,0.04)); padding:0.4rem 0.6rem; border-radius:3px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fa-wrap">
+  <h1>Flagged AI requests{{ help('flagged-requests.overview') }}</h1>
+  <p class="fa-intro">AI requests that MedUI's scope checks marked: a typed request that asked for something such as
+    a diagnosis or a dose, a reply the AI marked as out of scope (it answered only the part within MedUI's purpose),
+    or a request that touched on questions of legality.
+    Nothing here stopped the request; this is for the practice's own oversight.</p>
+
+  <div class="fa-warn" role="note">
+    <strong>The practice's responsibility.</strong> MedUI's intended purpose excludes diagnosis, treatment
+    recommendations and advice to patients; requests like these are answered in general terms. If MedUI is being
+    used, or configured through its prompts and workflows, for diagnosis, treatment or patient advice, that use is
+    the practice's responsibility, and configuring it that way may make the practice the manufacturer of a medical
+    device, which must be included in the ARTG (or meet an exemption) before it is used. Seek advice before relying
+    on MedUI for such use.{{ help('flagged-requests.responsibility') }}
+  </div>
+
+  <form method="get" class="fa-filters">
+    <label>User
+      <select name="user"><option value="">All</option>
+        {% for uid, name in users %}<option value="{{ uid }}" {% if filters.user_id == uid %}selected{% endif %}>{{ name }}</option>{% endfor %}
+      </select></label>
+    <label>Workflow
+      <select name="workflow"><option value="">All</option>
+        {% for pid, name in pipelines %}<option value="{{ pid }}" {% if filters.pipeline_id == pid %}selected{% endif %}>{{ name }}</option>{% endfor %}
+      </select></label>
+    <label>From <input type="date" name="from" value="{{ filters.date_from or '' }}"></label>
+    <label>To <input type="date" name="to" value="{{ filters.date_to or '' }}"></label>
+    <label>Flagged
+      <select name="kind">
+        <option value="any" {% if filters.kind == 'any' %}selected{% endif %}>Any</option>
+        <option value="request" {% if filters.kind == 'request' %}selected{% endif %}>The request</option>
+        <option value="reply" {% if filters.kind == 'reply' %}selected{% endif %}>The reply</option>
+        <option value="legality" {% if filters.kind == 'legality' %}selected{% endif %}>Questions of legality</option>
+        <option value="reported" {% if filters.kind == 'reported' %}selected{% endif %}>Reported: possible identifier</option>
+      </select></label>
+    <button type="submit" class="btn btn-primary" style="font-size:var(--text-sm);">Show</button>
+    <a href="{{ url_for('admin.flagged_ai') }}" class="fa-note">Clear</a>
+  </form>
+
+  {% if open_reports %}<p class="fa-note"><strong>{{ open_reports }} open report{{ '' if open_reports == 1 else 's' }}</strong> of something that got through to the AI: choose <em>Reported: possible identifier</em> above.</p>{% endif %}
+  <p class="fa-note">{{ total }} flagged request{{ '' if total == 1 else 's' }}{% if truncated %} (the newest {{ total }} shown){% endif %}.</p>
+
+  {% if rows %}
+  <table class="fa-table">
+    <thead><tr><th>When</th><th>User</th><th>Workflow</th><th>Flagged</th><th>Patient</th><th></th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td style="white-space:nowrap;">{{ r.started_at | localdt('%-d %b %Y %H:%M') }}</td>
+        <td>{{ r.user }}</td>
+        <td>{{ r.pipeline }}{% if r.local is not none %} <span class="fa-note">({{ 'local' if r.local else 'cloud' }})</span>{% endif %}</td>
+        <td>
+          {% for p in r.request %}<span class="fa-tag">{{ p }}</span>{% endfor %}
+          {% if r.reply %}<span class="fa-tag fa-tag-reply">AI marked the reply out of scope</span>{% endif %}
+          {% if r.legality %}<span class="fa-tag">Touched on questions of legality</span>{% endif %}
+          {% if r.reported %}<span class="fa-tag fa-tag-reply">Reported: possible identifier{% if r.reported.open %} ({{ r.reported.open }} open){% endif %}</span>
+            {% if current_user.is_admin %}<a class="fa-note" href="{{ url_for('admin.privacy_hits', run_id=r.run_id) }}">Review →</a>{% endif %}{% endif %}
+        </td>
+        <td>{{ 'linked' if r.patient_linked else '—' }}</td>
+        <td><button type="button" class="fa-show" aria-expanded="false" aria-controls="fa-d-{{ r.run_id }}"
+                    data-url="{{ url_for('admin.flagged_ai_detail', run_id=r.run_id) }}">Show</button></td>
+      </tr>
+      <tr><td colspan="6" id="fa-d-{{ r.run_id }}" style="padding:0 0.5rem; border-bottom:none;"></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="fa-intro">No flagged requests{% if filters.user_id or filters.pipeline_id or filters.date_from or filters.date_to or filters.kind != 'any' %} for these filters{% endif %}.</p>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Show / Hide: load a row's request and reply once, then fold and unfold it.
+document.querySelectorAll('.fa-show[data-url]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const cell = document.getElementById(btn.getAttribute('aria-controls'));
+    const open = btn.getAttribute('aria-expanded') === 'true';
+    if (open) {
+      cell.hidden = true; btn.textContent = 'Show'; btn.setAttribute('aria-expanded', 'false');
+      return;
+    }
+    btn.textContent = 'Hide'; btn.setAttribute('aria-expanded', 'true'); cell.hidden = false;
+    if (cell.dataset.loaded) return;
+    cell.textContent = 'Loading…';
+    fetch(btn.dataset.url, { credentials: 'same-origin' })
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+      .then(html => { cell.innerHTML = html; cell.dataset.loaded = '1'; })
+      .catch(() => { cell.textContent = 'This request couldn\u2019t be loaded.'; });
+  });
+});
+</script>
+{% endblock %}

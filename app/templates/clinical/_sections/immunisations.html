@@ -1,0 +1,17 @@
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+{% if not rows %}
+<p class="section-empty">No immunisation records found.</p>
+{% else %}
+<table class="data-table">
+  <thead><tr><th>Date</th><th>Vaccine</th><th>Dose</th></tr></thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td class="text-muted nowrap">{{ r.VacDate }}</td>
+      <td>{{ r.VACCINENAME }}</td>
+      <td class="text-sm text-muted">{{ r.SEQUENCE }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}

@@ -1,0 +1,6 @@
+<div class="fa-detail">
+  <div class="fa-detail-h">Request{% if not d.request_text %} <span class="fa-note">(none typed: the workflow's own request)</span>{% endif %}</div>
+  {% if d.request_text %}<pre class="fa-text">{{ d.request_text }}</pre>{% endif %}
+  <div class="fa-detail-h">Reply</div>
+  <pre class="fa-text">{{ d.reply_text or '—' }}</pre>
+</div>

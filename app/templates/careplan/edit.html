@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Care Plan (draft) — {{ patient.get('SURNAME','') | upper }}, {{ patient.get('FIRSTNAME','') }} — {{ app_name }}{% endblock %}
+{% block head %}{% include 'careplan/_styles.html' %}{% endblock %}
+{% block content %}
+<div class="workspace">
+  {% include 'careplan/_sidebar.html' %}
+  <section class="workspace-main" id="cp-main">
+    <div class="cp-bar">
+      <a href="{{ url_for('careplan.patient_plan', patient_id=plan.patient_id) }}" class="cp-muted">← Care Plan</a>
+      <strong>Draft plan</strong>{{ help('care-plans.compose') }}
+      <span id="cp-save-state" class="cp-muted">Saved</span>
+      <button class="dictation-btn"
+              data-dictate-for="@focus" data-dictate-within="cp-main"
+              data-dictate-url="{{ url_for('voice.dictate') }}"
+              data-worklet-url="{{ url_for('static', filename='js/audio-processor.js') }}"
+              title="Dictate into the box you last clicked in"
+              aria-label="Dictate into the box you last clicked in"
+              aria-pressed="false"
+              type="button">🎤</button>
+      <span style="flex:1"></span>
+      <button class="btn btn-outline btn-sm" id="cp-print" title="See the plan as it would print; nothing is filed">Print preview</button>
+      {% set export_url = url_for('careplan.export', plan_id=plan.id) %}
+      <button class="btn btn-outline btn-sm" data-cp-send="copy" data-export-url="{{ export_url }}" title="Copy the plan (formatted and plain text)">Copy</button>
+      <button class="btn btn-outline btn-sm" data-cp-send="email" data-export-url="{{ export_url }}" title="Email the plan to the patient from Comms">Email</button>
+      <button class="btn btn-outline btn-sm" data-cp-send="bp" data-export-url="{{ export_url }}" title="File the plan in the patient's Best Practice record from Comms">BP →</button>
+      <button class="btn btn-outline btn-sm" id="cp-fetch">Fetch values…</button>
+      <button class="btn btn-outline btn-sm" id="cp-check">Check</button>
+      <button class="btn btn-primary btn-sm" id="cp-file">File plan…</button>
+      <button class="btn btn-outline btn-sm" id="cp-discard" title="Discard this draft">Discard</button>
+    </div>
+
+    <div class="card cp-header-box" style="padding:0.6rem; margin-bottom:0.6rem;">
+      <label class="cp-muted" for="cp-header">Medical history (from Best Practice when the plan was started; edit as needed)</label>
+      <textarea id="cp-header"></textarea>
+      <label class="cp-muted" for="cp-review">Review by</label>
+      <input type="date" id="cp-review" style="font-size:0.82rem;">
+    </div>
+
+    <table class="cp-grid">
+      <colgroup><col style="width:21%"><col style="width:26%"><col style="width:33%"><col style="width:20%"></colgroup>
+      <thead><tr><th>Issue</th><th>Goals</th><th>Management</th><th>Providers</th></tr></thead>
+      <tbody id="cp-rows"></tbody>
+    </table>
+    <button class="btn btn-outline btn-sm" id="cp-add-row" style="margin-top:0.5rem;">+ Add row</button>
+    <p class="cp-muted" style="margin-top:0.8rem;">
+      Tokens such as <span class="cp-token">{urate.last}</span> are filled from Best Practice results when you
+      fetch values; the filed plan keeps the values as they were on the day you filed it.
+    </p>
+  </section>
+</div>
+
+<div class="cp-modal-back" id="cp-modal-back"><div class="cp-modal" id="cp-modal"></div></div>
+<script id="cp-asset" type="application/json">{{ asset | tojson }}</script>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/careplan.js') }}"></script>
+<script src="{{ url_for('static', filename='js/careplan_send.js') }}"></script>
+{% endblock %}

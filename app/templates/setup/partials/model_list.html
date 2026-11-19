@@ -1,0 +1,343 @@
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}" id="global-csrf">
+
+<div class="setup-section">
+    {% if flash_models %}
+    <div style="margin-bottom:0.6rem; padding:0.4rem 0.65rem; border-radius:var(--radius-sm);
+                font-size:var(--text-sm);
+                {% if flash_models.level == 'warning' %}
+                background:rgba(217,119,6,0.08); border:1px solid var(--warning); color:var(--warning);
+                {% else %}
+                background:rgba(25,135,84,0.08); border:1px solid var(--success); color:var(--success);
+                {% endif %}">
+        {{ flash_models.text }}
+    </div>
+    {% endif %}
+
+    <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.75rem;">
+        <h2 class="setup-h2" style="margin:0; flex:1;">Models{{ help('setup.models') }}</h2>
+        <button type="button" class="btn btn-outline"
+                onclick="toggleForm('add-model-form')"
+                style="padding:0.25rem 0.6rem; font-size:0.72rem;">+ Add Manual</button>
+    </div>
+
+    {# ── Manual add form ── #}
+    <div id="add-model-form" style="display:none;" class="provider-edit-form">
+        <div style="font-size:0.75rem; font-weight:600; margin-bottom:0.5rem;">Add model manually</div>
+        <form hx-post="{{ url_for('setup.model_add') }}"
+              hx-target="#setup-content" hx-swap="innerHTML">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end;">
+                <div>
+                    <label class="form-label-xs">Provider</label>
+                    <select name="provider_id" required class="form-control-xs">
+                        <option value="">— select —</option>
+                        {% for p in providers %}
+                        <option value="{{ p.id }}">{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label-xs">Model ID</label>
+                    <input type="text" name="model_id" required placeholder="e.g. llama3.2:latest"
+                           class="form-control-xs" style="width:180px;">
+                </div>
+                <div>
+                    <label class="form-label-xs">Display name</label>
+                    <input type="text" name="display_name" placeholder="(uses model ID)"
+                           class="form-control-xs" style="width:150px;">
+                </div>
+                <div>
+                    <label class="form-label-xs">Tier</label>
+                    <select name="task_tier" class="form-control-xs">
+                        <option value="">—</option>
+                        <option value="fast">Fast</option>
+                        <option value="balanced">Balanced</option>
+                        <option value="quality">Quality</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label-xs">Context length</label>
+                    <input type="number" name="context_length" placeholder="(optional)"
+                           class="form-control-xs" style="width:100px;">
+                </div>
+                <button type="submit" class="btn btn-primary"
+                        style="padding:0.25rem 0.6rem; font-size:0.72rem;">Add</button>
+                <button type="button" class="btn btn-outline"
+                        onclick="toggleForm('add-model-form')"
+                        style="padding:0.25rem 0.5rem; font-size:0.72rem;">Cancel</button>
+            </div>
+        </form>
+    </div>
+
+    {% if not providers %}
+    <p style="color:var(--text-muted); font-size:var(--text-sm);">No providers configured yet.</p>
+    {% endif %}
+
+    {% for p in providers %}
+    {% set pmodels = models_by_provider.get(p.id, []) %}
+    {% set enabled_count  = pmodels | selectattr('is_enabled') | list | length %}
+    {% set disabled_count = pmodels | rejectattr('is_enabled') | list | length %}
+
+    <details style="margin-bottom:0.5rem; border:1px solid var(--border-color);
+                    border-radius:var(--radius-sm); overflow:hidden;" open>
+
+        {# ── Provider header ── #}
+        <summary style="padding:0.4rem 0.75rem; background:var(--bg-secondary); cursor:pointer;
+                        font-size:0.8rem; font-weight:600; list-style:none;
+                        display:flex; align-items:center; gap:0.5rem; user-select:none;">
+            {{ p.name }}
+            <span style="font-size:0.65rem; color:var(--text-muted); font-weight:400;">
+                {{ enabled_count }}/{{ pmodels | length }} enabled
+            </span>
+            <span style="flex:1;"></span>
+
+            {# Disable All #}
+            {% if enabled_count > 0 %}
+            <form hx-post="{{ url_for('setup.provider_models_disable_all', provider_id=p.id) }}"
+                  hx-target="#setup-content" hx-swap="innerHTML"
+                  hx-include="#global-csrf"
+                  onsubmit="return confirm('Disable all models for {{ p.name | e }}?')"
+                  style="display:inline;" onclick="event.stopPropagation()">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-xs">Disable All</button>
+            </form>
+            {% endif %}
+
+            {# Delete Disabled #}
+            {% if disabled_count > 0 %}
+            <form hx-post="{{ url_for('setup.provider_models_delete_disabled', provider_id=p.id) }}"
+                  hx-target="#setup-content" hx-swap="innerHTML"
+                  hx-include="#global-csrf"
+                  onsubmit="return confirm('Permanently delete {{ disabled_count }} disabled model(s) for {{ p.name | e }}?')"
+                  style="display:inline;" onclick="event.stopPropagation()">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-xs btn-xs-danger">
+                    Delete Disabled ({{ disabled_count }})
+                </button>
+            </form>
+            {% endif %}
+        </summary>
+
+        {# ── Models table ── #}
+        {% if pmodels %}
+        <table style="width:100%; border-collapse:collapse; font-size:0.72rem;">
+            <thead>
+                <tr style="background:var(--bg-secondary);">
+                    <th style="padding:0.3rem 0.75rem; text-align:left;
+                               border-bottom:1px solid var(--border-color);">Model</th>
+                    <th style="padding:0.3rem 0.5rem; text-align:center;
+                               border-bottom:1px solid var(--border-color); width:62px;">Enabled</th>
+                    <th style="padding:0.3rem 0.5rem; text-align:center;
+                               border-bottom:1px solid var(--border-color); width:90px;">Recommended</th>
+                    <th style="padding:0.3rem 0.5rem; text-align:center;
+                               border-bottom:1px solid var(--border-color); width:95px;">Tier</th>
+                    <th style="padding:0.3rem 0.5rem; text-align:center;
+                               border-bottom:1px solid var(--border-color); width:42px;">ASR</th>
+                    <th style="padding:0.3rem 0.5rem; text-align:center;
+                               border-bottom:1px solid var(--border-color); width:50px;">Del</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in pmodels | sort(attribute='model_id') %}
+                <tr style="border-bottom:1px solid var(--border-color);
+                           {% if not m.is_enabled %}opacity:0.45;{% endif %}">
+
+                    {# Model name #}
+                    <td style="padding:0.3rem 0.75rem;">
+                        <div style="font-weight:500; font-family:monospace; font-size:0.7rem;">
+                            {{ m.model_id }}
+                        </div>
+                        {% if m.display_name and m.display_name != m.model_id %}
+                        <div style="color:var(--text-muted); font-size:0.65rem;">
+                            {{ m.display_name }}
+                        </div>
+                        {% endif %}
+                        {% if m.is_asr and p.provider_type == 'asr_deepgram' %}
+                        <div style="margin-top:0.2rem; font-size:0.65rem; color:var(--text-muted);">
+                            Speaker turns
+                            <select onchange="saveSpeakerTurns(this, '{{ url_for('setup.model_set_speaker_turns', model_id=m.id) }}')"
+                                    style="font-size:0.65rem;">
+                                <option value="" {{ 'selected' if not m.speaker_turns }}>Off</option>
+                                {% for v in ('latest', 'v2', 'v1') %}
+                                <option value="{{ v }}" {{ 'selected' if m.speaker_turns == v }}>{{ v }}</option>
+                                {% endfor %}
+                            </select>
+                            <span class="speaker-turns-status"></span>
+                            <div>On Scribe and Quick Scribe, Deepgram splits each chunk into
+                                speaker turns and the local labelling step is skipped. Dictation
+                                never asks for it. "latest" follows Deepgram's newest version.</div>
+                        </div>
+                        {% endif %}
+                        <details style="margin-top:0.2rem; font-size:0.65rem;">
+                            <summary style="cursor:pointer; color:var(--text-muted);">Extra request
+                                parameters{% if m.request_params %}: <code>{{ m.request_params }}</code>{% endif %}</summary>
+                            <textarea id="params-{{ m.id }}" rows="2" maxlength="2000"
+                                      placeholder='{{ '{"numerals": true}' if m.is_asr else '{"reasoning_effort": "none"}' }}'
+                                      style="width:100%; margin-top:0.25rem; font-family:monospace; font-size:0.7rem;
+                                             border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                                             background:var(--bg-primary); color:var(--text-primary);">{{ m.request_params or '' }}</textarea>
+                            <button type="button" class="btn-xs"
+                                    onclick="saveModelParams({{ m.id }}, '{{ url_for('setup.model_set_request_params', model_id=m.id) }}')">Save</button>
+                            <span id="params-status-{{ m.id }}"></span>
+                            <div style="color:var(--text-muted); margin-top:0.15rem;">
+                                {% if m.is_asr %}
+                                A JSON object sent with every transcription request to this model
+                                (query parameters for Deepgram, form fields for a Whisper server).
+                                MedUI sets the model, the language and speaker turns itself.
+                                {% else %}
+                                A JSON object sent with every request to this model; a pipeline step can
+                                override it. Ignored for Anthropic's own API.
+                                {% endif %}
+                            </div>
+                        </details>
+                    </td>
+
+                    {# Enabled toggle #}
+                    <td style="text-align:center; padding:0.3rem 0.5rem;">
+                        <button type="button"
+                                hx-post="{{ url_for('setup.model_toggle', model_id=m.id) }}"
+                                hx-include="#global-csrf"
+                                hx-on:htmx:after-request="toggleModelBtn(this, event)"
+                                class="model-toggle-btn"
+                                data-enabled="{{ '1' if m.is_enabled else '0' }}"
+                                style="background:{{ 'var(--success)' if m.is_enabled else 'var(--bg-secondary)' }};
+                                       color:{{ '#fff' if m.is_enabled else 'var(--text-muted)' }};">
+                            {{ 'ON' if m.is_enabled else 'OFF' }}
+                        </button>
+                    </td>
+
+                    {# Recommended #}
+                    <td style="text-align:center; padding:0.3rem 0.5rem;">
+                        <input type="checkbox" {{ 'checked' if m.is_recommended }}
+                               hx-post="{{ url_for('setup.model_set_recommended', model_id=m.id) }}"
+                               hx-include="#global-csrf"
+                               hx-vals='js:{recommended: event.target.checked ? "1" : "0"}'
+                               style="cursor:pointer; accent-color:var(--accent);">
+                    </td>
+
+                    {# Tier #}
+                    <td style="text-align:center; padding:0.3rem 0.5rem;">
+                        <select hx-post="{{ url_for('setup.model_set_tier', model_id=m.id) }}"
+                                hx-include="#global-csrf"
+                                hx-trigger="change"
+                                name="tier"
+                                style="padding:0.1rem 0.3rem; font-size:0.65rem;
+                                       border:1px solid var(--border-color);
+                                       border-radius:var(--radius-sm);
+                                       background:var(--bg-primary); color:var(--text-primary);">
+                            <option value=""        {{ 'selected' if not m.task_tier }}>—</option>
+                            <option value="fast"    {{ 'selected' if m.task_tier == 'fast' }}>Fast</option>
+                            <option value="balanced"{{ 'selected' if m.task_tier == 'balanced' }}>Balanced</option>
+                            <option value="quality" {{ 'selected' if m.task_tier == 'quality' }}>Quality</option>
+                        </select>
+                    </td>
+
+                    {# ASR #}
+                    <td style="text-align:center; padding:0.3rem 0.5rem;">
+                        <input type="checkbox" {{ 'checked' if m.is_asr }}
+                               hx-post="{{ url_for('setup.model_set_asr', model_id=m.id) }}"
+                               hx-include="#global-csrf"
+                               hx-vals='js:{is_asr: event.target.checked ? "1" : "0"}'
+                               style="cursor:pointer;">
+                    </td>
+
+                    {# Delete #}
+                    <td style="text-align:center; padding:0.3rem 0.5rem;">
+                        <form hx-post="{{ url_for('setup.model_delete', model_id=m.id) }}"
+                              hx-target="#setup-content" hx-swap="innerHTML"
+                              hx-include="#global-csrf"
+                              onsubmit="return confirm('Delete {{ m.model_id | e }}?')"
+                              style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn-xs btn-xs-danger"
+                                    style="padding:0.1rem 0.35rem;">✕</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% else %}
+        <p style="padding:0.75rem; color:var(--text-muted); font-size:var(--text-sm); margin:0;">
+            No models yet.
+            {% if p.supports_model_fetching %}
+            Use <strong>Fetch Models</strong> on the Providers tab.
+            {% else %}
+            Add manually using the button above.
+            {% endif %}
+        </p>
+        {% endif %}
+
+    </details>
+    {% endfor %}
+</div>
+
+<style>
+.model-toggle-btn {
+    padding: 0.1rem 0.4rem;
+    font-size: 0.65rem;
+    cursor: pointer;
+    border-radius: 0.2rem;
+    border: none;
+    min-width: 32px;
+}
+</style>
+
+<script>
+function toggleForm(id) {
+    var el = document.getElementById(id);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+function saveModelParams(id, url) {
+    var fd = new FormData();
+    fd.append('csrf_token', document.getElementById('global-csrf').value);
+    fd.append('request_params', document.getElementById('params-' + id).value);
+    var status = document.getElementById('params-status-' + id);
+    status.textContent = 'Saving…';
+    status.style.color = 'var(--text-muted)';
+    fetch(url, { method: 'POST', body: fd })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+        if (data.error) {
+            status.textContent = '✗ ' + data.error;
+            status.style.color = 'var(--danger)';
+        } else {
+            document.getElementById('params-' + id).value = data.request_params || '';
+            status.textContent = '✓ Saved';
+            status.style.color = 'var(--success)';
+        }
+    })
+    .catch(function () { status.textContent = '✗ Network error'; });
+}
+function saveSpeakerTurns(sel, url) {
+    var fd = new FormData();
+    fd.append('csrf_token', document.getElementById('global-csrf').value);
+    fd.append('speaker_turns', sel.value);
+    var status = sel.parentNode.querySelector('.speaker-turns-status');
+    status.textContent = 'Saving…';
+    status.style.color = 'var(--text-muted)';
+    fetch(url, { method: 'POST', body: fd })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+        if (data.error) {
+            status.textContent = '✗ ' + data.error;
+            status.style.color = 'var(--danger)';
+        } else {
+            status.textContent = '✓ Saved';
+            status.style.color = 'var(--success)';
+        }
+    })
+    .catch(function () { status.textContent = '✗ Network error'; });
+}
+function toggleModelBtn(btn, event) {
+    try {
+        var data = JSON.parse(event.detail.xhr.responseText);
+        var on = data.enabled;
+        btn.textContent = on ? 'ON' : 'OFF';
+        btn.style.background = on ? 'var(--success)' : 'var(--bg-secondary)';
+        btn.style.color = on ? '#fff' : 'var(--text-muted)';
+        btn.closest('tr').style.opacity = on ? '1' : '0.45';
+    } catch(e) {}
+}
+</script>

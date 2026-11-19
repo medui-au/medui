@@ -1,0 +1,18 @@
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+{% if not rows %}
+<p class="section-empty">No outgoing letters on file.</p>
+{% else %}
+<table class="data-table">
+  <thead><tr><th>Date</th><th>To</th><th>Subject</th><th>From</th></tr></thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td class="text-muted nowrap">{{ r.CORRESPONDENCEDATE }}</td>
+      <td class="text-sm">{{ r.Recipient }}</td>
+      <td class="text-sm">{{ r.Subject }}</td>
+      <td class="text-xs text-muted">{{ r.Sender }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}

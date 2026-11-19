@@ -1,0 +1,176 @@
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}" id="global-csrf">
+
+{% if flash_msg %}
+<div style="margin-bottom:1rem; padding:0.5rem 0.75rem; border-radius:var(--radius-sm);
+            font-size:var(--text-sm);
+            {% if flash_ok %}background:rgba(25,135,84,0.08); border:1px solid var(--success); color:var(--success);
+            {% else %}background:rgba(220,53,69,0.08); border:1px solid var(--danger); color:var(--danger);{% endif %}">
+    {{ flash_msg }}
+</div>
+{% endif %}
+
+<form hx-post="{{ url_for('setup.maintenance_save') }}"
+      hx-target="#setup-content" hx-swap="innerHTML">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+{# ── Data Retention ──────────────────────────────────────────────────── #}
+<div class="setup-section">
+    <div class="setup-h2">Data Retention{{ help('setup.maintenance') }}</div>
+    <p style="font-size:var(--text-sm); color:var(--text-muted); margin-bottom:1rem;">
+        Rows older than the configured window are eligible for purge. Minimum 1 day for each.
+    </p>
+
+    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem; max-width:580px; margin-bottom:1.25rem;">
+        <div>
+            <label style="display:block; font-size:0.72rem; font-weight:600;
+                          color:var(--text-muted); margin-bottom:0.3rem;">
+                Transcripts (days)
+            </label>
+            <input type="number" name="retention_transcripts"
+                   value="{{ retention_transcripts }}" min="1"
+                   style="width:100%; padding:0.35rem 0.5rem; font-size:var(--text-sm);
+                          border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                          background:var(--bg-primary); color:var(--text-primary);">
+            <p style="margin:0.2rem 0 0; font-size:0.68rem; color:var(--text-muted);">
+                Encrypted voice scribe transcripts
+            </p>
+        </div>
+        <div>
+            <label style="display:block; font-size:0.72rem; font-weight:600;
+                          color:var(--text-muted); margin-bottom:0.3rem;">
+                Patient messages (days)
+            </label>
+            <input type="number" name="retention_messages"
+                   value="{{ retention_messages }}" min="1"
+                   style="width:100%; padding:0.35rem 0.5rem; font-size:var(--text-sm);
+                          border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                          background:var(--bg-primary); color:var(--text-primary);">
+            <p style="margin:0.2rem 0 0; font-size:0.68rem; color:var(--text-muted);">
+                Sent, failed, and revoked messages only
+            </p>
+        </div>
+        <div>
+            <label style="display:block; font-size:0.72rem; font-weight:600;
+                          color:var(--text-muted); margin-bottom:0.3rem;">
+                Pipeline runs (days)
+            </label>
+            <input type="number" name="retention_runs"
+                   value="{{ retention_runs }}" min="1"
+                   style="width:100%; padding:0.35rem 0.5rem; font-size:var(--text-sm);
+                          border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                          background:var(--bg-primary); color:var(--text-primary);">
+            <p style="margin:0.2rem 0 0; font-size:0.68rem; color:var(--text-muted);">
+                Completed and failed run records
+            </p>
+        </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.25rem;">
+        <label class="toggle-switch">
+            <input type="checkbox" name="auto_cleanup" value="true"
+                   {% if auto_cleanup %}checked{% endif %}>
+            <span class="toggle-switch-slider"></span>
+        </label>
+        <span style="font-size:var(--text-sm);">Enable automatic daily cleanup</span>
+    </div>
+    <p style="margin:0.25rem 0 0 3rem; font-size:0.7rem; color:var(--text-muted);">
+        When enabled, eligible rows are purged once per day during an admin session.
+    </p>
+</div>
+
+{# ── Staff Privacy ───────────────────────────────────────────────────── #}
+<div class="setup-section">
+    <div class="setup-h2">Staff Privacy</div>
+    <p style="font-size:var(--text-sm); color:var(--text-muted); margin-bottom:0.75rem;">
+        When enabled, staff members' own patient records are hidden from all colleagues.
+        Only the matched staff member can view their own record.
+        Matching uses the <code>USERID</code> field in BPSDB against registered users.
+    </p>
+    <div style="display:flex; align-items:center; gap:0.6rem;">
+        <label class="toggle-switch">
+            <input type="checkbox" name="hide_staff_records" value="true"
+                   {% if hide_staff_records %}checked{% endif %}>
+            <span class="toggle-switch-slider"></span>
+        </label>
+        <span style="font-size:var(--text-sm);">Hide staff patient records from colleagues</span>
+    </div>
+</div>
+
+{# ── Privacy Review (ADR-120) ────────────────────────────────────────── #}
+<div class="setup-section">
+    <div class="setup-h2">Privacy Review{{ help('privacy-review.switch') }}</div>
+    <p style="font-size:var(--text-sm); color:var(--text-muted); margin-bottom:0.75rem;">
+        Adds <strong>Admin → Privacy Review</strong>: a list of the AI requests in which MedUI's pre-send
+        privacy check found something, or that a user reported, so an administrator can look at each one
+        and record what it was. Switching it off hides the list and the review form; reviews already saved
+        are kept. The check itself always runs, whether this is on or off.
+    </p>
+    <div style="display:flex; align-items:center; gap:0.6rem;">
+        <label class="toggle-switch">
+            <input type="checkbox" name="privacy_review_page" value="true"
+                   {% if privacy_review_page %}checked{% endif %}>
+            <span class="toggle-switch-slider"></span>
+        </label>
+        <span style="font-size:var(--text-sm);">Show the Privacy Review page to administrators</span>
+    </div>
+</div>
+
+<div style="padding:0 1.5rem 1rem;">
+    <button type="submit" class="btn btn-primary" style="font-size:var(--text-sm);">
+        Save Settings
+    </button>
+</div>
+
+</form>
+
+{# ── Purge ───────────────────────────────────────────────────────────── #}
+<div class="setup-section">
+    <div class="setup-h2">Purge Eligible Data</div>
+    <p style="font-size:var(--text-sm); color:var(--text-muted); margin-bottom:1rem;">
+        Permanently deletes rows that exceed the configured retention windows above.
+        Save any retention changes before running a purge.
+    </p>
+
+    <div id="purge-preview">
+
+        {% if purge_total is defined %}
+        <div style="display:grid; grid-template-columns:repeat(3,1fr) auto; gap:0.75rem;
+                    align-items:center; max-width:640px; margin-bottom:1rem;">
+            {% for label, count in [
+                ('Transcripts', purge_transcripts),
+                ('Messages',    purge_messages),
+                ('Pipeline runs', purge_runs),
+            ] %}
+            <div style="padding:0.6rem 0.75rem; border:1px solid var(--border-color);
+                        border-radius:var(--radius-sm); text-align:center;">
+                <div style="font-size:1.2rem; font-weight:700;
+                             color:{% if count > 0 %}var(--warning){% else %}var(--text-muted){% endif %};">
+                    {{ count }}
+                </div>
+                <div style="font-size:0.68rem; color:var(--text-muted);">{{ label }}</div>
+            </div>
+            {% endfor %}
+            <div style="text-align:center; font-size:0.72rem; color:var(--text-muted);">
+                = {{ purge_total }} total
+            </div>
+        </div>
+
+        {% if purge_total > 0 %}
+        <form hx-post="{{ url_for('setup.maintenance_purge') }}"
+              hx-target="#setup-content" hx-swap="innerHTML"
+              hx-confirm="Permanently delete {{ purge_total }} row(s)? This cannot be undone.">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline"
+                    style="font-size:var(--text-sm); border-color:var(--danger); color:var(--danger);">
+                Purge {{ purge_total }} row(s) now
+            </button>
+        </form>
+        {% else %}
+        <p style="font-size:0.78rem; color:var(--success);">Nothing eligible for purge.</p>
+        {% endif %}
+
+        {% else %}
+        <p style="font-size:0.78rem; color:var(--text-muted);">Loading purge preview…</p>
+        {% endif %}
+    </div>
+</div>

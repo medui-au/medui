@@ -1,0 +1,23 @@
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+{% if not rows %}
+<p class="section-empty">No recalls on file.</p>
+{% else %}
+<table class="data-table">
+  <thead><tr><th>Due</th><th>Reason</th><th>Status</th></tr></thead>
+  <tbody>
+    {% for r in rows %}
+    <tr class="{{ 'row-struck' if r.IS_STRUCK == 'true' else '' }}">
+      <td class="text-muted nowrap">{{ r.REMINDERDUE | clinical_date }}</td>
+      <td class="{{ 'text-muted' if r.IS_STRUCK == 'true' else '' }}">{{ r.REASONTEXT }}</td>
+      <td>
+        {% if r.IS_STRUCK == 'true' %}
+          <span class="badge badge-neutral">{{ 'Sent' if r.SENT == 'true' else 'Done' }}</span>
+        {% else %}
+          <span class="badge badge-warning">Pending</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}

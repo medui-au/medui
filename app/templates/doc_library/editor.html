@@ -1,0 +1,743 @@
+{% extends 'base.html' %}
+{% block title %}{% if doc %}{{ doc.title }}{% else %}New Document{% endif %} — Library — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+/* ── Editor layout ── */
+.lib-editor-wrap  { display:flex; flex-direction:column; height:calc(100vh - 56px); overflow:hidden; }
+
+/* When editor sits inside workspace-main, let the workspace handle viewport height */
+.workspace-main--lib-editor             { overflow:hidden; padding:0; display:flex; flex-direction:column; }
+.workspace-main--lib-editor .lib-editor-wrap { height:100%; }
+
+/* ── Header bar ── */
+.lib-editor-hdr   { flex-shrink:0; display:flex; align-items:center; gap:0.6rem;
+                    padding:0.5rem 1rem; border-bottom:1px solid var(--border-color);
+                    background:var(--bg-secondary); flex-wrap:wrap; }
+.lib-back-link    { font-size:var(--text-sm); color:var(--accent); text-decoration:none;
+                    white-space:nowrap; }
+.lib-back-link:hover { text-decoration:underline; }
+.lib-title-input  { flex:1; min-width:160px; max-width:380px; padding:0.3rem 0.5rem;
+                    font-size:var(--text-sm); font-weight:600;
+                    border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                    background:var(--bg-primary); color:var(--text-primary); }
+.lib-title-input:focus { outline:none; border-color:var(--accent); }
+.lib-vis-sel      { padding:0.3rem 0.4rem; font-size:var(--text-xs);
+                    border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                    background:var(--bg-primary); color:var(--text-primary); cursor:pointer; }
+.lib-kw-input     { flex:1; min-width:120px; max-width:260px; padding:0.3rem 0.5rem;
+                    font-size:var(--text-xs); color:var(--text-secondary);
+                    border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                    background:var(--bg-primary); }
+.lib-kw-input::placeholder { color:var(--text-muted); }
+.lib-kw-input:focus { outline:none; border-color:var(--accent); }
+
+/* ── Prompt area ── */
+.lib-prompt-area  { flex-shrink:0; padding:0.65rem 1rem 0;
+                    border-bottom:1px solid var(--border-color); background:var(--bg-primary); }
+.lib-prompt-lbl   { font-size:0.68rem; font-weight:600; text-transform:uppercase;
+                    letter-spacing:0.05em; color:var(--text-muted); display:block; margin-bottom:0.25rem; }
+.lib-prompt-row   { display:flex; gap:0.5rem; align-items:flex-start; }
+.lib-prompt-ta    { flex:1; resize:vertical; padding:0.45rem 0.6rem; font-size:var(--text-sm);
+                    line-height:1.5; border:1px solid var(--border-color);
+                    border-radius:var(--radius-sm); background:var(--bg-primary);
+                    color:var(--text-primary); font-family:inherit; }
+.lib-prompt-ta:focus { outline:none; border-color:var(--accent); }
+.lib-prompt-btns  { display:flex; flex-direction:column; gap:0.35rem; flex-shrink:0; }
+.lib-run-btn      { padding:0.35rem 0.75rem; font-size:var(--text-sm); font-weight:600;
+                    background:var(--accent); color:#fff; border:none;
+                    border-radius:var(--radius-sm); cursor:pointer; white-space:nowrap; }
+.lib-run-btn:hover   { background:var(--accent-hover); }
+.lib-run-btn:disabled{ opacity:0.5; cursor:not-allowed; }
+.lib-model-sel    { padding:0.28rem 0.4rem; font-size:var(--text-xs);
+                    border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                    background:var(--bg-primary); color:var(--text-secondary); cursor:pointer; }
+.lib-model-badge  { font-size:0.62rem; padding:0.05rem 0.3rem; border-radius:0.2rem; font-weight:700;
+                    color:#fff; align-self:center; white-space:nowrap; }
+.lib-badge-local  { background:var(--success); }
+.lib-badge-cloud  { background:var(--accent); }
+.lib-iterate-row  { padding:0.25rem 0 0; font-size:var(--text-xs); color:var(--text-secondary); }
+.lib-iterate-row label { display:flex; align-items:center; gap:0.35rem; cursor:pointer;
+                         user-select:none; }
+.lib-iterate-row input[type=checkbox] { cursor:pointer; accent-color:var(--accent); }
+.lib-status-row   { display:flex; align-items:center; gap:0.5rem; min-height:1.4rem;
+                    padding:0.3rem 0 0.4rem; }
+.lib-status-dot   { width:7px; height:7px; border-radius:50%;
+                    background:var(--text-muted); display:none; flex-shrink:0; }
+.lib-status-dot.running { background:var(--accent); animation:lib-pulse 1s infinite; display:block; }
+@keyframes lib-pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.lib-status-txt   { font-size:var(--text-xs); color:var(--text-muted); }
+.lib-sse-log      { font-size:0.7rem; font-family:var(--font-mono,monospace);
+                    color:var(--text-secondary); white-space:nowrap;
+                    overflow:hidden; text-overflow:ellipsis; flex:1; }
+
+/* ── Output section ── */
+.lib-output-area  { flex:1; display:flex; flex-direction:column; min-height:0; }
+.lib-tab-bar      { flex-shrink:0; display:flex; border-bottom:2px solid var(--border-color);
+                    background:var(--bg-secondary); padding:0 1rem; gap:0; }
+.lib-tab          { padding:0.4rem 0.9rem; font-size:0.78rem; font-weight:600; cursor:pointer;
+                    border:none; background:none; color:var(--text-muted);
+                    border-bottom:2px solid transparent; margin-bottom:-2px; white-space:nowrap; }
+.lib-tab:hover    { color:var(--text-primary); }
+.lib-tab.active   { color:var(--accent); border-bottom-color:var(--accent); }
+
+.lib-action-bar   { flex-shrink:0; display:flex; flex-wrap:wrap; gap:0.35rem; align-items:center;
+                    padding:0.45rem 1rem; border-bottom:1px solid var(--border-subtle);
+                    background:var(--bg-secondary); }
+.lib-btn          { font-size:0.72rem; padding:0.2rem 0.55rem; background:var(--bg-secondary);
+                    border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                    cursor:pointer; color:var(--text-primary); white-space:nowrap;
+                    font-family:inherit; transition:background 0.2s, border-color 0.2s, color 0.2s; }
+.lib-btn:hover    { background:var(--bg-primary); border-color:var(--accent); }
+.lib-btn.accent   { background:var(--accent); color:#fff; border-color:var(--accent); }
+.lib-btn.accent:hover { background:var(--accent-hover); border-color:var(--accent-hover); }
+.lib-btn.lib-btn-success { background:var(--success,#16a34a); color:#fff; border-color:var(--success,#16a34a); }
+@keyframes lib-glow      { 0%,100% { box-shadow:0 0 0 0 transparent; border-color:var(--border-color); }
+                            50%     { box-shadow:0 0 6px 2px var(--success,#16a34a); border-color:var(--success,#16a34a); } }
+.lib-btn.lib-open-glow   { animation:lib-glow 1.8s ease-in-out infinite; }
+.lib-btn-sep      { width:1px; background:var(--border-color); align-self:stretch; margin:0 0.15rem; }
+
+.lib-tab-panel    { display:none; flex:1; min-height:0; overflow:hidden; }
+.lib-tab-panel.active { display:flex; }
+.lib-raw-ta       { flex:1; resize:none; padding:0.85rem 1rem; font-size:0.83rem;
+                    line-height:1.6; border:none; background:var(--bg-primary);
+                    color:var(--text-primary); font-family:inherit; outline:none; }
+.lib-raw-ta.lib-mono { font-family:var(--font-mono,monospace); white-space:pre; }
+.lib-rendered-div { flex:1; overflow-y:auto; padding:0.85rem 1rem; font-size:0.9rem;
+                    line-height:1.65; color:var(--text-primary); background:var(--bg-primary);
+                    white-space:normal; }
+.lib-rendered-div h1,.lib-rendered-div h2,.lib-rendered-div h3
+                  { font-weight:700; margin:0.6em 0 0.15em; }
+.lib-rendered-div h1 { font-size:1.2rem; }
+.lib-rendered-div h2 { font-size:1.05rem; }
+.lib-rendered-div h3 { font-size:0.95rem; }
+.lib-rendered-div p  { margin:0.35em 0; }
+.lib-rendered-div ul,.lib-rendered-div ol { padding-left:1.4em; margin:0.3em 0; }
+.lib-rendered-div li { margin:0.1em 0; }
+.lib-rendered-div strong { font-weight:700; }
+.lib-rendered-div em     { font-style:italic; }
+.lib-rendered-div code   { font-family:var(--font-mono,monospace); font-size:0.85em;
+                           background:var(--bg-secondary); padding:0.05em 0.25em;
+                           border-radius:0.2rem; }
+.lib-rendered-div hr     { border:none; border-top:1px solid var(--border-color); margin:0.6em 0; }
+.lib-rendered-placeholder{ color:var(--text-muted); font-style:italic; font-size:var(--text-sm); }
+
+.lib-nolink-close { float:right; margin:-0.15rem -0.3rem 0 0.5rem; background:none; border:none; cursor:pointer;
+                    font-size:1.1rem; line-height:1; color:inherit; padding:0 0.2rem; }
+.lib-nolink-warning { flex-shrink:0; font-size:0.75rem; line-height:1.4; padding:0.4rem 0.75rem;
+                      background:var(--warning-light, rgba(245,158,11,0.12)); color:var(--warning, #b45309);
+                      border-left:4px solid var(--warning, #b45309); }
+
+.lib-prompt-area.lib-prompt-collapsed { display:none; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="lib-editor-wrap">
+
+  {# ── Header bar ── #}
+  <div class="lib-editor-hdr">
+    <a href="{{ url_for('doc_library.index') }}" class="lib-back-link">← Library</a>
+    <input type="text" id="lib-title" class="lib-title-input"
+           placeholder="Document title…"
+           value="{{ doc.title if doc else '' }}">
+    <select id="lib-vis" class="lib-vis-sel" title="Visibility">
+      <option value="all"          {% if not doc or doc.visibility.value == 'all' %}selected{% endif %}>All users</option>
+      <option value="doctors_only" {% if doc and doc.visibility.value == 'doctors_only' %}selected{% endif %}>Doctors only</option>
+      <option value="private"      {% if doc and doc.visibility.value == 'private' %}selected{% endif %}>Private</option>
+    </select>
+    <input type="text" id="lib-keywords" class="lib-kw-input"
+           placeholder="Keywords (for filtering)…"
+           value="{{ doc.keywords if doc and doc.keywords else '' }}">
+  </div>
+
+  {# ── Not linked to patients (ADR-093) ── #}
+  <div class="lib-nolink-warning" id="lib-nolink-warning" role="note">
+    <button type="button" class="lib-nolink-close" onclick="libDismissWarning()"
+            title="I've read this — hide it for this document" aria-label="Dismiss">×</button>
+    ⚠ <strong>Library documents are not linked to any patient.</strong>{{ help('library.patients') }}
+    Don't type or paste a patient's name or details here — they would be sent to a cloud AI
+    without patient-level redaction. Use the AI assistant or the chatbot for anything about a
+    patient; use <em>Email</em> or <em>BP →</em> below to send a finished document to a patient,
+    choosing them in Comms.
+  </div>
+
+  {# ── AI Prompt area ── #}
+  <div class="lib-prompt-area">
+    <div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.25rem;">
+      <label class="lib-prompt-lbl" for="lib-prompt" style="margin-bottom:0;">AI Prompt{{ help('library.ai') }}</label>
+      <button class="dictation-btn"
+              data-dictate-for="lib-prompt"
+              data-dictate-url="{{ url_for('voice.dictate') }}"
+              data-worklet-url="{{ url_for('static', filename='js/audio-processor.js') }}"
+              title="Dictate into prompt"
+              aria-label="Dictate into prompt"
+              aria-pressed="false"
+              type="button">🎤</button>
+    </div>
+    <div class="lib-prompt-row">
+      <textarea id="lib-prompt" class="lib-prompt-ta" rows="4"
+                placeholder="Describe the document you want to generate, or give instructions to refine the current output…"></textarea>
+      <div class="lib-prompt-btns">
+        <button id="lib-run-btn" class="lib-run-btn"
+                onclick="libRunPipeline()"
+                {% if not current_user.can_use_ai %}disabled title="AI generation is for doctors and administrators"
+                {% elif not lib_pipeline_id %}disabled title="No [LIB] pipeline found — configure one in Pipeline Designer"{% endif %}>
+          ▶ Generate
+        </button>
+        <select id="lib-model-sel" class="lib-model-sel" title="Model override (optional)"
+                onchange="libUpdateModelBadge()">
+          <option value="">Pipeline default</option>
+          {% for m in ai_models %}
+          <option value="{{ m.id }}">{{ m.display_name }}</option>
+          {% endfor %}
+        </select>
+        {% if lib_default_model %}
+        <span id="lib-model-badge" class="lib-model-badge {{ 'lib-badge-local' if lib_default_model.is_local else 'lib-badge-cloud' }}"
+              title="Resolved default model for the [LIB] pipeline">{{ lib_default_model.display_name }}</span>
+        {% endif %}
+      </div>
+    </div>
+    <div id="lib-iterate-row" class="lib-iterate-row" style="display:none;">
+      <label>
+        <input type="checkbox" id="lib-iterate-cb" checked>
+        Iterate on existing document
+      </label>
+    </div>
+    <div class="lib-status-row">
+      <div id="lib-dot" class="lib-status-dot"></div>
+      <span id="lib-sse-log" class="lib-sse-log"></span>
+      <span id="lib-status-txt" class="lib-status-txt"></span>
+    </div>
+  </div>
+
+  {# ── Output area ── #}
+  <div class="lib-output-area">
+
+    {# Tab bar #}
+    <div class="lib-tab-bar">
+      <button class="lib-tab active" id="tab-raw-btn"
+              onclick="libSwitchTab('raw', this)">Raw</button>
+      <button class="lib-tab" id="tab-rendered-btn"
+              onclick="libSwitchTab('rendered', this)">Rendered</button>
+    </div>
+
+    {# Action bar #}
+    <div class="lib-action-bar">
+      <button id="lib-open-btn" class="lib-btn" style="display:none;" onclick="libOpenHtml()"
+              title="Open as an HTML page in a new tab">Open ↗</button>
+      <button class="lib-btn" onclick="libPrint()" title="Print">Print</button>
+      <button class="lib-btn" onclick="libCopy(this)" title="Copy raw content">Copy</button>
+      <button id="lib-mono-toggle" class="lib-btn" onclick="libToggleMono()"
+              title="Toggle monospaced font in Raw view (for aligned tables/calendars)">Mono</button>
+      <button class="lib-btn" onclick="libToComms('bp')"
+              title="File to a patient's Best Practice record — choose the patient in Comms">BP →</button>
+      <button class="lib-btn" onclick="libToComms('email')"
+              title="Email to a patient — choose the patient in Comms">Email</button>
+      <span class="lib-btn-sep"></span>
+      <button id="lib-undo-btn" class="lib-btn" onclick="libUndo()"
+              style="display:none" title="Restore content before last AI generation">↩ Undo</button>
+      <button class="lib-btn accent" onclick="libSave()" title="Save document">Save</button>
+      <button class="lib-btn" onclick="libSaveAs()" title="Save as new document"
+              {% if not doc %}disabled style="opacity:0.45;cursor:not-allowed" title="Save first, then use Save As"{% endif %}
+              id="lib-saveas-btn">Save As</button>
+      <span style="flex:1;"></span>
+      <button id="lib-prompt-toggle" class="lib-btn" onclick="libTogglePrompt()"
+              style="padding:0.2rem 0.5rem; font-size:0.78rem;">Hide AI</button>
+    </div>
+
+    {# Raw tab #}
+    <div class="lib-tab-panel active" id="tab-raw">
+      <textarea id="lib-raw-ta" class="lib-raw-ta"
+                placeholder="Generated content will appear here. You can also type or paste directly."
+                spellcheck="true">{{ doc.body if doc else '' }}</textarea>
+    </div>
+
+    {# Rendered tab #}
+    <div class="lib-tab-panel" id="tab-rendered">
+      <div id="lib-rendered-div" class="lib-rendered-div">
+        {% if doc and doc.body %}
+        <span class="lib-rendered-placeholder">(Switch to Raw tab to edit — Rendered view will update)</span>
+        {% else %}
+        <span class="lib-rendered-placeholder">Rendered markdown will appear here after generating content.</span>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>{# /lib-output-area #}
+</div>{# /lib-editor-wrap #}
+
+
+{# Hidden server data #}
+<script>
+const DOC_ID         = {{ doc.id | tojson if doc else 'null' }};
+const LIB_PIPELINE_ID = {{ lib_pipeline_id | tojson if lib_pipeline_id else 'null' }};
+const CSRF           = document.querySelector('meta[name="csrf-token"]')?.content || '';
+const RUN_URL        = '/pipeline/run/start';
+const STREAM_URL     = id => `/pipeline/run/${id}/stream`;
+const RENDER_MD_URL  = '/library/render-markdown';
+
+let _currentDocId    = DOC_ID;
+let _activeES        = null;
+let _preAiSnapshot   = null;   // raw content before last AI run (for undo)
+let _currentTab      = 'raw';
+let _cachedHtmlDoc   = null;   // extractHtmlDoc() result for the current raw content
+
+// ── Tab switching ──────────────────────────────────────────────────────────────
+
+function libSwitchTab(name, btn) {
+    document.querySelectorAll('.lib-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.lib-tab-panel').forEach(p => {
+        p.classList.remove('active');
+        p.style.display = 'none';
+    });
+    btn.classList.add('active');
+    const panel = document.getElementById('tab-' + name);
+    panel.classList.add('active');
+    panel.style.display = 'flex';
+    _currentTab = name;
+    if (name === 'rendered') {
+        _renderContent(document.getElementById('lib-raw-ta').value);
+    }
+}
+
+// ── HTML-document detection (Open button + Rendered tab) ────────────────────────
+
+function extractHtmlDoc(text) {
+    // Prefer a fenced code block explicitly labeled html, or one whose body
+    // is obviously a full document even if the model left the language tag
+    // off. Falls back to a bare (unfenced) <!DOCTYPE html>...</html> or
+    // <html>...</html> block for content that skips the fence entirely.
+    if (!text) return null;
+    const fenceRe = /```(\w*)\n([\s\S]*?)```/g;
+    let m;
+    while ((m = fenceRe.exec(text)) !== null) {
+        const body = m[2].trim();
+        // Only a fence whose body is actually a full document counts — a
+        // ```html fence wrapping a small snippet (e.g. a page-break <div>)
+        // must NOT be treated as "this is the whole document", or printing/
+        // opening/rendering would discard everything else in the source.
+        if (/^<!DOCTYPE html/i.test(body) || /^<html[\s>]/i.test(body)) {
+            return body;
+        }
+    }
+    const bare = text.match(/<!DOCTYPE html[\s\S]*<\/html>/i) || text.match(/<html[\s>][\s\S]*<\/html>/i);
+    return bare ? bare[0] : null;
+}
+
+function _updateOpenButton() {
+    _cachedHtmlDoc = extractHtmlDoc(document.getElementById('lib-raw-ta').value);
+    const btn = document.getElementById('lib-open-btn');
+    btn.style.display = _cachedHtmlDoc ? '' : 'none';
+    btn.classList.toggle('lib-open-glow', !!_cachedHtmlDoc);
+}
+
+function libOpenHtml() {
+    if (!_cachedHtmlDoc) return;
+    const blob = new Blob([_cachedHtmlDoc], { type: 'text/html' });
+    const url  = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60000); // give the new tab time to load
+}
+
+// ── Content renderer (markdown → sanitized HTML, or a detected HTML doc) ────────
+// Renders into a sandboxed iframe rather than injecting innerHTML directly into
+// the page — content here can be AI-generated or pasted, so it's treated the
+// same as untrusted input (matching the chatbot's Rendered tab).
+
+function _writeRenderedIframe(htmlDoc) {
+    const div = document.getElementById('lib-rendered-div');
+    div.innerHTML = '';
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'width:100%; height:100%; border:none; background:#fff;';
+    iframe.setAttribute('sandbox', 'allow-same-origin');
+    iframe.title = 'Rendered document';
+    div.appendChild(iframe);
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open();
+    doc.write(htmlDoc);
+    doc.close();
+}
+
+function _renderContent(text) {
+    const div = document.getElementById('lib-rendered-div');
+    if (!text || !text.trim()) {
+        div.innerHTML = '<span class="lib-rendered-placeholder">No content to render.</span>';
+        return;
+    }
+
+    const htmlDoc = extractHtmlDoc(text);
+    if (htmlDoc) {
+        _writeRenderedIframe(htmlDoc);
+        return;
+    }
+
+    div.innerHTML = '<span class="lib-rendered-placeholder">Rendering…</span>';
+    fetch(RENDER_MD_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({ text: text }),
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.html) _writeRenderedIframe(d.html);
+        else div.innerHTML = '<span class="lib-rendered-placeholder">Nothing to render.</span>';
+    })
+    .catch(() => { div.innerHTML = '<span class="lib-rendered-placeholder">Failed to render.</span>'; });
+}
+
+// ── Model badge ────────────────────────────────────────────────────────────────
+
+function libUpdateModelBadge() {
+    const badge = document.getElementById('lib-model-badge');
+    if (!badge) return;
+    const overridden = !!document.getElementById('lib-model-sel').value;
+    badge.style.display = overridden ? 'none' : '';
+}
+
+// ── Pipeline run ───────────────────────────────────────────────────────────────
+
+function libRunPipeline() {
+    if (!LIB_PIPELINE_ID) { alert('No [LIB] pipeline configured.'); return; }
+
+    const prompt = document.getElementById('lib-prompt').value.trim();
+    if (!prompt) { alert('Enter a prompt first.'); return; }
+
+    const rawTa    = document.getElementById('lib-raw-ta');
+    const rawContent = rawTa.value.trim();
+    _preAiSnapshot = rawTa.value;   // snapshot for undo
+
+    const btn = document.getElementById('lib-run-btn');
+    btn.disabled = true;
+
+    const dot = document.getElementById('lib-dot');
+    const log = document.getElementById('lib-sse-log');
+    const txt = document.getElementById('lib-status-txt');
+    dot.classList.add('running');
+    log.textContent = 'Starting…';
+    txt.textContent = '';
+
+    // Close any existing stream
+    if (_activeES) { _activeES.close(); _activeES = null; }
+
+    const iterate = document.getElementById('lib-iterate-cb').checked && !!rawContent;
+    const modelOverride = document.getElementById('lib-model-sel').value;
+    const inputData = {
+        user_instruction: prompt,
+        // When iterating, include the current doc with framing so the pipeline
+        // UserPrompt template can be: {input.user_instruction}{input.existing_content}
+        existing_content: iterate
+            ? '\n\nThe current document to refine:\n\n' + rawContent
+            : '',
+    };
+    // The key InferenceNode reads (it was model_override_id, so the choice was ignored).
+    if (modelOverride) inputData.model_id_override = parseInt(modelOverride);
+
+    fetch(RUN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({
+            pipeline_id: LIB_PIPELINE_ID,
+            patient_id:  null,   // the Library never runs with a patient (ADR-093)
+            input:       inputData,
+        }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) {
+            log.textContent = '✗ ' + data.error;
+            dot.classList.remove('running');
+            btn.disabled = false;
+            return;
+        }
+        _subscribeSSE(data.run_id);
+    })
+    .catch(err => {
+        log.textContent = '✗ ' + err;
+        dot.classList.remove('running');
+        btn.disabled = false;
+    });
+}
+
+function _subscribeSSE(runId) {
+    const btn = document.getElementById('lib-run-btn');
+    const dot = document.getElementById('lib-dot');
+    const log = document.getElementById('lib-sse-log');
+    const txt = document.getElementById('lib-status-txt');
+
+    const es = new EventSource(STREAM_URL(runId));
+    _activeES = es;
+
+    es.addEventListener('start',      ev => { log.textContent = '▶ ' + JSON.parse(ev.data).message; });
+    es.addEventListener('step_start', ev => { const d = JSON.parse(ev.data); log.textContent = `→ ${d.node}: ${d.message}`; });
+    es.addEventListener('step_done',  ev => { const d = JSON.parse(ev.data); log.textContent = `✓ ${d.node} (${d.duration_ms}ms)`; });
+    es.addEventListener('step_error', ev => { const d = JSON.parse(ev.data); log.textContent = `✗ ${d.node}: ${d.message}`; });
+
+    es.addEventListener('complete', ev => {
+        const d = JSON.parse(ev.data);
+        es.close(); _activeES = null;
+        dot.classList.remove('running');
+        btn.disabled = false;
+        log.textContent = '✓ ' + d.message;
+        txt.textContent = '✓ Done';
+        txt.style.color = 'var(--success)';
+
+        if (d.output) {
+            // Populate raw textarea
+            const rawTa = document.getElementById('lib-raw-ta');
+            rawTa.value = d.output;
+
+            // Re-detect HTML content, re-render if rendered tab is active
+            _updateOpenButton();
+            if (_currentTab === 'rendered') _renderContent(d.output);
+
+            // Show undo button
+            document.getElementById('lib-undo-btn').style.display = '';
+
+            // Reveal iterate checkbox now there is content
+            _updateIterateCheckbox();
+
+            // Auto-switch to raw tab
+            if (_currentTab !== 'raw') {
+                libSwitchTab('raw', document.getElementById('tab-raw-btn'));
+            }
+        }
+    });
+
+    es.addEventListener('error', () => {
+        es.close(); _activeES = null;
+        dot.classList.remove('running');
+        btn.disabled = false;
+        if (!log.textContent.startsWith('✓')) {
+            log.textContent = 'Stream error — see browser console.';
+        }
+    });
+}
+
+// ── Iterate checkbox ───────────────────────────────────────────────────────────
+
+function _updateIterateCheckbox() {
+    const hasContent = !!document.getElementById('lib-raw-ta').value.trim();
+    document.getElementById('lib-iterate-row').style.display = hasContent ? '' : 'none';
+}
+
+// ── Undo ───────────────────────────────────────────────────────────────────────
+
+function libUndo() {
+    if (_preAiSnapshot === null) return;
+    document.getElementById('lib-raw-ta').value = _preAiSnapshot;
+    _updateOpenButton();
+    if (_currentTab === 'rendered') _renderContent(_preAiSnapshot);
+    document.getElementById('lib-undo-btn').style.display = 'none';
+    _preAiSnapshot = null;
+}
+
+// ── Save ───────────────────────────────────────────────────────────────────────
+
+function _buildPayload() {
+    return {
+        title:      document.getElementById('lib-title').value.trim() || 'Untitled',
+        keywords:   document.getElementById('lib-keywords').value.trim(),
+        visibility: document.getElementById('lib-vis').value,
+        body:       document.getElementById('lib-raw-ta').value,
+        format:     'md',
+    };
+}
+
+function libSave() {
+    const payload = _buildPayload();
+    const url = _currentDocId ? `/library/${_currentDocId}/save` : '/library/save';
+
+    fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify(payload),
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (!d.ok) { alert(d.error || 'Save failed.'); return; }
+        if (!_currentDocId) {
+            _currentDocId = d.doc_id;
+            _rememberWarningDismissed();   // dismissed before the first save
+            // Update URL to edit page
+            history.replaceState(null, '', `/library/${d.doc_id}/edit`);
+            // Enable Save As button
+            const saBtn = document.getElementById('lib-saveas-btn');
+            if (saBtn) { saBtn.disabled = false; saBtn.style.opacity = ''; saBtn.style.cursor = ''; }
+        }
+        // Hide undo after save (committed)
+        document.getElementById('lib-undo-btn').style.display = 'none';
+        _preAiSnapshot = null;
+        _flashSave();
+    })
+    .catch(() => alert('Save request failed.'));
+}
+
+function libSaveAs() {
+    if (!_currentDocId) { alert('Save the document first before using Save As.'); return; }
+    const payload = _buildPayload();
+    payload.title = 'Copy of ' + payload.title;
+
+    fetch(`/library/${_currentDocId}/save-as`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify(payload),
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (!d.ok) { alert(d.error || 'Save As failed.'); return; }
+        // Navigate to the new document's editor
+        window.location.href = `/library/${d.doc_id}/edit`;
+    })
+    .catch(() => alert('Save As request failed.'));
+}
+
+function _flashSave() {
+    const btn = document.querySelector('.lib-btn.accent');
+    if (!btn) return;
+    const orig = btn.textContent;
+    btn.textContent = '✓ Saved';
+    setTimeout(() => { btn.textContent = orig; }, 1800);
+}
+
+// ── Prompt collapse ────────────────────────────────────────────────────────────
+
+function libToggleMono() {
+    const ta  = document.getElementById('lib-raw-ta');
+    const btn = document.getElementById('lib-mono-toggle');
+    const mono = ta.classList.toggle('lib-mono');
+    btn.classList.toggle('accent', mono);
+    try { localStorage.setItem('lib_raw_mono', mono ? '1' : '0'); } catch (_) {}
+}
+
+function libTogglePrompt() {
+    const area = document.querySelector('.lib-prompt-area');
+    const btn  = document.getElementById('lib-prompt-toggle');
+    const collapsed = area.classList.toggle('lib-prompt-collapsed');
+    btn.textContent = collapsed ? 'Show AI' : 'Hide AI';
+    try { localStorage.setItem('lib_prompt_collapsed', collapsed ? '1' : '0'); } catch (_) {}
+}
+
+// ── Helper buttons ─────────────────────────────────────────────────────────────
+
+function _printFullDoc(htmlDoc) {
+    const win = window.open('', '_blank');
+    if (!win) { alert('Pop-up blocked — allow pop-ups to print.'); return; }
+    win.document.write(htmlDoc);
+    win.document.close();
+    win.focus();
+    win.addEventListener('afterprint', () => win.close());
+    win.print();
+}
+
+function libPrint() {
+    const raw   = document.getElementById('lib-raw-ta').value;
+    const title = document.getElementById('lib-title').value.trim() || 'Document';
+    if (!raw.trim()) { alert('No content to print.'); return; }
+
+    // A full HTML document is already rendered content — print it as-is
+    // rather than running it through the markdown converter.
+    const htmlDoc = extractHtmlDoc(raw);
+    if (htmlDoc) { _printFullDoc(htmlDoc); return; }
+
+    fetch(RENDER_MD_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({ text: '# ' + title + '\n\n' + raw }),
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.html) _printFullDoc(d.html);
+        else alert('Nothing to print.');
+    })
+    .catch(() => alert('Print failed — please try again.'));
+}
+
+function libCopy(btn) {
+    const text = document.getElementById('lib-raw-ta').value;
+    navigator.clipboard.writeText(text)
+        .then(() => { if (btn) _flashBtn(btn, '✓ Copied'); })
+        .catch(() => {});
+}
+
+function _flashBtn(btn, label) {
+    const orig = btn.textContent;
+    btn.textContent = label;
+    btn.classList.add('lib-btn-success');
+    setTimeout(() => {
+        btn.textContent = orig;
+        btn.classList.remove('lib-btn-success');
+    }, 2200);
+}
+
+// The not-linked warning: once dismissed, hidden for this document (in this
+// browser). A new, unsaved document shows it until dismissed on that page.
+function _warningKey() { return _currentDocId ? `lib-nolink-dismissed:${_currentDocId}` : null; }
+let _warningDismissed = false;
+function libDismissWarning() {
+    document.getElementById('lib-nolink-warning').style.display = 'none';
+    _warningDismissed = true;
+    _rememberWarningDismissed();
+}
+function _rememberWarningDismissed() {
+    try { const k = _warningKey(); if (k && _warningDismissed) localStorage.setItem(k, '1'); } catch (_) {}
+}
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        const k = _warningKey();
+        if (k && localStorage.getItem(k)) document.getElementById('lib-nolink-warning').style.display = 'none';
+    } catch (_) {}
+});
+
+// To a patient via Comms (ADR-093): the Library has no patient, so the document
+// is handed over and the patient is chosen there.
+function libToComms(channel) {
+    const content = document.getElementById('lib-raw-ta').value.trim();
+    if (!content) { alert('No content to send.'); return; }
+    const title = document.getElementById('lib-title').value.trim() || 'Document';
+    try {
+        sessionStorage.setItem('comms_prefill', JSON.stringify(
+            channel === 'bp' ? { channel: 'bp', body: content, label: title }
+                             : { channel: 'email', body: content, subject: title }));
+    } catch (_) {}
+    window.open('/clinical/comms/', '_blank');
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Show iterate checkbox if opening an existing document with body content
+    _updateIterateCheckbox();
+
+    // Detect HTML content (e.g. an existing document already containing a full
+    // HTML block) and re-check on every edit, since the Raw tab is editable.
+    _updateOpenButton();
+    document.getElementById('lib-raw-ta').addEventListener('input', _updateOpenButton);
+
+    // Auto-switch to Rendered tab when opened via the card body link
+    if (new URLSearchParams(window.location.search).get('view') === 'rendered') {
+        libSwitchTab('rendered', document.getElementById('tab-rendered-btn'));
+    }
+
+    // Restore prompt collapse state — but honour expand_prompt=1 from the URL (edit link)
+    try {
+        const forceExpand = new URLSearchParams(window.location.search).get('expand_prompt') === '1';
+        if (!forceExpand && localStorage.getItem('lib_prompt_collapsed') === '1') {
+            const area = document.querySelector('.lib-prompt-area');
+            const btn  = document.getElementById('lib-prompt-toggle');
+            area.classList.add('lib-prompt-collapsed');
+            btn.textContent = 'Show AI';
+        }
+    } catch (_) {}
+
+    // Restore Raw-view monospace toggle state
+    try {
+        if (localStorage.getItem('lib_raw_mono') === '1') {
+            document.getElementById('lib-raw-ta').classList.add('lib-mono');
+            document.getElementById('lib-mono-toggle').classList.add('accent');
+        }
+    } catch (_) {}
+});
+</script>
+{% endblock %}

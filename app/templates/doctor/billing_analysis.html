@@ -1,0 +1,314 @@
+{% extends 'doctor/base.html' %}
+
+{% block doctor_styles %}
+.doctor-profile-strip {
+    display: flex;
+    gap: 0.6rem;
+    flex-shrink: 0;
+}
+.profile-chip {
+    flex: 1;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.4rem;
+    background: var(--bg-secondary);
+}
+.profile-chip-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin-bottom: 0.15rem;
+}
+.profile-chip-value {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+{% endblock %}
+
+{% block doctor_content %}
+
+<div class="doctor-content-header" style="display:flex; align-items:baseline; gap:0.4rem; flex-wrap:wrap;">
+    <h2 style="margin:0;">Billing Analysis</h2>
+    <p style="margin:0;">- {{ display_name }} · {{ start_date.strftime('%d/%m/%Y') }} – {{ end_date.strftime('%d/%m/%Y') }}</p>
+</div>
+
+<!-- Summary cards -->
+<div class="doctor-cards">
+    <div class="doctor-card">
+        <div class="doctor-card-label">Total Billings</div>
+        <div class="doctor-card-value">${{ '{:,.2f}'.format(summary.total_fees or 0) }}</div>
+    </div>
+    <div class="doctor-card">
+        <div class="doctor-card-label">Items Claimed</div>
+        <div class="doctor-card-value">{{ summary.total_items or 0 }}</div>
+        <div style="font-size:0.62rem; color:var(--text-muted); margin-top:0.2rem;">
+            ${{ '{:,.2f}'.format(summary.fees_per_item or 0) }} / item
+        </div>
+    </div>
+    <div class="doctor-card">
+        <div class="doctor-card-label">Visits</div>
+        <div class="doctor-card-value">{{ summary.total_visits or 0 }}</div>
+        <div style="font-size:0.62rem; color:var(--text-muted); margin-top:0.2rem;">
+            ${{ '{:,.2f}'.format(summary.fees_per_visit or 0) }} / visit
+        </div>
+    </div>
+    <div class="doctor-card">
+        <div class="doctor-card-label">Worked Days</div>
+        <div class="doctor-card-value">{{ summary.active_days or 0 }}</div>
+        <div style="font-size:0.62rem; color:var(--text-muted); margin-top:0.2rem;">
+            {{ summary.active_day_criterion_label or '' }}
+        </div>
+    </div>
+    <div class="doctor-card">
+        <div class="doctor-card-label">Avg Fees / Worked Day</div>
+        <div class="doctor-card-value">${{ '{:,.2f}'.format(summary.avg_fees_per_day or 0) }}</div>
+        <div style="font-size:0.62rem; color:var(--text-muted); margin-top:0.2rem;">
+            {{ summary.active_day_criterion_label or '' }}
+        </div>
+    </div>
+</div>
+
+{% if selected_doctor_id and doctor_profile %}
+<!-- Doctor profile strip — all-time facts about the doctor, not scoped to the period filter -->
+<div class="doctor-profile-strip">
+    <div class="profile-chip">
+        <div class="profile-chip-label">First Billing Day</div>
+        <div class="profile-chip-value">{{ doctor_profile.first_billing_day or '—' }}</div>
+    </div>
+    <div class="profile-chip">
+        <div class="profile-chip-label">Last Billing Day</div>
+        <div class="profile-chip-value">{{ doctor_profile.last_billing_day or '—' }}</div>
+    </div>
+    <div class="profile-chip">
+        <div class="profile-chip-label">Provider Number{{ 's' if doctor_profile.provider_numbers|length != 1 }}</div>
+        <div class="profile-chip-value">
+            {{ doctor_profile.provider_numbers|join(', ') if doctor_profile.provider_numbers else '—' }}
+        </div>
+    </div>
+    <div class="profile-chip">
+        <div class="profile-chip-label">AHPRA Registration No</div>
+        <div class="profile-chip-value">{{ doctor_profile.ahpra_registration_no or '—' }}</div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Daily trend chart -->
+<div style="border:1px solid var(--border-color); border-radius:0.5rem; padding:0.75rem; flex-shrink:0;">
+    <div style="font-size:0.75rem; font-weight:700; margin-bottom:0.5rem;">Daily Fees Trend</div>
+    <canvas id="trendChart" style="max-height:280px;"></canvas>
+</div>
+
+<!-- Daily detail (collapsed by default) -->
+<details style="border:1px solid var(--border-color); border-radius:0.5rem; overflow:hidden; flex-shrink:0;">
+    <summary style="cursor:pointer; padding:0.45rem 0.75rem; background:var(--bg-secondary);
+                     font-size:0.75rem; font-weight:700; list-style:none;">
+        ▸ Show Daily Detail
+        <span style="font-weight:400; color:var(--text-muted); font-size:0.68rem;">
+            ({{ detail_rows|length }} row{{ 's' if detail_rows|length != 1 }})
+        </span>
+    </summary>
+    <div style="overflow-x:auto; border-top:1px solid var(--border-color);">
+        <table class="doctor-table" data-sortable>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    {% if not selected_doctor_id %}
+                    <th>Doctor</th>
+                    {% endif %}
+                    <th class="text-center">Items</th>
+                    <th class="text-right">Total Fee</th>
+                    <th class="text-center">Visits</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in detail_rows %}
+                <tr {% if not row.is_worked_day %}style="color:var(--text-muted);"{% endif %}>
+                    <td>{{ row.service_day }}</td>
+                    {% if not selected_doctor_id %}
+                    <td>{{ row.doctor_name }}</td>
+                    {% endif %}
+                    <td class="text-center">{{ row.total_items }}</td>
+                    <td class="text-right" style="font-family:monospace;">${{ '{:,.2f}'.format(row.total_fees or 0) }}</td>
+                    <td class="text-center">{{ row.total_visits }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="{{ 4 if selected_doctor_id else 5 }}"
+                        style="text-align:center; color:var(--text-muted); padding:1.5rem;">
+                        No billing activity found for this period.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</details>
+
+{% endblock %}
+
+
+{% block doctor_filters %}
+<form method="GET" action="{{ url_for('doctor.billing_analysis') }}" id="billingAnalysisForm">
+
+    {% if is_admin %}
+    <span class="filter-label">Doctor</span>
+    <select name="doctor_id" class="filter-select" onchange="this.form.submit()">
+        <option value="">All Doctors</option>
+        {% for d in doctors %}
+        <option value="{{ d.bpsdb_userid }}"
+                {{ 'selected' if selected_doctor_id|string == d.bpsdb_userid|string }}>
+            {{ d.full_name }}
+        </option>
+        {% endfor %}
+    </select>
+    <hr class="filter-sep">
+    {% endif %}
+
+    <span class="filter-label">Period</span>
+    <select name="period" id="periodSelect" class="filter-select">
+        <option value="today"      {{ 'selected' if period == 'today'      }}>Today</option>
+        <option value="2days"      {{ 'selected' if period == '2days'      }}>Last 2 Days</option>
+        <option value="7days"      {{ 'selected' if period == '7days'      }}>Last 7 Days</option>
+        <option value="month"      {{ 'selected' if period == 'month'      }}>This Month</option>
+        <option value="last_month" {{ 'selected' if period == 'last_month' }}>Last Month</option>
+        <option value="year"       {{ 'selected' if period == 'year'       }}>This Year</option>
+        <option value="last_year"  {{ 'selected' if period == 'last_year'  }}>Last Year</option>
+        <option value="custom"     {{ 'selected' if period == 'custom'     }}>Custom Range</option>
+    </select>
+
+    <hr class="filter-sep">
+    <span class="filter-label">From</span>
+    <input type="date" name="date_from" id="dateFrom" class="filter-input"
+           value="{{ start_date.isoformat() }}">
+
+    <span class="filter-label">To</span>
+    <input type="date" name="date_to" id="dateTo" class="filter-input"
+           value="{{ end_date.isoformat() }}">
+
+    {% if filter_defs %}
+    <hr class="filter-sep">
+    <span class="filter-label">More Filters</span>
+    {% for f in filter_defs %}
+    <label class="filter-label" style="font-weight:400;text-transform:none;">{{ f.label }}</label>
+    {% if f.render == 'select' %}
+    <select name="{{ f.key }}" class="filter-select">
+        <option value="">Any</option>
+        {% for val, lbl in f.options %}
+        <option value="{{ val }}" {{ 'selected' if request.args.get(f.key) == val|string }}>{{ lbl }}</option>
+        {% endfor %}
+    </select>
+    {% else %}
+    <input type="{{ 'number' if f.render == 'number' else 'text' }}"
+           name="{{ f.key }}" class="filter-input" value="{{ request.args.get(f.key, '') }}">
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+
+    <hr class="filter-sep">
+    <button type="submit" class="btn btn-primary"
+            style="width:100%; font-size:var(--text-sm);">Apply</button>
+
+</form>
+{% endblock %}
+
+
+{% block doctor_scripts %}
+<script src="{{ url_for('static', filename='vendor/chartjs-4.6.1/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/moment-2.29.4/moment.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/chartjs-adapter-moment-1.0.1/chartjs-adapter-moment.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/sortable-table.js') }}"></script>
+<script>
+(function () {
+    const form      = document.getElementById('billingAnalysisForm');
+    const periodSel = document.getElementById('periodSelect');
+    const dateFrom  = document.getElementById('dateFrom');
+    const dateTo    = document.getElementById('dateTo');
+
+    function fmt(d) { return d.toISOString().slice(0, 10); }
+
+    periodSel.addEventListener('change', function () {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        let s = new Date(today), e = new Date(today);
+
+        switch (this.value) {
+            case 'today':      break;
+            case '2days':      s.setDate(today.getDate() - 1); break;
+            case '7days':      s.setDate(today.getDate() - 6); break;
+            case 'month':      s.setDate(1); break;
+            case 'last_month':
+                e.setDate(0);
+                s = new Date(e); s.setDate(1); break;
+            case 'year':       s.setMonth(0, 1); break;
+            case 'last_year':
+                s = new Date(today.getFullYear() - 1, 0, 1);
+                e = new Date(today.getFullYear() - 1, 11, 31); break;
+            case 'custom':     return;
+        }
+        dateFrom.value = fmt(s);
+        dateTo.value   = fmt(e);
+        form.submit();
+    });
+
+    [dateFrom, dateTo].forEach(input => {
+        input.addEventListener('change', () => { periodSel.value = 'custom'; });
+    });
+}());
+
+(function () {
+    const chartData = {{ chart_data_json | safe }};
+    const style     = getComputedStyle(document.documentElement);
+    const accent    = style.getPropertyValue('--accent-primary').trim();
+    const gridColor = style.getPropertyValue('--border-color').trim();
+    const textColor = style.getPropertyValue('--text-muted').trim();
+    const canvas = document.getElementById('trendChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    // {x, y} points (not parallel labels/data arrays) + a time x-axis, so a
+    // gap in the underlying dates — a doctor away, a practice closure —
+    // reserves its true proportion of the axis instead of being compressed
+    // away by an equal-spacing category axis.
+    const points = chartData.labels.map((label, i) => ({ x: label, y: chartData.values[i] }));
+
+    new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+            datasets: [{
+                label: 'Daily Fees ($)',
+                data: points,
+                borderColor: accent,
+                backgroundColor: accent,
+                borderWidth: 2,
+                tension: 0.15,
+                pointRadius: 2,
+                fill: false,
+            }],
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { title: items => moment(items[0].parsed.x).format('DD/MM/YYYY') } },
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    // Data is one point per calendar day — without an explicit
+                    // unit, Chart.js auto-picks the tick granularity from the
+                    // visible range and drops to hour/minute ticks once that
+                    // range gets short, which is meaningless for daily data.
+                    // Pinning unit:'day' keeps axis labels as dates always.
+                    time: { unit: 'day', tooltipFormat: 'DD/MM/YYYY', displayFormats: { day: 'DD/MM/YYYY' } },
+                    ticks: { color: textColor },
+                    grid: { color: gridColor },
+                },
+                y: { beginAtZero: true, ticks: { color: textColor }, grid: { color: gridColor } },
+            },
+        },
+    });
+}());
+</script>
+{% endblock %}

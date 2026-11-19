@@ -1,0 +1,89 @@
+{% if db_status == 'complete' %}
+<div class="setup-status-banner ok">
+    <span class="setup-status-icon">✓</span>
+    <div>
+        <strong>BPSDB reachable</strong>
+        <div style="font-size:0.78rem; margin-top:0.2rem; color:var(--text-secondary);">{{ db_message }}</div>
+    </div>
+</div>
+{% elif db_status == 'warning' %}
+<div class="setup-status-banner warning">
+    <span class="setup-status-icon">⚠</span>
+    <div>
+        <strong>Parameters set but server not reachable</strong>
+        <div style="font-size:0.78rem; margin-top:0.2rem; color:var(--text-secondary);">{{ db_message }}</div>
+        <div style="font-size:0.75rem; margin-top:0.4rem; color:var(--text-muted);">
+            This is normal in dev without the ODBC driver or VPN. The app will still start.
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="setup-status-banner error">
+    <span class="setup-status-icon">✗</span>
+    <div>
+        <strong>Not configured</strong>
+        <div style="font-size:0.78rem; margin-top:0.2rem; color:var(--text-secondary);">
+            Best Practice connection settings have not been supplied.
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="setup-section">
+  <h2 class="setup-h2">Best Practice connection{{ help('setup.database') }}</h2>
+  <p>Set BPSDB_HOST, BPSDB_DATABASE, BPSDB_USER and BPSDB_PASSWORD in your installation's .env file, then restart MedUI. Use the read-only account BP supplies for database access; MedUI checks below that it can't change Best Practice data.</p>
+  <p>If the server uses a private certificate, install its CA certificate on the MedUI host. BPSDB_TRUST_SERVER_CERTIFICATE is available for installations that require it.</p>
+  <p>MedUI's own PostgreSQL database is separate from Best Practice. Configure it with DATABASE_URL.</p>
+</div>
+
+{% if login %}
+<div class="setup-section">
+    <div class="setup-h2">Read-only login</div>
+    {% if login.status == 'read_only' %}
+    <div class="setup-status-banner ok">
+        <span class="setup-status-icon">✓</span>
+        <div>
+            <strong>Read-only: this login can't change Best Practice data</strong>
+            <div style="font-size:0.78rem; margin-top:0.2rem; color:var(--text-secondary);">
+                Checked in all {{ login.databases|length }} databases it can open: no write roles,
+                no write permission on any table, can't create or alter tables, not a server administrator.
+            </div>
+        </div>
+    </div>
+    {% elif login.status == 'can_write' %}
+    <div class="setup-status-banner warning">
+        <span class="setup-status-icon">⚠</span>
+        <div>
+            <strong>This login can change Best Practice data</strong>
+            <div style="font-size:0.78rem; margin-top:0.2rem; color:var(--text-secondary);">
+                MedUI only reads, but the login it was given could write. Use the read-only account
+                BP supplies for database access. Until then MedUI won't run SQL written in
+                Query Manager or Best Practice data sources.
+            </div>
+            <ul style="font-size:0.78rem; margin:0.4rem 0 0 1rem; color:var(--text-secondary);">
+                {% for p in login.server_problems %}<li>Whole server: {{ p }}</li>{% endfor %}
+                {% for d in login.writable_databases %}<li>{{ d.name }}: {{ d.problems|join(', ') }}</li>{% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% else %}
+    <div class="setup-status-banner warning">
+        <span class="setup-status-icon">⚠</span>
+        <div>
+            <strong>MedUI couldn't check what this login may do</strong>
+            <div style="font-size:0.78rem; margin-top:0.2rem; color:var(--text-secondary);">
+                {{ login.error }}. Until it can, MedUI won't run SQL written in Query Manager or
+                Best Practice data sources.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% if login.procedure_databases %}
+    <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.5rem;">
+        For information: the login may run stored procedures in
+        {% for d in login.procedure_databases %}{{ d.name }} ({{ d.executable_procedures }}){{ ', ' if not loop.last }}{% endfor %}.
+        MedUI doesn't run them.
+    </p>
+    {% endif %}
+</div>
+{% endif %}

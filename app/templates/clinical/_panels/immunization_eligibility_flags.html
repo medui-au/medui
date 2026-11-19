@@ -1,0 +1,8 @@
+{% if vaccines %}
+<span class="text-warning"
+      style="font-size:calc(var(--text-xs) * 0.5); font-weight:normal; white-space:normal;
+             overflow-wrap:break-word; line-height:0.85; display:inline-block;"
+      title="Funded under the NIP, with no dose recorded within the schedule's interval (Vaccine Eligibility (NIP); ADR-110)">
+    NIP funded, none recorded in interval: {{ vaccines|join(', ') }}
+</span>
+{% endif %}

@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}Test Bundle: {{ bundle.name }} — {{ app_name }}{% endblock %}
+
+{% block content %}
+<div style="max-width:900px; margin:1.5rem auto; padding:0 1rem;">
+
+    <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+        <h1 style="font-size:1.1rem; margin:0;">🧪 Test Bundle: <strong>{{ bundle.name }}</strong></h1>
+        <a href="{{ url_for('admin.bundle_edit', bundle_id=bundle.id) }}" class="btn btn-outline"
+           style="padding:0.3rem 0.75rem; font-size:var(--text-sm);">← Edit</a>
+        <a href="{{ url_for('admin.bundles') }}" class="btn btn-outline"
+           style="padding:0.3rem 0.75rem; font-size:var(--text-sm);">Bundles</a>
+    </div>
+
+    <div class="card" style="padding:0.75rem; margin-bottom:0.75rem;">
+        <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+            <div>
+                <label style="font-size:var(--text-sm); font-weight:600; display:block; margin-bottom:0.25rem;">Patient ID</label>
+                <input type="number" id="test-patient-id" placeholder="e.g. 12345"
+                       style="padding:0.35rem 0.5rem; border:1px solid var(--border-color);
+                              border-radius:var(--radius-sm); background:var(--bg-primary);
+                              color:var(--text-primary); font-size:var(--text-sm); width:130px;">
+            </div>
+            <div>
+                <label style="font-size:var(--text-sm); font-weight:600; display:block; margin-bottom:0.25rem;">Format</label>
+                <select id="test-fmt" style="padding:0.35rem 0.5rem; border:1px solid var(--border-color);
+                                             border-radius:var(--radius-sm); font-size:var(--text-sm);">
+                    <option value="text">Plain Text</option>
+                    <option value="markdown">Markdown</option>
+                    <option value="json">JSON</option>
+                </select>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.4rem; padding-top:1.3rem;">
+                <input type="checkbox" id="test-deid">
+                <label for="test-deid" style="font-size:var(--text-sm); cursor:pointer;">De-identify</label>
+            </div>
+            <button type="button" class="btn btn-primary"
+                    style="padding:0.35rem 1rem; font-size:var(--text-sm); margin-top:1.3rem;"
+                    onclick="runTest()">Run Test</button>
+        </div>
+        <div style="margin-top:0.5rem; font-size:0.7rem; color:var(--text-muted);">
+            Blocks in this bundle:
+            {% for bb in bundle.blocks %}
+            <span style="background:var(--bg-secondary); border:1px solid var(--border-color);
+                         border-radius:0.2rem; padding:0.1rem 0.3rem; margin:0.1rem;">
+                {{ bb.label or bb.block_source }}
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="card" style="padding:0; overflow:hidden; min-height:200px;">
+        <div style="padding:0.45rem 0.75rem; background:var(--bg-secondary);
+                    border-bottom:1px solid var(--border-color); font-size:0.78rem; font-weight:700;">
+            Output
+        </div>
+        <div id="test-output" style="padding:0.75rem; font-size:var(--text-sm); color:var(--text-muted);">
+            Run a test to see output.
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function runTest() {
+    var pid   = document.getElementById('test-patient-id').value;
+    var fmt   = document.getElementById('test-fmt').value;
+    var deid  = document.getElementById('test-deid').checked ? '1' : '0';
+    var out   = document.getElementById('test-output');
+    var csrf  = document.querySelector('meta[name="csrf-token"]').content;
+
+    if (!pid) { out.innerHTML = '<p style="color:var(--danger);">Enter a patient ID.</p>'; return; }
+
+    out.innerHTML = '<span style="color:var(--text-muted);">Loading…</span>';
+
+    var url = '{{ url_for("admin.bundle_test_run", bundle_id=bundle.id) }}'
+              + '?patient_id=' + encodeURIComponent(pid)
+              + '&fmt=' + encodeURIComponent(fmt)
+              + '&deidentify=' + deid;
+
+    fetch(url, { headers: { 'X-CSRFToken': csrf } })
+        .then(function(r) { return r.text(); })
+        .then(function(html) { out.innerHTML = html; })
+        .catch(function() { out.innerHTML = '<p style="color:var(--danger);">Request failed.</p>'; });
+}
+
+document.getElementById('test-patient-id').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') runTest();
+});
+</script>
+{% endblock %}

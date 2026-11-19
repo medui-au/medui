@@ -1,0 +1,306 @@
+{% extends 'base.html' %}
+{% block title %}Progress Notes — {{ patient.get('SURNAME','') | upper }}, {{ patient.get('FIRSTNAME','') }} — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+/* ── Search bar ───────────────────────────────────────────────── */
+.pn-search-bar {
+  display:         flex;
+  align-items:     center;
+  gap:             0.5rem;
+  flex-shrink:     0;
+  padding:         0.5rem 0.75rem;
+  border-bottom:   1px solid var(--border-color);
+  background:      var(--bg-secondary);
+}
+.pn-search-input {
+  flex:            1;
+  padding:         0.3rem 0.6rem;
+  border:          1px solid var(--border-color);
+  border-radius:   0.3rem;
+  background:      var(--bg-primary);
+  color:           var(--text-primary);
+  font-size:       var(--text-sm);
+  font-family:     inherit;
+}
+.pn-search-input:focus {
+  outline:         none;
+  border-color:    var(--accent);
+  box-shadow:      0 0 0 2px rgba(37,99,235,.15);
+}
+
+/* ── Note list ────────────────────────────────────────────────── */
+.note-list {
+  display:         flex;
+  flex-direction:  column;
+  gap:             0.4rem;
+  padding:         0.5rem;
+  overflow-y:      auto;
+  flex:            1;
+  min-height:      0;
+}
+.note-card {
+  background:      var(--bg-card);
+  border:          1px solid var(--border-color);
+  border-radius:   0.35rem;
+  overflow:        hidden;
+  flex-shrink:     0;
+}
+.note-card-header {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  padding:         0.28rem 0.75rem;
+  background:      #eaf0fb;
+  border-bottom:   1px solid #bfcce0;
+  border-left:     4px solid var(--accent);
+  font-size:       var(--text-sm);
+  gap:             1rem;
+}
+[data-theme="dark"] .note-card-header {
+  background:      var(--bg-tertiary);
+  border-bottom-color: var(--border-color);
+  border-left-color:   var(--accent);
+}
+.note-card-date {
+  font-weight:     700;
+  color:           var(--accent);
+  white-space:     nowrap;
+}
+.note-card-doctor {
+  color:           var(--text-primary);
+  font-weight:     600;
+  font-size:       0.78rem;
+  text-align:      right;
+}
+.note-card-body {
+  padding:         0.5rem 0.75rem;
+  font-size:       0.82rem;
+  line-height:     1.55;
+  white-space:     pre-wrap;
+  color:           var(--text-primary);
+  font-weight:     600;
+  font-family:     ui-monospace, 'Courier New', monospace;
+}
+
+/* ── Search highlight ─────────────────────────────────────────── */
+mark {
+  background:      #ffe066;
+  color:           inherit;
+  border-radius:   0.15rem;
+  padding:         0 0.1rem;
+}
+[data-theme="dark"] mark {
+  background:      #b8860b;
+  color:           #fff;
+}
+
+/* ── Empty / no-match state ───────────────────────────────────── */
+.pn-empty {
+  padding:         2rem;
+  text-align:      center;
+  color:           var(--text-muted);
+  font-size:       var(--text-sm);
+  font-style:      italic;
+}
+
+/* ── Right panel — visit index ────────────────────────────────── */
+.pn-index-header {
+  padding:         0.3rem 0.75rem;
+  border-bottom:   2px solid var(--accent);
+  font-size:       0.78rem;
+  font-weight:     700;
+  text-transform:  uppercase;
+  letter-spacing:  0.05em;
+  color:           var(--text-muted);
+  background:      var(--bg-secondary);
+  flex-shrink:     0;
+}
+.pn-index-year {
+  padding:         0.25rem 0.75rem 0.1rem;
+  font-weight:     700;
+  color:           var(--text-secondary);
+  font-size:       0.72rem;
+  text-transform:  uppercase;
+  letter-spacing:  0.05em;
+  background:      var(--bg-secondary);
+  border-bottom:   1px solid var(--border-color);
+}
+.pn-index-item {
+  padding:         0.28rem 0.75rem;
+  border-bottom:   1px solid var(--border-subtle);
+  cursor:          pointer;
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  gap:             0.5rem;
+  transition:      background 0.1s;
+}
+.pn-index-item:hover { background: var(--bg-secondary); }
+.pn-index-item .idx-date {
+  color:           var(--accent);
+  white-space:     nowrap;
+  font-size:       0.78rem;
+  font-weight:     600;
+}
+.pn-index-item .idx-dr {
+  color:           var(--text-muted);
+  overflow:        hidden;
+  text-overflow:   ellipsis;
+  white-space:     nowrap;
+  font-size:       0.72rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="workspace">
+
+  {# ── Left sidebar ─────────────────────────────────────────────────────── #}
+  <aside class="workspace-sidebar">
+    <div class="card" style="padding:0.6rem;">
+      {% include 'clinical/_demographics.html' %}
+    </div>
+    {% include 'clinical/_patient_tools.html' %}
+  </aside>
+
+  {# ── Main: search bar + scrollable note list ──────────────────────────── #}
+  <section class="workspace-main" style="display:flex; flex-direction:column; padding:0; overflow:hidden;">
+
+    <div class="pn-search-bar">
+      <input type="search"
+             id="pn-search"
+             class="pn-search-input"
+             placeholder="Search notes…"
+             autocomplete="off"
+             oninput="applySearch(this.value)">
+      <span id="pn-match-count"
+            style="white-space:nowrap; font-size:0.78rem; color:var(--text-muted);">
+        {{ note_count }} note{% if note_count != 1 %}s{% endif %}
+      </span>
+      <button onclick="document.getElementById('pn-search').value=''; applySearch('');"
+              class="btn btn-secondary btn-sm">✕</button>
+    </div>
+
+    <div class="note-list" id="note-list">
+      {% if notes %}
+        {% for note in notes %}
+        <div class="note-card"
+             id="note-{{ loop.index }}"
+             data-note-text="{{ note.VisitNotes_Text | lower | e }}">
+          <div class="note-card-header">
+            <span class="note-card-date">
+              {{ note.VisitDateFormatted | clinical_date }}
+              {% if note.StartTimeFormatted %}&nbsp;{{ note.StartTimeFormatted }}{% endif %}
+            </span>
+            <span class="note-card-doctor">{{ note.DrName }}</span>
+          </div>
+          <div class="note-card-body"
+               data-original="{{ note.VisitNotes_Text | e }}">{{ note.VisitNotes_Text | e }}</div>
+        </div>
+        {% endfor %}
+        <div id="pn-no-match" class="pn-empty" style="display:none;">
+          No notes match the search term.
+        </div>
+      {% else %}
+        <div class="pn-empty">No progress notes on record for this patient.</div>
+      {% endif %}
+    </div>
+
+  </section>
+
+  {# ── Right sidebar — visit index ──────────────────────────────────────── #}
+  <aside class="workspace-right" style="display:flex; flex-direction:column; padding:0;">
+    <div class="pn-index-header">Visit Index</div>
+    <div style="overflow-y:auto; flex:1;">
+      {% if notes %}
+        {% set ns = namespace(current_year='') %}
+        {% for note in notes %}
+          {% if note.VisitYear != ns.current_year %}
+            {% set ns.current_year = note.VisitYear %}
+            <div class="pn-index-year">{{ note.VisitYear }}</div>
+          {% endif %}
+          <div class="pn-index-item"
+               id="idx-{{ loop.index }}"
+               onclick="scrollToNote({{ loop.index }})">
+            <span class="idx-date">{{ note.VisitDateFormatted | clinical_date }}</span>
+            <span class="idx-dr">{{ note.DrName }}</span>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="pn-empty">No notes.</p>
+      {% endif %}
+    </div>
+  </aside>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function applySearch(term) {
+  const cards   = document.querySelectorAll('.note-card');
+  const noMatch = document.getElementById('pn-no-match');
+  const counter = document.getElementById('pn-match-count');
+  const lterm   = term.trim().toLowerCase();
+  let visible   = 0;
+
+  cards.forEach(card => {
+    const bodyEl   = card.querySelector('.note-card-body');
+    const original = bodyEl.dataset.original;
+    const dataText = card.dataset.noteText;
+
+    if (!lterm || dataText.includes(lterm)) {
+      card.style.display = '';
+      visible++;
+      if (lterm) {
+        const re = new RegExp('(' + escRegex(escHtml(lterm)) + ')', 'gi');
+        bodyEl.innerHTML = original.replace(re, '<mark>$1</mark>');
+      } else {
+        bodyEl.innerHTML = original;
+      }
+    } else {
+      card.style.display = 'none';
+    }
+  });
+
+  // Mirror visibility in index panel
+  document.querySelectorAll('.pn-index-item').forEach(item => {
+    const card = document.getElementById('note-' + item.id.replace('idx-',''));
+    item.style.display = (card && card.style.display !== 'none') ? '' : 'none';
+  });
+
+  // Hide year headers with no visible items
+  document.querySelectorAll('.pn-index-year').forEach(header => {
+    let sib = header.nextElementSibling;
+    let anyVisible = false;
+    while (sib && !sib.classList.contains('pn-index-year')) {
+      if (sib.style.display !== 'none') anyVisible = true;
+      sib = sib.nextElementSibling;
+    }
+    header.style.display = anyVisible ? '' : 'none';
+  });
+
+  noMatch.style.display = (cards.length > 0 && visible === 0) ? '' : 'none';
+  const total = {{ note_count }};
+  counter.textContent = lterm
+    ? visible + ' of ' + total + (total === 1 ? ' note' : ' notes')
+    : total + (total === 1 ? ' note' : ' notes');
+}
+
+function scrollToNote(index) {
+  const card = document.getElementById('note-' + index);
+  if (!card) return;
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  card.style.outline = '2px solid var(--accent)';
+  setTimeout(() => { card.style.outline = ''; }, 1500);
+}
+</script>
+{% endblock %}

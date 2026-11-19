@@ -1,0 +1,58 @@
+WITH OriginalQuery AS (
+    SELECT
+        ISNULL(CASE
+            WHEN dbo.ALCOHOL.DAYSPERWEEK * dbo.ALCOHOL.DRINKSPERDAY > 0
+                THEN CAST(dbo.ALCOHOL.DAYSPERWEEK * dbo.ALCOHOL.DRINKSPERDAY AS VARCHAR) + ' (over ' + CAST(dbo.ALCOHOL.DAYSPERWEEK AS VARCHAR) + ' days)'
+            ELSE CASE
+                    WHEN ALCOHOL.ALCOHOLCODE = 1 THEN 'Non Drinker'
+                    ELSE 'No Data'
+                 END
+        END, '') AS ALCOHOLPERWEEK,
+
+        ISNULL(dbo.ALCOHOL.ALCOHOLTEXT, '') AS ALCOHOLTEXT,
+
+        ISNULL(TRIM(dbo.CLINICAL.OTHERCOMMENT), '') AS CHARTFLAG,
+
+        ISNULL(CASE
+            WHEN (LOWER(SMOKINGSTATUS.SMOKINGTEXT) LIKE 'ex smoker' AND TOBACCO.PASTSTOPPED > 0)
+                THEN dbo.SMOKINGSTATUS.SMOKINGTEXT + ' ('+ CAST(dbo.TOBACCO.PASTSTOPPED AS VARCHAR) + ')'
+            ELSE SMOKINGSTATUS.SMOKINGTEXT
+        END, '') AS SMOKING,
+
+        ISNULL(TRIM(dbo.MARITALSTATUS.MARITALSTATUSNAME), '') AS MaritalStatus,
+
+        CASE
+            WHEN dbo.CLINICAL.RETIRED = 1 THEN 'Retired '
+            ELSE ''
+        END +
+        ISNULL(
+            (SELECT TOP (1) RTRIM([OCCUPATION])
+             FROM [BPSPATIENTS].[dbo].[OCCUPATIONHISTORY]
+             WHERE INTERNALID = PATIENTS.INTERNALID
+             ORDER BY recordid DESC), ''
+        ) AS Occupation
+
+    FROM dbo.PATIENTS
+    INNER JOIN dbo.CLINICAL ON dbo.PATIENTS.INTERNALID = dbo.CLINICAL.INTERNALID
+    -- ALCOHOL, TOBACCO and the status lookups are optional (ADR-145): about a quarter of
+    -- patients have no ALCOHOL or TOBACCO row, and an inner join lost their whole social history.
+    LEFT JOIN dbo.ALCOHOL ON dbo.PATIENTS.INTERNALID = dbo.ALCOHOL.INTERNALID
+    LEFT JOIN dbo.TOBACCO ON dbo.PATIENTS.INTERNALID = dbo.TOBACCO.INTERNALID
+    LEFT JOIN dbo.ALCOHOLSTATUS ON dbo.ALCOHOL.ALCOHOLCODE = dbo.ALCOHOLSTATUS.ALCOHOLCODE
+    LEFT JOIN dbo.SMOKINGSTATUS ON dbo.TOBACCO.SMOKINGCODE = dbo.SMOKINGSTATUS.SMOKINGCODE
+    LEFT JOIN dbo.MARITALSTATUS ON dbo.CLINICAL.MARITALSTATUS = dbo.MARITALSTATUS.MARITALSTATUSCODE
+    WHERE Patients.InternalID = ?
+),
+DummyData AS (
+    SELECT
+        '' AS ALCOHOLPERWEEK,
+        '' AS ALCOHOLTEXT,
+        '' AS CHARTFLAG,
+        '' AS SMOKING,
+        '' AS MaritalStatus,
+        '' AS Occupation
+    WHERE NOT EXISTS (SELECT 1 FROM OriginalQuery)
+)
+SELECT * FROM OriginalQuery
+UNION ALL
+SELECT * FROM DummyData;

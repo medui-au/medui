@@ -1,0 +1,1569 @@
+{% extends 'clinical/patient_workspace.html' %}
+{% block title %}AI Assistant — {{ patient.get('SURNAME','') | upper }}, {{ patient.get('FIRSTNAME','') }} — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+/* ── Tab bar ── */
+.aip-tabs       { display:flex; border-bottom:2px solid var(--border-color); background:var(--bg-secondary);
+                  padding:0 1rem; flex-shrink:0; gap:0; }
+.aip-tab        { padding:0.45rem 1rem; font-size:0.78rem; font-weight:600; cursor:pointer;
+                  border:none; background:none; color:var(--text-muted); border-bottom:2px solid transparent;
+                  margin-bottom:-2px; white-space:nowrap; }
+.aip-tab:hover  { color:var(--text-primary); }
+.aip-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+.aip-tab-panel  { display:none; flex:1; overflow:hidden; flex-direction:column; }
+.aip-tab-panel.active { display:flex; }
+
+/* ── Prompt tab ── */
+.aip-prompt-body { flex:1; overflow-y:auto; padding:1rem 1.25rem; display:flex; flex-direction:column; gap:0.75rem; }
+.aip-field-lbl   { font-size:0.68rem; font-weight:600; text-transform:uppercase;
+                   letter-spacing:0.05em; color:var(--text-muted); display:block; margin-bottom:0.2rem; }
+.aip-select      { width:100%; box-sizing:border-box; padding:0.35rem 0.5rem; font-size:0.82rem;
+                   border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                   background:var(--bg-primary); color:var(--text-primary); cursor:pointer; }
+.aip-textarea    { width:100%; box-sizing:border-box; resize:vertical; padding:0.5rem 0.65rem;
+                   font-size:0.82rem; line-height:1.55; min-height:120px;
+                   border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                   background:var(--bg-primary); color:var(--text-primary); }
+.aip-log         { background:var(--bg-secondary); border:1px solid var(--border-color);
+                   border-radius:var(--radius-sm); padding:0.45rem 0.65rem;
+                   font-family:var(--font-mono,monospace); font-size:0.71rem;
+                   max-height:180px; overflow-y:auto; }
+.aip-toolbar     { flex-shrink:0; padding:0.5rem 1.25rem; border-top:1px solid var(--border-color);
+                   background:var(--bg-secondary); display:flex; align-items:center; gap:0.5rem; }
+.aip-instr       { font-size:0.72rem; color:var(--text-muted); border:1px solid var(--border-color);
+                   border-radius:var(--radius-sm); background:var(--bg-secondary); }
+.aip-instr summary { cursor:pointer; padding:0.3rem 0.6rem; list-style-position:inside; }
+.aip-instr summary strong { font-weight:600; color:var(--text-secondary); }
+.aip-instr-text  { margin:0; padding:0.45rem 0.65rem; border-top:1px solid var(--border-color);
+                   white-space:pre-wrap; font-family:inherit; font-size:0.72rem; line-height:1.5;
+                   max-height:30vh; overflow-y:auto; color:var(--text-muted); }
+/* ── Sent to AI tab (ADR-090); the review itself is presend_review.js (ADR-096) ── */
+.aip-sent-body   { flex:1; overflow-y:auto; padding:1rem 1.25rem; }
+#aip-sent-pane .psr-view { max-height:55vh; font-size:0.78rem; }
+.sse-step-done   { color:var(--success); }
+.sse-step-start  { color:var(--text-secondary); }
+.sse-error       { color:var(--danger); font-weight:600; }
+.sse-complete    { color:var(--accent); font-weight:600; }
+
+/* ── Progress waiting indicator (shown only while a run is in flight) ── */
+.aip-progress-indicator { display:flex; align-items:center; gap:0.35rem; font-size:0.68rem; color:var(--text-muted); }
+.aip-progress-dot {
+    width:6px; height:6px; border-radius:50%; flex-shrink:0;
+    background: var(--text-muted);
+    animation: aip-progress-pulse 1.6s ease-out infinite;
+}
+.aip-progress-dot--error { background: var(--danger); animation: none; }
+.aip-progress-indicator--error { color: var(--danger); font-weight:600; }
+@keyframes aip-progress-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(148,163,184,0.55); }
+    60%  { box-shadow: 0 0 0 5px rgba(148,163,184,0); }
+    100% { box-shadow: 0 0 0 0 rgba(148,163,184,0); }
+}
+
+/* ── Output tab ── */
+.aip-out-body    { flex:1; overflow-y:auto; padding:1rem 1.25rem; display:flex; flex-direction:column; gap:0.75rem; }
+.aip-out-meta    { display:grid; grid-template-columns:1fr auto; gap:0.5rem; align-items:end; }
+.aip-out-display { flex:1; background:var(--bg-secondary); border:1px solid var(--border-color);
+                   border-radius:var(--radius-sm); padding:0.85rem 1rem;
+                   font-size:0.83rem; white-space:pre-wrap; line-height:1.6;
+                   overflow-y:auto; min-height:200px; outline:none; cursor:text; }
+.aip-out-display:focus { border-color:var(--accent); background:var(--bg-primary); }
+.aip-out-display.print-mode { font-family:system-ui,-apple-system,Arial,sans-serif; font-size:1rem; white-space:normal; }
+.aip-out-display.print-mode h3 { font-size:0.92rem; font-weight:700; margin:0.5em 0 0.15em; }
+.aip-out-display.print-mode p  { margin:0.35em 0; }
+.aip-out-display.print-mode ul,
+.aip-out-display.print-mode ol { margin:0.3em 0; padding-left:1.4em; }
+.aip-out-display.print-mode li { margin:0.1em 0; }
+.aip-out-display.print-mode hr { border:none; border-top:1px solid var(--border-color); margin:0.5em 0; }
+.aip-out-display.print-mode strong { font-weight:700; }
+.aip-out-display.print-mode em { font-style:italic; }
+.aip-out-display.print-mode code { font-family:var(--font-mono,monospace); font-size:0.85em;
+                                    background:var(--bg-secondary); padding:0.05em 0.25em; border-radius:0.2rem; }
+.aip-out-display.print-mode table { border-collapse:collapse; margin:0.5em 0; width:100%; font-size:0.92em; }
+.aip-out-display.print-mode th,
+.aip-out-display.print-mode td { border:1px solid var(--border-color); padding:0.3em 0.55em; text-align:left; vertical-align:top; }
+.aip-out-display.print-mode th { background:var(--bg-secondary); font-weight:700; }
+.aip-action-bar  { display:flex; flex-wrap:wrap; gap:0.35rem; align-items:center; }
+.aip-btn         { font-size:0.72rem; padding:0.2rem 0.55rem; background:var(--bg-secondary);
+                   border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                   cursor:pointer; color:var(--text-primary); white-space:nowrap; }
+.aip-btn:hover   { background:var(--bg-primary); border-color:var(--accent); }
+.aip-btn.active  { background:var(--accent-light); border-color:var(--accent); color:var(--accent); }
+.aip-badge       { font-size:0.62rem; padding:0.05rem 0.3rem; border-radius:0.2rem; font-weight:700;
+                   color:#fff; display:inline-block; }
+.aip-badge-local { background:var(--success); }
+.aip-badge-cloud { background:var(--accent); }
+
+/* ── Debug tab ── */
+.aip-debug-body  { flex:1; overflow-y:auto; padding:1rem 1.25rem; font-size:0.73rem; }
+.aip-snapshot    { background:var(--bg-secondary); border:1px solid var(--border-color);
+                   border-radius:var(--radius-sm); margin-bottom:0.65rem; }
+.aip-snapshot-hdr { padding:0.35rem 0.65rem; font-weight:600; font-size:0.7rem;
+                    border-bottom:1px solid var(--border-color); cursor:pointer;
+                    display:flex; align-items:center; gap:0.4rem; }
+.aip-snapshot-body { padding:0.5rem 0.65rem; font-family:var(--font-mono,monospace);
+                     font-size:0.68rem; white-space:pre-wrap; display:none; }
+
+/* ── Model override row ── */
+.aip-model-row   { display:flex; align-items:center; gap:0.5rem; }
+.aip-model-hint  { font-size:0.7rem; color:var(--text-muted); }
+
+/* ── Rollup status chip ── */
+.rollup-chip     { display:inline-flex; align-items:center; gap:0.25rem;
+                   font-size:0.68rem; font-weight:600; padding:0.1rem 0.4rem;
+                   border-radius:0.25rem; }
+.rollup-chip-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.rollup-fresh    { background:color-mix(in srgb, var(--success) 12%, transparent);
+                   color:var(--success); }
+.rollup-fresh    .rollup-chip-dot { background:var(--success); }
+.rollup-stale    { background:color-mix(in srgb, var(--warning,#d97706) 12%, transparent);
+                   color:var(--warning,#d97706); }
+.rollup-stale    .rollup-chip-dot { background:var(--warning,#d97706); }
+.rollup-partial  { background:color-mix(in srgb, var(--accent) 12%, transparent);
+                   color:var(--accent); }
+.rollup-partial  .rollup-chip-dot { background:var(--accent); }
+.rollup-error    { background:color-mix(in srgb, var(--text-muted) 10%, transparent);
+                   color:var(--text-muted); }
+.rollup-error    .rollup-chip-dot { background:var(--text-muted); }
+
+/* ── Tidy gutter (right of output area) ── */
+.aip-tidy-gutter  { width:128px; flex-shrink:0; border-left:1px solid var(--border-color);
+                    padding:0.7rem 0.6rem; display:none; flex-direction:column; gap:0.55rem;
+                    overflow-y:auto; font-size:0.68rem; color:var(--text-muted); }
+.aip-tidy-lbl     { font-size:0.6rem; text-transform:uppercase; letter-spacing:0.05em;
+                    color:var(--text-muted); margin-bottom:0.15rem; }
+.aip-tidy-count   { font-family:var(--font-mono,monospace); display:flex; flex-direction:column; gap:0.1rem; }
+.aip-tidy-count strong { color:var(--text-primary); font-size:0.75rem; }
+.aip-tidy-delta-ok  { color:var(--success); font-weight:700; }
+.aip-tidy-delta-bad { color:var(--danger);  font-weight:700; }
+.aip-tidy-divider { border:none; border-top:1px solid var(--border-color); margin:0; }
+.aip-tidy-sse-log { display:flex; flex-direction:column; gap:0.18rem; }
+.aip-tidy-sse-ln  { line-height:1.35; word-break:break-word; }
+
+/* ── Editable output placeholder ── */
+.aip-out-display:empty:not(:focus)::before {
+    content: attr(data-placeholder);
+    color: var(--text-muted);
+    font-style: italic;
+    pointer-events: none;
+}
+</style>
+{% endblock %}
+
+{% block workspace_main_class %}workspace-main workspace-main--scribe{% endblock %}
+
+{% block patient_main %}
+<div style="display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden; width:75%;">
+
+    {# ── Tab bar ── #}
+    <div class="aip-tabs">
+        <button class="aip-tab active" onclick="switchTab('prompt', this)">Prompt</button>
+        <button class="aip-tab" onclick="switchTab('output', this)">Output</button>
+        <button class="aip-tab" id="aip-tab-btn-sent" onclick="switchTab('sent', this)">Sent to AI</button>
+        {% if current_user.has_level(4) %}
+        <button class="aip-tab" onclick="switchTab('debug', this)">Debug</button>
+        {% endif %}
+        <span style="flex:1;"></span>
+        <span id="aip-status" style="font-size:0.72rem; color:var(--text-muted); align-self:center; padding:0 0.5rem;"></span>
+    </div>
+
+    {# ══════════════ TAB 1: PROMPT ══════════════ #}
+    <div class="aip-tab-panel active" id="tab-prompt" style="display:flex;">
+        <div class="aip-prompt-body">
+
+            {# Pipeline selector #}
+            <div>
+                <label class="aip-field-lbl" for="aip-pipeline-sel">Function / Pipeline</label>{{ help('ai-assistant.choosing') }}
+                <select id="aip-pipeline-sel" class="aip-select" onchange="onPipelineChange(this.value)">
+                    <option value="">— Select an AI Task —</option>
+                    {% for p in pipelines %}
+                    <option value="{{ p.id }}"
+                            data-name="{{ p.name | e }}"
+                            data-desc="{{ p.description | e if p.description else '' }}"
+                            data-policy="{{ p.redaction_policy.value }}"
+                            {% if p.id == default_pipeline_id %}selected{% endif %}>
+                        {{ p.name }}{% if p.is_default %} ★{% endif %}
+                    </option>
+                    {% else %}
+                    <option disabled>No active ai_panel pipelines — create one in Pipeline Designer</option>
+                    {% endfor %}
+                </select>
+                <div id="aip-pipe-desc" style="font-size:0.7rem; color:var(--text-muted); margin-top:0.2rem; display:none;"></div>
+            </div>
+
+            {# Model override #}
+            <div>
+                <label class="aip-field-lbl">Model</label>
+                <div class="aip-model-row">
+                    <span id="aip-model-default-hint" class="aip-model-hint">pipeline default</span>
+                    <select id="aip-model-override" class="aip-select" style="max-width:280px; display:none;"
+                            onchange="onModelOverride(this.value)">
+                        <option value="">Use pipeline default</option>
+                        {% for m in ai_models %}
+                        <option value="{{ m.id }}"
+                                data-local="{{ 'true' if m.provider and m.provider.is_local else 'false' }}">
+                            {{ m.display_name or m.model_id }}
+                            {% if m.provider %}({{ 'local' if m.provider.is_local else 'cloud' }}){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if ai_models %}
+                    <button type="button" id="aip-model-toggle-btn" class="aip-btn"
+                            onclick="toggleModelOverride()" style="font-size:0.68rem;">Override model</button>
+                    {% endif %}
+                    <span id="aip-model-badge"></span>
+                </div>
+            </div>
+
+            {# User prompt textarea #}
+            <div style="flex:1; display:flex; flex-direction:column;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.2rem;">
+                    <label class="aip-field-lbl" for="aip-user-prompt" style="margin-bottom:0;">Prompt / Query</label>
+                    <button class="dictation-btn"
+                            data-dictate-for="aip-user-prompt"
+                            data-dictate-url="{{ url_for('voice.dictate') }}"
+                            data-worklet-url="{{ url_for('static', filename='js/audio-processor.js') }}"
+                            title="Dictate into prompt"
+                            aria-label="Dictate into prompt"
+                            aria-pressed="false"
+                            type="button">🎤</button>
+                </div>
+                <textarea id="aip-user-prompt" class="aip-textarea" style="flex:1; min-height:120px;"
+                          placeholder="Type a query about this patient, or make a pipeline selection above…"></textarea>
+            </div>
+
+            {# Instructions given to the AI — the system prompt this workflow sends; read-only (ADR-086) #}
+            <details id="aip-instr" class="aip-instr" style="display:none;"
+                     {% if show_instructions_expanded %}open{% endif %}>
+                <summary><strong>Instructions given to the AI</strong> — <span id="aip-instr-name"></span></summary>
+                <pre id="aip-instr-text" class="aip-instr-text"></pre>
+            </details>
+
+            {# SSE Progress log — shown during run #}
+            <div id="aip-log-wrap" style="display:none;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.2rem;">
+                    <label class="aip-field-lbl" style="margin-bottom:0;">Progress</label>
+                    <span id="aip-progress-indicator" class="aip-progress-indicator" style="display:none;">
+                        <span class="aip-progress-dot"></span>
+                        <span id="aip-progress-text"></span>
+                    </span>
+                </div>
+                <div class="aip-log" id="aip-log">
+                    <span style="color:var(--text-muted);">Waiting…</span>
+                </div>
+            </div>
+
+        </div>
+
+        {# Prompt toolbar #}
+        <div class="aip-toolbar">
+            <button type="button" id="aip-run-btn" class="btn btn-primary"
+                    style="font-size:0.8rem; padding:0.3rem 0.9rem;"
+                    onclick="runPipeline()" disabled>▶ Run</button>
+            <button type="button" class="btn btn-outline"
+                    style="font-size:0.75rem; padding:0.25rem 0.5rem;"
+                    onclick="clearAll()">Clear</button>
+            <span style="flex:1;"></span>
+        </div>
+    </div>
+
+    {# ══════════════ TAB 2: OUTPUT ══════════════ #}
+    <div class="aip-tab-panel" id="tab-output" style="display:none; flex-direction:row;">
+        <div class="aip-out-body" style="min-width:0;">
+
+            {# Title + date row #}
+            <div class="aip-out-meta">
+                <div>
+                    <label class="aip-field-lbl" for="aip-out-title">Title / Label</label>{{ help('ai-assistant.output') }}
+                    <input type="text" id="aip-out-title" class="aip-select"
+                           placeholder="e.g. Clinical Summary"
+                           style="font-size:0.82rem;">
+                </div>
+                <div>
+                    <label class="aip-field-lbl" for="aip-out-date">Date</label>
+                    <input type="date" id="aip-out-date" class="aip-select"
+                           style="font-size:0.82rem; width:auto;"
+                           max="" value="">
+                </div>
+            </div>
+
+            {# Action bar #}
+            <div class="aip-action-bar">
+                <button type="button" id="aip-view-toggle" class="aip-btn"
+                        onclick="togglePrintView()" title="Toggle print/plain view">Print View</button>
+                <button type="button" class="aip-btn" onclick="printOutput()" title="Print">Print</button>
+                <button type="button" class="aip-btn" onclick="copyOutput()" title="Copy to clipboard">Copy</button>
+                <span id="aip-copy-tick" style="display:none; color:var(--success); font-size:0.82rem; font-weight:700;">✓</span>
+                <button type="button" id="aip-tidy-btn" class="aip-btn" onclick="tidyOutput()" title="AI text cleanup via [TEXT_CLEAN] pipeline">Tidy Up</button>
+                <span style="width:1px; background:var(--border-color); align-self:stretch; margin:0 0.1rem;"></span>
+                <button type="button" class="aip-btn" onclick="exportPit(this)" title="Send to Best Practice PIT">BP →</button>
+                <span id="aip-pit-tick" style="display:none; color:var(--success); font-size:0.82rem; font-weight:700;">✓</span>
+                <button type="button" class="aip-btn" onclick="sendSms()" title="Send SMS to patient">SMS</button>
+                <button type="button" class="aip-btn" onclick="sendEmail()" title="Send email to patient">Email</button>
+                <span style="flex:1;"></span>
+                <span id="aip-out-meta-badge" style="font-size:0.68rem; color:var(--text-muted);"></span>
+            </div>
+
+            {% set ai_notice = ai_notice_for(default_pipeline_id, 'draft') %}{% set ai_notice_id = 'aip-notice' %}{% include 'components/ai_draft_notice.html' %}
+            {% include 'components/ai_scope_warning.html' %}
+            {# Output area — contenteditable so user can fine-edit before print/export #}
+            <div id="aip-output" class="aip-out-display" contenteditable="true" spellcheck="false"
+                 data-placeholder="Output will appear here after running a pipeline."></div>
+
+        </div>
+
+        {# ── Tidy gutter — shown when Tidy Up runs ── #}
+        <div id="aip-tidy-gutter" class="aip-tidy-gutter">
+            <div>
+                <div class="aip-tidy-lbl">Chars</div>
+                <div class="aip-tidy-count">
+                    <div>Before: <strong id="aip-tidy-before">—</strong></div>
+                    <div id="aip-tidy-after-row" style="display:none;">After: <strong id="aip-tidy-after">—</strong></div>
+                    <div id="aip-tidy-delta-row" style="display:none;"><span id="aip-tidy-delta"></span></div>
+                </div>
+            </div>
+            <hr class="aip-tidy-divider">
+            <div>
+                <div class="aip-tidy-lbl">Pipeline</div>
+                <div id="aip-tidy-sse-log" class="aip-tidy-sse-log"></div>
+            </div>
+        </div>
+
+    </div>
+
+    {# ══════════════ SENT TO AI (ADR-090) ══════════════ #}
+    <div class="aip-tab-panel" id="tab-sent" style="display:none; flex-direction:column;">
+        <div class="aip-sent-body">
+            <p id="aip-sent-empty" style="font-size:0.8rem; color:var(--text-muted); margin:0;">
+                When a workflow runs, the prompt exactly as it goes to the AI is shown here, for a local
+                model as well as a cloud one. With a cloud model, if the privacy check finds an identifier,
+                the request stops here first so you can remove it; once sent, you can report anything
+                identifying that got through.
+            </p>
+            <div id="aip-sent-pane"></div>
+        </div>
+    </div>
+
+    {# ══════════════ TAB 3: DEBUG (admin only) ══════════════ #}
+    {% if current_user.has_level(4) %}
+    <div class="aip-tab-panel" id="tab-debug" style="display:none;">
+        <div class="aip-debug-body">
+            <div id="aip-debug-empty" style="color:var(--text-muted); font-size:var(--text-sm); padding-top:1rem;">
+                Run a pipeline to see the AI payload and step snapshots here.
+            </div>
+            <div id="aip-debug-ai-payload"></div>
+            <div id="aip-debug-snapshots"></div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+{# Hidden data from server #}
+<script src="{{ url_for('static', filename='js/presend_review.js') }}"></script>
+<script>
+    // The debug tab opens at level 4; the privacy check is for
+    // administrators only (decision 2026-09-20).
+    const AIP_IS_ADMIN = {{ 'true' if current_user.is_admin else 'false' }};
+const PATIENT_ID         = {{ patient_id }};
+const PATIENT_NAME       = {{ ((patient.get('SURNAME','') | upper) + ', ' + patient.get('FIRSTNAME','')) | tojson }};
+const PATIENT_DOB        = {{ patient.get('DOB','') | tojson }};
+const DEFAULT_PIPELINE_ID = {{ default_pipeline_id or 'null' }};
+const CSRF               = document.querySelector('meta[name="csrf-token"]')?.content || '';
+const RUN_URL            = '/pipeline/run/start';
+const STREAM_URL         = id => `/pipeline/run/${id}/stream`;
+const PIT_URL            = `/clinical/patient/${PATIENT_ID}/ai/export-pit`;
+const SMS_URL            = `/clinical/patient/${PATIENT_ID}/ai/send-sms`;
+const EMAIL_URL          = `/clinical/patient/${PATIENT_ID}/ai/send-email`;
+
+const PIPELINE_MODELS        = {{ pipeline_models | tojson }};
+const AUTO_RUN               = {{ auto_run | tojson }};
+const DOC_LOAD               = {{ doc_load | tojson }};
+const TEXT_CLEAN_PIPELINE_ID = {{ text_clean_pipeline_id | tojson }};
+
+let selectedPipelineId = null;
+let activeEventSource  = null;
+let _tidyES            = null;
+let isPrintView        = false;
+let _lastAiOutput      = '';
+let _lastRunDbId       = null;   // the run behind _lastAiOutput, sent with an export (usage record)
+
+// ── Waiting indicator — pulse + rotating neutral phrases while a run is in flight ──
+// Phrases are deliberately vague about time remaining (no "almost done") since
+// this has no real progress signal to back that up; overpromising erodes trust
+// faster than an honest "still working" would.
+let _aipProgressTimer = null;
+let _aipProgressIdx   = 0;
+const AIP_PROGRESS_PHRASES = [
+    'Still working…',
+    'Contacting the AI model…',
+    'Processing…',
+    'This can take a minute or two for longer notes…',
+];
+
+function _aipProgressStart() {
+    const el = document.getElementById('aip-progress-indicator');
+    const textEl = document.getElementById('aip-progress-text');
+    if (!el || !textEl) return;
+    clearInterval(_aipProgressTimer);
+    _aipProgressIdx = 0;
+    el.classList.remove('aip-progress-indicator--error');
+    const dot = el.querySelector('.aip-progress-dot');
+    if (dot) dot.classList.remove('aip-progress-dot--error');
+    textEl.textContent = AIP_PROGRESS_PHRASES[0];
+    el.style.display = '';
+    _aipProgressTimer = setInterval(() => {
+        _aipProgressIdx = (_aipProgressIdx + 1) % AIP_PROGRESS_PHRASES.length;
+        textEl.textContent = AIP_PROGRESS_PHRASES[_aipProgressIdx];
+    }, 5000);
+}
+
+function _aipProgressStop() {
+    clearInterval(_aipProgressTimer);
+    _aipProgressTimer = null;
+    const el = document.getElementById('aip-progress-indicator');
+    if (el) el.style.display = 'none';
+    if (el) el.classList.remove('aip-progress-indicator--error');
+    const dot = el ? el.querySelector('.aip-progress-dot') : null;
+    if (dot) dot.classList.remove('aip-progress-dot--error');
+}
+
+// Failure path: stop rotating and leave a static "see log" cue visible next
+// to Progress instead of just hiding the indicator, so a failed run doesn't
+// look identical to one that quietly finished — this is what a step failing
+// (e.g. an inference error) with no follow-up terminal SSE event used to look
+// like: the rotating phrases just kept cycling forever with no error cue up top.
+function _aipProgressError(msg) {
+    clearInterval(_aipProgressTimer);
+    _aipProgressTimer = null;
+    const el = document.getElementById('aip-progress-indicator');
+    const textEl = document.getElementById('aip-progress-text');
+    if (!el || !textEl) return;
+    const dot = el.querySelector('.aip-progress-dot');
+    if (dot) dot.classList.add('aip-progress-dot--error');
+    el.classList.add('aip-progress-indicator--error');
+    textEl.textContent = msg || '✗ Error — see log below';
+    el.style.display = '';
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+
+function switchTab(name, btn) {
+    document.querySelectorAll('.aip-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.aip-tab-panel').forEach(p => {
+        p.classList.remove('active');
+        p.style.display = 'none';
+    });
+    if (btn) btn.classList.add('active');
+    const panel = document.getElementById('tab-' + name);
+    if (panel) {
+        panel.classList.add('active');
+        panel.style.display = 'flex';
+    }
+}
+
+function switchToOutput() {
+    const btn = Array.from(document.querySelectorAll('.aip-tab'))
+                     .find(b => b.textContent.trim() === 'Output');
+    switchTab('output', btn);
+}
+
+// ── Pipeline selection ────────────────────────────────────────────────────────
+
+function onPipelineChange(val) {
+    selectedPipelineId = val ? parseInt(val) : null;
+    document.getElementById('aip-run-btn').disabled = !selectedPipelineId;
+
+    const promptEl = document.getElementById('aip-user-prompt');
+    if (promptEl) promptEl.value = '';
+
+    const sel = document.getElementById('aip-pipeline-sel');
+    const opt = sel.options[sel.selectedIndex];
+    const desc = opt ? opt.dataset.desc : '';
+
+    const descEl = document.getElementById('aip-pipe-desc');
+    if (desc) { descEl.textContent = desc; descEl.style.display = ''; }
+    else       { descEl.style.display = 'none'; }
+
+    // Fetch and pre-fill the UserPrompt template text (Mode C / Gen4 style)
+    if (selectedPipelineId && promptEl) {
+        fetch(`/clinical/patient/${PATIENT_ID}/ai/pipeline/${selectedPipelineId}/prompt-text`)
+            .then(r => r.json())
+            .then(d => {
+                if (promptEl && d.prompt_text) promptEl.value = d.prompt_text;
+                showInstructions(d.system_prompt);
+                // The workflow's own output notice, if it chose one (ADR-088)
+                const noticeEl = document.getElementById('aip-notice');
+                if (noticeEl && d.notice) noticeEl.textContent = d.notice;
+            })
+            .catch(() => showInstructions(null));
+    } else {
+        showInstructions(null);
+    }
+
+    // Update model hint
+    updateModelHint();
+}
+
+// Read-only view of the system prompt the selected workflow sends (ADR-086).
+// Hidden only when no workflow is selected; a workflow without one says so.
+function showInstructions(sp) {
+    const box = document.getElementById('aip-instr');
+    if (!box) return;
+    if (!selectedPipelineId) { box.style.display = 'none'; return; }
+    const textEl = document.getElementById('aip-instr-text');
+    if (sp && sp.text) {
+        const parts = [];
+        if (sp.name) parts.push(`${sp.name} v${sp.version}`);
+        if (sp.scope) parts.push(`scope: ${sp.scope}`);
+        document.getElementById('aip-instr-name').textContent = parts.join(' · ');
+        textEl.textContent = sp.text;
+        textEl.style.display = '';
+    } else {
+        document.getElementById('aip-instr-name').textContent = 'none — this workflow sends no instructions';
+        textEl.textContent = '';
+        textEl.style.display = 'none';
+    }
+    box.style.display = '';
+}
+
+function updateModelHint() {
+    const hintEl  = document.getElementById('aip-model-default-hint');
+    const badgeEl = document.getElementById('aip-model-badge');
+    const overSel = document.getElementById('aip-model-override');
+
+    if (!selectedPipelineId) {
+        if (hintEl) hintEl.textContent = 'no pipeline selected';
+        if (badgeEl) badgeEl.innerHTML = '';
+        return;
+    }
+
+    const overrideVal = overSel ? overSel.value : '';
+    if (overrideVal) {
+        const oOpt = overSel.options[overSel.selectedIndex];
+        const isLocal = oOpt && oOpt.dataset.local === 'true';
+        if (hintEl) hintEl.style.display = 'none';
+        if (badgeEl) badgeEl.innerHTML = `<span class="aip-badge ${isLocal ? 'aip-badge-local' : 'aip-badge-cloud'}">${oOpt.text.trim().split('(')[0].trim()} (override)</span>`;
+        return;
+    }
+
+    const pm = PIPELINE_MODELS[String(selectedPipelineId)];
+    if (pm) {
+        if (hintEl) { hintEl.textContent = pm.display_name; hintEl.style.display = ''; }
+        if (badgeEl) badgeEl.innerHTML = `<span class="aip-badge ${pm.is_local ? 'aip-badge-local' : 'aip-badge-cloud'}">${pm.is_local ? 'local' : 'cloud'}</span>`;
+    } else {
+        if (hintEl) { hintEl.textContent = 'pipeline default'; hintEl.style.display = ''; }
+        if (badgeEl) badgeEl.innerHTML = '';
+    }
+}
+
+// ── Model override ────────────────────────────────────────────────────────────
+
+function toggleModelOverride() {
+    const sel = document.getElementById('aip-model-override');
+    const hintEl = document.getElementById('aip-model-default-hint');
+    const btn = document.getElementById('aip-model-toggle-btn');
+    if (!sel) return;
+    const showing = sel.style.display !== 'none';
+    sel.style.display = showing ? 'none' : '';
+    if (hintEl) hintEl.style.display = showing ? '' : 'none';
+    if (btn) btn.textContent = showing ? 'Override model' : 'Use default';
+    if (showing) {
+        sel.value = '';
+        updateModelHint();
+    }
+}
+
+function onModelOverride(val) {
+    updateModelHint();
+}
+
+// ── Run pipeline ──────────────────────────────────────────────────────────────
+
+// ── Sent to AI / pre-send review (ADR-090) ───────────────────────────────────
+// The run waits on the server; the tab shows the prompt as it will be sent, with
+// the privacy check's hits to remove or reword — the shared component used by the
+// chatbots and the scribe (presend_review.js, ADR-096). The server checks the text
+// again before sending — nothing here is trusted.
+const SENT_LABELS = {sending: 'Sending to AI', sent: 'Sent to AI'};
+
+function _sentPane(showEmpty) {
+    document.getElementById('aip-sent-empty').style.display = showEmpty ? '' : 'none';
+    return document.getElementById('aip-sent-pane');
+}
+
+function reviewOpen(runId, d) {
+    const btn = document.getElementById('aip-tab-btn-sent');
+    PresendReview.mountReviewPanel(_sentPane(false), btn, {
+        runId, data: d, csrf: CSRF, labels: SENT_LABELS,
+        onAnswer: action => {
+            if (action !== 'send') return;
+            const status = document.getElementById('aip-status');
+            status.textContent = 'Sending…'; status.style.color = 'var(--text-muted)';
+            _aipProgressStart();
+            const promptBtn = Array.from(document.querySelectorAll('.aip-tab'))
+                .find(b => b.textContent.trim().toLowerCase() === 'prompt');
+            if (promptBtn) switchTab('prompt', promptBtn);
+        },
+    });
+    switchTab('sent', btn);
+}
+
+// Cancelled: back to the empty tab, labelled "Sent to AI".
+function reviewClose() {
+    _sentPane(true).innerHTML = '';
+    document.getElementById('aip-tab-btn-sent').textContent = SENT_LABELS.sent;
+}
+
+// After a run: show what went, read-only, with the instructions sent with it.
+// A local run is shown too, labelled as staying inside the practice (ADR-113).
+function reviewShowSent(d) {
+    if (!d.ai_debug || !d.ai_debug.current_prompt) return;
+    document.getElementById('aip-tab-btn-sent').textContent = SENT_LABELS.sent;
+    PresendReview.showSent(_sentPane(false), d.ai_debug.current_prompt, d.review,
+                           d.ai_debug.system_prompt || '', !!d.model_is_local,
+                           {check: d.sent_check, runId: d.run_db_id, csrf: CSRF});   // ADR-115
+}
+
+function runPipeline() {
+    // Fallback: re-read from the select if variable wasn't set (e.g. page loaded with pre-selection)
+    if (!selectedPipelineId) {
+        const sel = document.getElementById('aip-pipeline-sel');
+        if (sel && sel.value) selectedPipelineId = parseInt(sel.value);
+    }
+    if (!selectedPipelineId) return;
+    if (activeEventSource) { activeEventSource.close(); activeEventSource = null; }
+
+    const btn    = document.getElementById('aip-run-btn');
+    const logEl  = document.getElementById('aip-log');
+    const status = document.getElementById('aip-status');
+
+    btn.disabled = true;
+    document.getElementById('aip-log-wrap').style.display = '';
+    logEl.innerHTML = '<span style="color:var(--text-muted);">Starting…</span>';
+    status.textContent = 'Running…';
+    status.style.color = 'var(--text-muted)';
+    _aipProgressStart();
+
+    const userPrompt = (document.getElementById('aip-user-prompt').value || '').trim();
+    const overrideSel = document.getElementById('aip-model-override');
+    const modelOverride = overrideSel && overrideSel.value ? parseInt(overrideSel.value) : null;
+
+    const inputData = {};
+    if (userPrompt)   inputData.user_prompt = userPrompt;
+    if (modelOverride) inputData.model_id_override = modelOverride;
+
+    fetch(RUN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({
+            pipeline_id: selectedPipelineId,
+            patient_id:  PATIENT_ID,
+            input:       inputData,
+            review_capable: true,   // this page can show the pre-send review (ADR-090)
+        }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) {
+            _logLine('✗ ' + data.error, 'sse-error');
+            btn.disabled = false;
+            status.textContent = '✗ Failed';
+            status.style.color = 'var(--danger)';
+            _aipProgressError();
+            return;
+        }
+        subscribeSSE(data.run_id);
+    })
+    .catch(err => {
+        _logLine('✗ ' + err, 'sse-error');
+        btn.disabled = false;
+        status.textContent = '';
+        _aipProgressError();
+    });
+}
+
+function subscribeSSE(runId) {
+    const btn    = document.getElementById('aip-run-btn');
+    const status = document.getElementById('aip-status');
+
+    function _line(text, cls) {
+        const logEl = document.getElementById('aip-log');
+        const div = document.createElement('div');
+        if (cls) div.className = cls;
+        div.textContent = text;
+        logEl.appendChild(div);
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    const es = new EventSource(STREAM_URL(runId));
+    activeEventSource = es;
+
+    es.addEventListener('start',      ev => { const d = JSON.parse(ev.data); _line('▶ ' + d.message, 'sse-step-start'); });
+    es.addEventListener('step_start', ev => { const d = JSON.parse(ev.data); _line(`  → ${d.node}: ${d.message}`, 'sse-step-start'); });
+    es.addEventListener('step_done',  ev => { const d = JSON.parse(ev.data); _line(`  ✓ ${d.node} (${d.duration_ms}ms)`, 'sse-step-done'); });
+    es.addEventListener('step_error', ev => {
+        const d = JSON.parse(ev.data);
+        _line(`  ✗ ${d.node}: ${d.message}`, 'sse-error');
+        _aipProgressError();
+    });
+
+    // Pre-send review (ADR-090): the run waits for Send or Cancel.
+    es.addEventListener('review', ev => {
+        const d = JSON.parse(ev.data);
+        _line(d.blocking ? '  ⏸ Stopped before sending: the privacy check found an identifier'
+                         : '  ⏸ Waiting for you to review what will be sent', 'sse-step-start');
+        status.textContent = 'Review before sending';
+        status.style.color = d.blocking ? 'var(--danger)' : 'var(--text-muted)';
+        _aipProgressStop();
+        reviewOpen(runId, d);
+    });
+    es.addEventListener('cancelled', ev => {
+        const d = JSON.parse(ev.data);
+        _line('■ ' + d.message, 'sse-error');
+        status.textContent = 'Cancelled — nothing sent';
+        status.style.color = 'var(--text-muted)';
+        btn.disabled = false;
+        reviewClose();
+    });
+
+    es.addEventListener('complete', ev => {
+        const d = JSON.parse(ev.data);
+        _line('✓ ' + d.message, 'sse-complete');
+        status.textContent = '✓ Done';
+        status.style.color = 'var(--success)';
+        btn.disabled = false;
+        _aipProgressStop();
+
+        reviewShowSent(d);
+
+        if (d.output) {
+            // Populate output tab — heading + rule + content
+            const outEl = document.getElementById('aip-output');
+            outEl.innerHTML = '';
+
+            const sel = document.getElementById('aip-pipeline-sel');
+            const opt = sel ? sel.options[sel.selectedIndex] : null;
+            const pipeName = opt ? (opt.dataset.name || '').trim() : '';
+
+            // Patient name + DOB header
+            if (PATIENT_NAME) {
+                const patH3 = document.createElement('h3');
+                patH3.style.cssText = 'margin:0 0 0.1rem 0; font-size:0.95rem; font-weight:700; line-height:1.2;';
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = PATIENT_NAME;
+                patH3.appendChild(nameSpan);
+                if (PATIENT_DOB) {
+                    const [y, m, d] = PATIENT_DOB.split('-');
+                    const dobSpan = document.createElement('span');
+                    dobSpan.textContent = `  ${d}/${m}/${y}`;
+                    dobSpan.style.cssText = 'font-size:0.72rem; font-weight:400; color:var(--text-muted); margin-left:0.6rem;';
+                    patH3.appendChild(dobSpan);
+                }
+                outEl.appendChild(patH3);
+            }
+
+            // Out-of-scope warning, above everything (ADR-087)
+            if (d.scope && d.scope.model_flagged) outEl.appendChild(aiScopeWarning());
+            if (d.scope && d.scope.legality) outEl.appendChild(aiLegalityNote());
+
+            // Pipeline name + rule
+            if (pipeName) {
+                const h3 = document.createElement('h3');
+                h3.textContent = pipeName;
+                h3.style.cssText = 'margin:0 0 0.18rem 0; font-size:0.95rem; font-weight:700; line-height:1.2;';
+                outEl.appendChild(h3);
+                const hr = document.createElement('hr');
+                hr.style.cssText = 'margin:0 0 0.55rem 0; border:none; border-top:1px solid var(--border-color);';
+                outEl.appendChild(hr);
+            }
+
+            _lastAiOutput = d.output;
+            _lastRunDbId = d.run_db_id || null;
+            const mdEl = document.createElement('div');
+            mdEl.id = 'aip-output-md';
+            mdEl.style.whiteSpace = 'pre-wrap';
+            mdEl.textContent = d.output;
+            outEl.appendChild(mdEl);
+            const meta = [];
+            if (d.is_redacted)     meta.push('PII redacted');
+            if (d.is_hcp_redacted) meta.push('HCP redacted');
+            if (d.model_is_local !== undefined) meta.push(d.model_is_local ? 'local model' : 'cloud model');
+            document.getElementById('aip-out-meta-badge').textContent = meta.join(' · ');
+
+            // Pre-fill title from pipeline name
+            if (pipeName && !document.getElementById('aip-out-title').value) {
+                document.getElementById('aip-out-title').value = pipeName;
+            }
+            const dateEl = document.getElementById('aip-out-date');
+            if (dateEl && !dateEl.value) {
+                dateEl.value = new Date().toISOString().slice(0, 10);
+            }
+
+            // AI payload debug — system prompt, rendered prompt, raw response
+            const payloadWrap = document.getElementById('aip-debug-ai-payload');
+            if (payloadWrap && d.ai_debug) {
+                payloadWrap.innerHTML = '';
+                document.getElementById('aip-debug-empty').style.display = 'none';
+                const ad = d.ai_debug;
+
+                if (ad.system_prompt) {
+                    payloadWrap.appendChild(_debugCard('System Prompt', ad.system_prompt));
+                }
+                // Flagged strings marked, for administrators (privacy check hits).
+                const _pc = AIP_IS_ADMIN ? d.privacy_check : null;
+                const _sent = ad.current_prompt || '';
+                const _hits = _pvHits(_pc, _sent), _words = _pvWords(_pc, _sent);
+                if (ad.pre_redaction_prompt) {
+                    payloadWrap.appendChild(_debugCard('Assembled prompt (before redaction)', ad.pre_redaction_prompt,
+                        _words.length ? _pvMarkWords(ad.pre_redaction_prompt, _words) : null));
+                }
+                payloadWrap.appendChild(_debugCard('Prompt sent to AI (after redaction)', _sent || '(empty)',
+                    _hits.length ? _pvMarkOffsets(_sent, _hits) : null));
+
+                // Privacy check (MedUI's pre-send check): what survived redaction in the
+                // prompt as sent. Absent means it could not be obtained, which
+                // is shown as "not checked" rather than as clean.
+                // Administrators only (decision 2026-09-20). The debug tab
+                // itself is open at level 4; this card is not.
+                if (AIP_IS_ADMIN && d.privacy_check !== undefined) {
+                    const pc = d.privacy_check;
+                    let body;
+                    if (!pc) {
+                        body = 'Not checked — the pre-send check didn\'t run or failed.';
+                    } else if (pc.screening) {
+                        const sc = pc.screening;
+                        const groups = Object.entries(sc.matches || {});
+                        const total = groups.reduce((n, [, items]) => n + items.length, 0);
+                        let text = total
+                            ? `${total} possible PII match(es) found by the screening model:\n\n` +
+                              groups.map(([c, items]) => `${c}:\n` + items.map(i =>
+                                  `  ${i.value}${i.in_prompt ? '' : '   (not in prompt)'}`).join('\n')).join('\n\n')
+                            : 'No PII matches found.';
+                        text += '\n\nPII screening (local model).';
+                        body = text;
+                    } else if (pc.skipped) {
+                        body = 'Not needed — local model; nothing was sent outside the practice.';
+                    } else if (pc.top_tier === null || pc.top_tier === undefined) {
+                        body = 'Clear — nothing found in the prompt as sent.\n\n' +
+                               `Detector ${pc.detector_version} · ${pc.scanned_ms}ms`;
+                    } else {
+                        const total = (pc.findings || []).reduce((n, f) => n + f.count, 0);
+                        const head = pc.top_tier <= 1
+                            ? `CONFIRMED identifier present (tier ${pc.top_tier}).`
+                            : `${total} possible identifier(s) (tier ${pc.top_tier}).`;
+                        const lines = (pc.findings || []).map(f =>
+                            `  tier ${f.tier}  ${f.type.replace(/_/g, ' ')} ×${f.count}` +
+                            (f.coverage === 'outside_rules'
+                                ? '  (rendering not covered by redaction rules)' : '')).join('\n');
+                        body = `${head}\n${lines}\n\nDetector ${pc.detector_version} · ` +
+                               `${pc.scanned_ms}ms`;
+                    }
+                    payloadWrap.appendChild(_debugCard('Privacy check', body));
+                    // Each hit can become a future redaction (ADR-049).
+                    if (pc && (pc.hits || []).length && d.run_db_id) {
+                        const a = document.createElement('a');
+                        a.href = `/admin/privacy-hits/${d.run_db_id}`;
+                        a.target = '_blank'; a.rel = 'noopener';
+                        a.textContent = `Review ${pc.hits.length} hit(s) — add to future redactions →`;
+                        a.style.cssText = 'display:inline-block; margin:0.2rem 0 0.6rem; font-size:0.78rem;';
+                        payloadWrap.appendChild(a);
+                    }
+                }
+
+                // Extra request parameters sent with the request (ADR-119): the model's,
+                // with the workflow step's override applied.
+                payloadWrap.appendChild(_debugCard('Extra request parameters',
+                    ad.request_params ? JSON.stringify(ad.request_params, null, 2)
+                                      : 'None — the request carried only MedUI\'s own settings.'));
+
+                (ad.ai_responses || []).forEach((resp, i) => {
+                    const label = (ad.ai_responses.length > 1 ? `AI Response ${i + 1}` : 'AI Response') +
+                        ` — ${resp.model_used}` +
+                        ` · ${resp.tokens_input}→${resp.tokens_output} tok` +
+                        (resp.reasoning_chars !== undefined
+                            ? ` · reasoning: ${resp.reasoning_chars ? resp.reasoning_chars + ' chars' : 'none'}` +
+                              (resp.reasoning_tokens ? ` (${resp.reasoning_tokens} tok)` : '')
+                            : '') +
+                        ` · ${resp.latency_ms}ms`;
+                    payloadWrap.appendChild(_debugCard(label, JSON.stringify(resp, null, 2)));
+                });
+            }
+
+            // Step-by-step context snapshots (expanded JSON)
+            // Flagged strings marked in the snapshots too (administrators).
+            const _snapWords = _pvWords(AIP_IS_ADMIN ? d.privacy_check : null, (d.ai_debug || {}).current_prompt || '');
+            const debugWrap = document.getElementById('aip-debug-snapshots');
+            if (debugWrap) {
+                fetch(`/pipeline/run/${runId}/status`)
+                .then(r => r.json())
+                .then(sd => {
+                    if (sd.step_snapshots && sd.step_snapshots.length) {
+                        document.getElementById('aip-debug-empty').style.display = 'none';
+                        debugWrap.innerHTML = '';
+                        sd.step_snapshots.forEach((snap, i) => {
+                            const el = document.createElement('div');
+                            el.className = 'aip-snapshot';
+                            el.innerHTML = `<div class="aip-snapshot-hdr" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">▶ Step ${i + 1} context snapshot</div>
+                                            <pre class="aip-snapshot-body">${_snapWords.length ? _pvMarkWords(typeof snap === 'string' ? snap : JSON.stringify(snap, null, 2), _snapWords) : _escHtml(typeof snap === 'string' ? snap : JSON.stringify(snap, null, 2))}</pre>`;
+                            debugWrap.appendChild(el);
+                        });
+                    }
+                }).catch(() => {});
+            }
+
+            // Auto-switch to output tab
+            switchToOutput();
+        }
+
+        if (d.run_db_id) {
+            // Store for potential re-use
+            window._lastRunDbId = d.run_db_id;
+        }
+    });
+
+    es.addEventListener('error', ev => {
+        let d = {}; try { d = JSON.parse(ev.data); } catch(_) {}
+        _line('✗ ' + (d.message || 'Pipeline error'), 'sse-error');
+        status.textContent = '✗ Failed';
+        status.style.color = 'var(--danger)';
+        btn.disabled = false;
+        _aipProgressError();
+        es.close();
+    });
+
+    es.addEventListener('done', () => {
+        es.close();
+        activeEventSource = null;
+        // Safety net: guarantee the run always ends in a resolved UI state
+        // even if the backend closes the stream after a step_error without
+        // a follow-up top-level 'error'/'complete' event — previously this
+        // left the waiting indicator rotating forever with no visible failure.
+        if (_aipProgressTimer) {
+            _aipProgressError();
+            if (btn.disabled) {
+                btn.disabled = false;
+                status.textContent = '✗ Failed';
+                status.style.color = 'var(--danger)';
+            }
+        }
+    });
+
+    es.onerror = () => {
+        if (es.readyState === EventSource.CLOSED) return;
+        _line('✗ Connection lost', 'sse-error');
+        status.textContent = '✗ Disconnected';
+        status.style.color = 'var(--danger)';
+        btn.disabled = false;
+        _aipProgressError('✗ Connection lost — see log below');
+        es.close();
+    };
+}
+
+function _logLine(text, cls) {
+    const logEl = document.getElementById('aip-log');
+    if (!logEl) return;
+    const div = document.createElement('div');
+    if (cls) div.className = cls;
+    div.textContent = text;
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
+}
+
+function _escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function _mdInline(text) {
+    return text
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/`(.+?)`/g, '<code>$1</code>');
+}
+
+function _looksLikeTableRow(line) {
+    return line.trim() !== '' && line.indexOf('|') !== -1;
+}
+
+function _splitTableRow(line) {
+    let s = line.trim();
+    if (s.startsWith('|')) s = s.slice(1);
+    if (s.endsWith('|')) s = s.slice(0, -1);
+    return s.split('|').map(c => c.trim());
+}
+
+function _isTableSeparator(line) {
+    if (!_looksLikeTableRow(line)) return false;
+    const cells = _splitTableRow(line);
+    return cells.length > 0 && cells.every(c => /^:?-+:?$/.test(c));
+}
+
+// LLM output frequently inserts a blank line between every table row (invalid
+// GFM, since a blank line normally terminates a table) — reglue those rows so
+// the parser below sees one contiguous table.
+function _collapseBlankLinesInTables(lines) {
+    const out = [];
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.trim() === '') {
+            const prev = out.length ? out[out.length - 1] : '';
+            let j = i + 1;
+            while (j < lines.length && lines[j].trim() === '') j++;
+            const next = j < lines.length ? lines[j] : '';
+            if (_looksLikeTableRow(prev) && _looksLikeTableRow(next)) continue;
+        }
+        out.push(line);
+    }
+    return out;
+}
+
+function _mdToHtml(md) {
+    if (!md) return '';
+    const lines = _collapseBlankLinesInTables(md.split('\n'));
+    const out = [];
+    let inUl = false, inOl = false;
+
+    const closeList = () => {
+        if (inUl) { out.push('</ul>'); inUl = false; }
+        if (inOl) { out.push('</ol>'); inOl = false; }
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (/^### (.+)/.test(line))       { closeList(); out.push(`<h3>${_mdInline(line.slice(4))}</h3>`); continue; }
+        if (/^## (.+)/.test(line))        { closeList(); out.push(`<h3>${_mdInline(line.slice(3))}</h3>`); continue; }
+        if (/^# (.+)/.test(line))         { closeList(); out.push(`<h3>${_mdInline(line.slice(2))}</h3>`); continue; }
+        if (/^-{3,}$/.test(line.trim()))  { closeList(); out.push('<hr>'); continue; }
+        if (/^[-*] (.+)/.test(line))      { if (inOl) { out.push('</ol>'); inOl = false; }
+                                             if (!inUl) { out.push('<ul>'); inUl = true; }
+                                             out.push(`<li>${_mdInline(line.slice(2))}</li>`); continue; }
+        if (/^\d+\. (.+)/.test(line))     { if (inUl) { out.push('</ul>'); inUl = false; }
+                                             if (!inOl) { out.push('<ol>'); inOl = true; }
+                                             out.push(`<li>${_mdInline(line.replace(/^\d+\. /, ''))}</li>`); continue; }
+        if (_looksLikeTableRow(line) && i + 1 < lines.length && _isTableSeparator(lines[i + 1])) {
+            closeList();
+            const headerCells = _splitTableRow(line);
+            out.push('<table><thead><tr>' + headerCells.map(c => `<th>${_mdInline(c)}</th>`).join('') + '</tr></thead><tbody>');
+            i += 2;
+            while (i < lines.length && _looksLikeTableRow(lines[i])) {
+                const rowCells = _splitTableRow(lines[i]);
+                out.push('<tr>' + rowCells.map(c => `<td>${_mdInline(c)}</td>`).join('') + '</tr>');
+                i++;
+            }
+            out.push('</tbody></table>');
+            i--;
+            continue;
+        }
+        closeList();
+        if (line.trim() === '')           { out.push('<p></p>'); continue; }
+        out.push(`<p>${_mdInline(line)}</p>`);
+    }
+    closeList();
+    return out.join('\n');
+}
+
+
+// ── Privacy-check highlighting (admins; ADR-049 hits) ─────────────────────────
+// The pre-send check's hits are offsets into the prompt as sent. That prompt is marked
+// exactly; anywhere else (the prompt before redaction, the reply, snapshot
+// JSON) each flagged string is marked wherever it appears.
+function _pvHits(pc, prompt) {
+    return ((pc && pc.hits) || []).filter(h => Number.isInteger(h.start) && Number.isInteger(h.end)
+        && h.start >= 0 && h.start < h.end && h.end <= (prompt || '').length)
+        .sort((a, b) => a.start - b.start);
+}
+function _pvWords(pc, prompt) {
+    const seen = new Set();
+    _pvHits(pc, prompt).forEach(h => { const w = prompt.slice(h.start, h.end).trim(); if (w.length > 1) seen.add(w); });
+    return [...seen].sort((a, b) => b.length - a.length);
+}
+function _pvEsc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+const _PV_MARK = 'background:#fde68a;color:#111;border-radius:2px;padding:0 1px;';
+function _pvMarkOffsets(text, hits) {
+    let out = '', pos = 0;
+    hits.forEach(h => {
+        if (h.start < pos) return;                       // overlapping hit: first one wins
+        out += _pvEsc(text.slice(pos, h.start)) +
+               `<mark style="${_PV_MARK}" title="${_pvEsc(h.type.replace(/_/g, ' '))} (tier ${h.tier})">` +
+               _pvEsc(text.slice(h.start, h.end)) + '</mark>';
+        pos = h.end;
+    });
+    return out + _pvEsc(text.slice(pos));
+}
+function _pvMarkWords(text, words) {
+    if (!words.length) return _pvEsc(text);
+    const re = new RegExp('(?<![A-Za-z0-9])(' + words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')(?![A-Za-z0-9])', 'g');
+    let out = '', pos = 0, m;
+    while ((m = re.exec(text)) !== null) {
+        out += _pvEsc(text.slice(pos, m.index)) + `<mark style="${_PV_MARK}">` + _pvEsc(m[0]) + '</mark>';
+        pos = m.index + m[0].length;
+    }
+    return out + _pvEsc(text.slice(pos));
+}
+
+function _debugCard(title, body, html) {
+    const wrap = document.createElement('div');
+    wrap.className = 'aip-snapshot';
+    const hdr = document.createElement('div');
+    hdr.className = 'aip-snapshot-hdr';
+    hdr.textContent = title;
+    hdr.onclick = () => { pre.style.display = pre.style.display === 'none' ? 'block' : 'none'; };
+    const pre = document.createElement('pre');
+    pre.className = 'aip-snapshot-body';
+    pre.style.display = 'block';   // expanded by default
+    if (html) pre.innerHTML = html; else pre.textContent = body;
+    wrap.appendChild(hdr);
+    wrap.appendChild(pre);
+    return wrap;
+}
+
+// ── Output actions ────────────────────────────────────────────────────────────
+
+function togglePrintView() {
+    isPrintView = !isPrintView;
+    const el  = document.getElementById('aip-output');
+    const btn = document.getElementById('aip-view-toggle');
+    const mdEl = document.getElementById('aip-output-md');
+    if (isPrintView) {
+        el.classList.add('print-mode');
+        btn.classList.add('active');
+        btn.textContent = 'Text View';
+        if (mdEl && _lastAiOutput) {
+            mdEl.innerHTML = _mdToHtml(_lastAiOutput);
+            mdEl.style.whiteSpace = '';
+        }
+    } else {
+        el.classList.remove('print-mode');
+        btn.classList.remove('active');
+        btn.textContent = 'Print View';
+        if (mdEl && _lastAiOutput) {
+            mdEl.textContent = _lastAiOutput;
+            mdEl.style.whiteSpace = 'pre-wrap';
+        }
+    }
+}
+
+function printOutput() {
+    const title   = document.getElementById('aip-out-title').value.trim() || 'AI Output';
+    const dateVal = document.getElementById('aip-out-date').value || '';
+    const mdEl    = document.getElementById('aip-output-md');
+
+    const outEl   = document.getElementById('aip-output');
+    const FONT    = outEl ? getComputedStyle(outEl).fontFamily : 'monospace';
+    const MARGINS = '0.85cm 0.9cm';
+
+    // Format DOB YYYY-MM-DD → DD/MM/YYYY
+    let dobFmt = '';
+    if (PATIENT_DOB) {
+        const [y, m, d] = PATIENT_DOB.split('-');
+        dobFmt = `${d}/${m}/${y}`;
+    }
+
+    const patientHdr = PATIENT_NAME
+        ? `<div class="pat">${_escHtml(PATIENT_NAME)}${dobFmt ? `<span class="dob">${_escHtml(dobFmt)}</span>` : ''}</div>`
+        : '';
+    const docDate = dateVal
+        ? `<div class="doc-date">${_escHtml(dateVal)}</div>`
+        : '';
+
+    const SHARED_CSS = `
+body { font-family:${FONT}; font-size:11pt; margin:${MARGINS}; line-height:1.55; color:#111; }
+.pat { font-size:15pt; font-weight:700; margin:0 0 0.05em; }
+.pat .dob { font-size:10pt; font-weight:400; color:#444; margin-left:0.65em; }
+h1   { font-size:15pt; font-weight:700; margin:0 0 0.1em; }
+.doc-date { font-size:9pt; color:#555; margin-bottom:0.75em;
+            border-bottom:1px solid #bbb; padding-bottom:0.3em; }`;
+
+    // In Print View, mdEl already holds rendered HTML (incl. real <table> markup) —
+    // reading it back via innerText would flatten tables to plain text and lose the
+    // `|` delimiters _mdToHtml needs, so use the rendered markup as-is in that case.
+    let bodyHtml;
+    if (isPrintView) {
+        bodyHtml = mdEl ? mdEl.innerHTML : '';
+    } else {
+        const currentText = mdEl
+            ? (mdEl.innerText || mdEl.textContent || '').trim()
+            : (document.getElementById('aip-output').innerText || '').trim();
+        bodyHtml = currentText ? _mdToHtml(currentText) : '';
+    }
+
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html><html><head><title>${_escHtml(title)}</title>
+<style>${SHARED_CSS}
+h3   { font-size:11pt; font-weight:700; margin:0.6em 0 0.15em; }
+p    { margin:0.3em 0; }
+ul, ol { margin:0.3em 0; padding-left:1.4em; }
+li   { margin:0.1em 0; }
+hr   { border:none; border-top:1px solid #ccc; margin:0.6em 0; }
+strong { font-weight:700; } em { font-style:italic; }
+code { font-family:Consolas,monospace; font-size:9.5pt; }
+table { border-collapse:collapse; margin:0.5em 0; width:100%; font-size:9.5pt; }
+th, td { border:1px solid #ccc; padding:0.25em 0.5em; text-align:left; vertical-align:top; }
+th { background:#f2f2f2; font-weight:700; }
+</style></head><body>
+${patientHdr}
+<h1>${_escHtml(title)}</h1>
+${docDate}
+${bodyHtml}
+</body></html>`);
+    win.document.close();
+    win.focus();
+    win.addEventListener('afterprint', () => win.close());
+    win.print();
+}
+
+function copyOutput() {
+    const text = document.getElementById('aip-output').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        // Same acknowledgement as the BP → export: a brief green tick.
+        const tick = document.getElementById('aip-copy-tick');
+        tick.style.display = '';
+        setTimeout(() => { tick.style.display = 'none'; }, 2500);
+    }).catch(() => {});
+}
+
+// ── Tidy gutter helpers ────────────────────────────────────────────────────────
+
+function _countAlnum(text) {
+    return (text.match(/[a-zA-Z0-9]/g) || []).length;
+}
+
+function _initTidyGutter(beforeCount) {
+    const g = document.getElementById('aip-tidy-gutter');
+    g.style.display = 'flex';
+    document.getElementById('aip-tidy-before').textContent = beforeCount.toLocaleString();
+    document.getElementById('aip-tidy-after-row').style.display = 'none';
+    document.getElementById('aip-tidy-delta-row').style.display = 'none';
+    document.getElementById('aip-tidy-sse-log').innerHTML = '';
+}
+
+function _finishTidyGutter(beforeCount, afterCount) {
+    document.getElementById('aip-tidy-after').textContent = afterCount.toLocaleString();
+    document.getElementById('aip-tidy-after-row').style.display = '';
+    const delta = afterCount - beforeCount;
+    const sign  = delta >= 0 ? '+' : '';
+    const el    = document.getElementById('aip-tidy-delta');
+    el.textContent = `${sign}${delta}`;
+    el.className   = Math.abs(delta) > 5 ? 'aip-tidy-delta-bad' : 'aip-tidy-delta-ok';
+    document.getElementById('aip-tidy-delta-row').style.display = '';
+}
+
+function _gutterLog(msg, cls) {
+    const log  = document.getElementById('aip-tidy-sse-log');
+    if (!log) return;
+    const line = document.createElement('div');
+    line.className = 'aip-tidy-sse-ln' + (cls ? ' ' + cls : '');
+    line.textContent = msg;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+}
+
+// ── Tidy Up ────────────────────────────────────────────────────────────────────
+
+function tidyOutput() {
+    const outEl = document.getElementById('aip-output');
+    const text = outEl ? outEl.innerText.trim() : '';
+    if (!text) return;
+
+    if (!TEXT_CLEAN_PIPELINE_ID) {
+        _lastAiOutput = text.replace(/\n{3,}/g, '\n\n').trim();
+        outEl.innerText = _lastAiOutput;
+        return;
+    }
+
+    const beforeCount = _countAlnum(text);
+    _initTidyGutter(beforeCount);
+
+    const btn = document.getElementById('aip-tidy-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Tidying…'; }
+    if (_tidyES) { _tidyES.close(); _tidyES = null; }
+
+    fetch(RUN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({
+            pipeline_id: TEXT_CLEAN_PIPELINE_ID,
+            patient_id:  PATIENT_ID,
+            input:       { text },
+        }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) {
+            if (btn) { btn.disabled = false; btn.textContent = 'Tidy Up'; }
+            _gutterLog('✗ ' + data.error, 'sse-error');
+            return;
+        }
+        _subscribeTidySSE(data.run_id, btn, outEl, beforeCount);
+    })
+    .catch(() => {
+        if (btn) { btn.disabled = false; btn.textContent = 'Tidy Up'; }
+        _gutterLog('✗ Request failed', 'sse-error');
+    });
+}
+
+function _subscribeTidySSE(runId, btn, outEl, beforeCount) {
+    const es = new EventSource(STREAM_URL(runId));
+    _tidyES = es;
+
+    es.addEventListener('step_start', ev => {
+        const d = JSON.parse(ev.data);
+        _gutterLog(`→ ${d.node}`, 'sse-step-start');
+    });
+    es.addEventListener('step_done', ev => {
+        const d = JSON.parse(ev.data);
+        _gutterLog(`✓ ${d.node} (${d.duration_ms}ms)`, 'sse-step-done');
+    });
+    es.addEventListener('step_error', ev => {
+        const d = JSON.parse(ev.data);
+        _gutterLog(`✗ ${d.node}: ${d.message}`, 'sse-error');
+    });
+
+    es.addEventListener('complete', ev => {
+        const d = JSON.parse(ev.data);
+        es.close(); _tidyES = null;
+        if (btn) { btn.disabled = false; btn.textContent = 'Tidy Up'; }
+        if (d.output) {
+            _lastAiOutput = d.output;
+            _lastRunDbId = d.run_db_id || null;
+            outEl.innerHTML = '';
+            const mdEl = document.createElement('div');
+            mdEl.id = 'aip-output-md';
+            mdEl.style.whiteSpace = 'pre-wrap';
+            mdEl.textContent = d.output;
+            outEl.appendChild(mdEl);
+            _finishTidyGutter(beforeCount, _countAlnum(d.output));
+            _gutterLog('✓ Done', 'sse-complete');
+        }
+    });
+
+    es.addEventListener('error', () => {
+        es.close(); _tidyES = null;
+        if (btn) { btn.disabled = false; btn.textContent = 'Tidy Up'; }
+        _gutterLog('✗ Stream error', 'sse-error');
+    });
+}
+
+function exportPit(btn) {
+    const content = document.getElementById('aip-output').innerText.trim();
+    if (!content) { alert('No output to export.'); return; }
+
+    const title   = document.getElementById('aip-out-title').value.trim();
+    const dateVal = document.getElementById('aip-out-date').value;
+    const label   = [title, dateVal].filter(Boolean).join(' — ') || '[AI PANEL]';
+
+    fetch(PIT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({ content, label, run_id: _lastRunDbId }),
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.ok) {
+            const tick = document.getElementById('aip-pit-tick');
+            tick.style.display = '';
+            setTimeout(() => { tick.style.display = 'none'; }, 2500);
+        } else {
+            alert('Export failed: ' + (d.error || 'Unknown error'));
+        }
+    })
+    .catch(err => alert('Export error: ' + err));
+}
+
+function sendSms() {
+    const content = _lastAiOutput || document.getElementById('aip-output-md')?.innerText?.trim() || '';
+    if (!content) { alert('No output to send.'); return; }
+    try {
+        sessionStorage.setItem('comms_prefill', JSON.stringify({ channel: 'sms', body: content }));
+    } catch (_) {}
+    window.open(`/clinical/comms/patient/${PATIENT_ID}`, '_blank');
+}
+
+function sendEmail() {
+    const content = _lastAiOutput || document.getElementById('aip-output-md')?.innerText?.trim() || '';
+    if (!content) { alert('No output to send.'); return; }
+    const subject = 'Email from {{ practice_name | default("The Practice") | e }}';
+    try {
+        sessionStorage.setItem('comms_prefill', JSON.stringify({ channel: 'email', body: content, subject }));
+    } catch (_) {}
+    window.open(`/clinical/comms/patient/${PATIENT_ID}`, '_blank');
+}
+
+// ── Misc ──────────────────────────────────────────────────────────────────────
+
+function clearAll() {
+    if (activeEventSource) { activeEventSource.close(); activeEventSource = null; }
+    _aipProgressStop();
+    document.getElementById('aip-log').innerHTML = '<span style="color:var(--text-muted);">Waiting…</span>';
+    document.getElementById('aip-log-wrap').style.display = 'none';
+    document.getElementById('aip-user-prompt').value = '';
+    document.getElementById('aip-status').textContent = '';
+    document.getElementById('aip-output').innerHTML = '';
+    document.getElementById('aip-out-meta-badge').textContent = '';
+    _lastAiOutput = '';
+    isPrintView = false;
+    const btn = document.getElementById('aip-view-toggle');
+    if (btn) { btn.classList.remove('active'); btn.textContent = 'Print View'; }
+    document.getElementById('aip-output').classList.remove('print-mode');
+    if (selectedPipelineId) document.getElementById('aip-run-btn').disabled = false;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+(function init() {
+    // Set today's date on output date picker
+    const dateEl = document.getElementById('aip-out-date');
+    if (dateEl) {
+        const today = new Date().toISOString().slice(0, 10);
+        dateEl.value = today;
+        dateEl.max = today;
+    }
+
+    // AUTO_RUN: triggered from [SUM]/[EXP] document badge links
+    if (AUTO_RUN && AUTO_RUN.pipeline_id) {
+        // Set up pipeline selection (mirrors onPipelineChange without the async prompt fetch)
+        selectedPipelineId = AUTO_RUN.pipeline_id;
+        const sel = document.getElementById('aip-pipeline-sel');
+        if (sel) sel.value = AUTO_RUN.pipeline_id;
+        document.getElementById('aip-run-btn').disabled = false;
+        const descEl = document.getElementById('aip-pipe-desc');
+        if (descEl) {
+            const opt = sel ? sel.options[sel.selectedIndex] : null;
+            const desc = opt ? opt.dataset.desc : '';
+            if (desc) { descEl.textContent = desc; descEl.style.display = ''; }
+            else       { descEl.style.display = 'none'; }
+        }
+        updateModelHint();
+
+        // Pre-fill output title from the label
+        const titleEl = document.getElementById('aip-out-title');
+        if (titleEl && AUTO_RUN.label) titleEl.value = AUTO_RUN.label;
+
+        const promptEl = document.getElementById('aip-user-prompt');
+
+        // In AUTO_RUN mode the textarea holds only the doc text (becomes input.user_prompt).
+        // PromptAssemblyNode uses the stored UserPrompt.prompt_text from the DB directly.
+        const _fetchDocText = () => {
+            if (!AUTO_RUN.doc_type || !AUTO_RUN.doc_id) return Promise.resolve();
+            const params = new URLSearchParams({
+                doc_type:   AUTO_RUN.doc_type,
+                doc_id:     AUTO_RUN.doc_id,
+                patient_id: PATIENT_ID,
+                inbox:      AUTO_RUN.inbox || '0',
+            });
+            return fetch(`/clinical/viewer/content/text?${params}`)
+                .then(r => r.json())
+                .then(d => {
+                    if (d.error) throw new Error(d.error);
+                    if (promptEl && d.text) promptEl.value = d.text;
+                });
+        };
+
+        // A document that can't be read — or isn't this patient's — must not
+        // leave a run going with no document in it.
+        _fetchDocText()
+            .then(() => setTimeout(runPipeline, 100))
+            .catch(err => {
+                document.getElementById('aip-status').textContent =
+                    `Document not loaded: ${err.message || 'unavailable'} — nothing was run.`;
+            });
+        return;
+    }
+
+    // DOC_LOAD: [TXT] link — render extracted document text in the Output tab
+    if (DOC_LOAD && DOC_LOAD.doc_type && DOC_LOAD.doc_id) {
+        const titleEl = document.getElementById('aip-out-title');
+        const dateEl  = document.getElementById('aip-out-date');
+        if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
+
+        const params = new URLSearchParams({
+            doc_type:   DOC_LOAD.doc_type,
+            doc_id:     DOC_LOAD.doc_id,
+            patient_id: PATIENT_ID,
+            inbox:      DOC_LOAD.inbox || '0',
+        });
+        fetch(`/clinical/viewer/content/text?${params}`)
+            .then(r => r.json())
+            .then(d => {
+                if (!d.text) return;
+
+                const outEl = document.getElementById('aip-output');
+                outEl.innerHTML = '';
+
+                // Patient name + DOB header
+                if (PATIENT_NAME) {
+                    const patH3 = document.createElement('h3');
+                    patH3.style.cssText = 'margin:0 0 0.1rem 0; font-size:0.95rem; font-weight:700; line-height:1.2;';
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = PATIENT_NAME;
+                    patH3.appendChild(nameSpan);
+                    if (PATIENT_DOB) {
+                        const [y, m, dv] = PATIENT_DOB.split('-');
+                        const dobSpan = document.createElement('span');
+                        dobSpan.textContent = `  ${dv}/${m}/${y}`;
+                        dobSpan.style.cssText = 'font-size:0.72rem; font-weight:400; color:var(--text-muted); margin-left:0.6rem;';
+                        patH3.appendChild(dobSpan);
+                    }
+                    outEl.appendChild(patH3);
+                }
+
+                // Document label + rule
+                const label = DOC_LOAD.label || d.label || '';
+                if (label) {
+                    const h3 = document.createElement('h3');
+                    h3.textContent = label;
+                    h3.style.cssText = 'margin:0 0 0.18rem 0; font-size:0.95rem; font-weight:700; line-height:1.2;';
+                    outEl.appendChild(h3);
+                    const hr = document.createElement('hr');
+                    hr.style.cssText = 'margin:0 0 0.55rem 0; border:none; border-top:1px solid var(--border-color);';
+                    outEl.appendChild(hr);
+                }
+
+                // Document text — plain, pre-wrap (not AI markdown)
+                _lastAiOutput = d.text;
+                const mdEl = document.createElement('div');
+                mdEl.id = 'aip-output-md';
+                mdEl.style.whiteSpace = 'pre-wrap';
+                mdEl.textContent = d.text;
+                outEl.appendChild(mdEl);
+
+                if (titleEl && label) titleEl.value = label;
+                switchToOutput();
+            })
+            .catch(() => {});
+        return;
+    }
+
+    // Force plain-text on clipboard when user manually copies from the output area.
+    // Without this, the browser puts HTML on the clipboard and apps that accept plain
+    // text strip the structure, collapsing line breaks into one paragraph.
+    document.getElementById('aip-output').addEventListener('copy', function (e) {
+        const sel = window.getSelection();
+        if (!sel || sel.isCollapsed) return;
+        e.clipboardData.setData('text/plain', sel.toString());
+        e.preventDefault();
+    });
+
+    // ?tab=output — jump directly to output tab (e.g. "Enter New Report" from topnav)
+    const _initTab = new URLSearchParams(window.location.search).get('tab');
+    if (_initTab === 'output') {
+        const _outBtn = Array.from(document.querySelectorAll('.aip-tab'))
+            .find(b => b.textContent.trim().toLowerCase() === 'output');
+        if (_outBtn) switchTab('output', _outBtn);
+        document.getElementById('aip-output')?.focus();
+        return;
+    }
+
+    // Default: trigger pipeline selection if there is a pre-selected one
+    const sel = document.getElementById('aip-pipeline-sel');
+    if (sel && sel.value) {
+        onPipelineChange(sel.value);
+    }
+
+})();
+
+</script>
+{% endblock %}

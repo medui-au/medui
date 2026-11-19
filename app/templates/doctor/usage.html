@@ -1,0 +1,288 @@
+{% extends 'doctor/base.html' %}
+
+{% block doctor_styles %}
+.usage-filters-line { font-size: var(--text-sm); color: var(--text-muted); margin: 0.15rem 0 0; }
+.usage-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border-color); flex-shrink: 0; }
+.usage-tabs a { padding: 0.4rem 1rem; font-size: var(--text-sm); font-weight: 500; color: var(--text-muted);
+    text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+.usage-tabs a:hover { color: var(--text-primary); }
+.usage-tabs a.active { color: var(--accent); border-color: var(--accent); font-weight: 600; }
+.usage-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; font-size: 0.75rem; flex-shrink: 0; }
+.usage-chip { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.15rem 0.35rem 0.15rem 0.55rem;
+    border: 1px solid var(--accent); border-radius: 999px; color: var(--text-primary); background: var(--bg-primary); }
+.usage-chip a { color: var(--text-muted); text-decoration: none; font-weight: 700; padding: 0 0.2rem; }
+.usage-chip a:hover { color: var(--accent); }
+a.doctor-card { text-decoration: none; color: inherit; cursor: pointer; transition: border-color 0.15s; }
+a.doctor-card:hover { border-color: var(--accent); }
+a.doctor-card.active { border-color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); }
+.usage-chart-wrap { position: relative; height: 220px; flex-shrink: 0;
+    border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 0.5rem; background: var(--bg-primary); }
+.usage-by { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; font-size: 0.75rem; flex-shrink: 0; }
+.usage-by .lbl { color: var(--text-muted); font-weight: 700; margin-right: 0.2rem; }
+.usage-by a { padding: 0.15rem 0.55rem; border: 1px solid var(--border-color); border-radius: 0.375rem;
+    text-decoration: none; color: var(--text-primary); }
+.usage-by a:hover { border-color: var(--accent); }
+.usage-by a.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.usage-table-wrap { border: 1px solid var(--border-color); border-radius: 0.5rem; overflow-x: auto; flex-shrink: 0; }
+.usage-table-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;
+    padding: 0.4rem 0.75rem; background: var(--bg-secondary); font-size: 0.75rem; font-weight: 700; }
+.usage-table-head a { font-weight: 600; color: var(--accent); text-decoration: none; }
+.usage-table-head a:hover { text-decoration: underline; }
+tr.usage-drill { cursor: pointer; }
+tr.usage-drill td:first-child a { color: var(--accent); text-decoration: none; font-weight: 600; }
+tr.usage-drill:hover td { background: var(--bg-secondary); }
+.usage-pager { display: flex; gap: 0.6rem; align-items: center; justify-content: flex-end;
+    padding: 0.4rem 0.75rem; font-size: 0.75rem; border-top: 1px solid var(--border-color); }
+.usage-pager a { color: var(--accent); text-decoration: none; }
+.usage-notes { font-size: 0.72rem; color: var(--text-muted); margin: 0; }
+.usage-switch { display: flex; align-items: center; gap: 0.4rem; font-size: var(--text-sm); }
+.usage-sources label { display: block; font-size: var(--text-sm); }
+.usage-export-row { display: flex; gap: 0.3rem; }
+.usage-export-row .btn { flex: 1; font-size: 0.72rem; padding: 0.25rem 0.3rem; }
+.usage-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    display: none; align-items: center; justify-content: center; z-index: 1000; }
+.usage-modal-overlay.open { display: flex; }
+.usage-modal { background: var(--bg-primary); border-radius: 0.5rem; padding: 1.1rem 1.2rem;
+    max-width: 440px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); font-size: var(--text-sm); }
+.usage-modal h3 { margin: 0 0 0.5rem; font-size: 1rem; }
+.usage-modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.9rem; }
+{% endblock %}
+
+{% block doctor_content %}
+<div class="doctor-content-header">
+    <h2>Application Usage{{ help('application-usage.overview') }}</h2>
+    <p class="usage-filters-line">{{ report.filters | join(' · ') }}
+        · Staff shown {{ 'by name' if show_names else 'by label' }}</p>
+</div>
+
+<nav class="usage-tabs" aria-label="Usage tabs">
+    {% for key, title in tabs.items() %}
+    <a href="{{ usage_url(tab=key, measure=None, by=None) }}" class="{{ 'active' if view.tab == key }}">{{ title }}</a>
+    {% endfor %}
+</nav>
+
+{% if chips %}
+<div class="usage-chips">
+    <span style="color:var(--text-muted); font-weight:700;">Showing only</span>
+    {% for label, value, remove in chips %}
+    <span class="usage-chip">{{ label }}: {{ value }}<a href="{{ remove }}" title="Remove this filter" aria-label="Remove {{ label }} filter">×</a></span>
+    {% endfor %}
+    <a href="{{ clear_url }}" style="color:var(--text-muted);">Clear all</a>
+</div>
+{% endif %}
+
+<div class="doctor-cards">
+    {% for c in report.cards %}
+    <a class="doctor-card{{ ' active' if c.active }}" title="{{ c.hint }}"
+       href="{{ usage_url(view=None, page=None, **c.go) }}">
+        <div class="doctor-card-label">{{ c.label }}</div>
+        <div class="doctor-card-value">{{ c.value }}</div>
+    </a>
+    {% endfor %}
+</div>
+
+{% if report.chart and report.chart.labels %}
+<div class="usage-chart-wrap"><canvas id="usageChart"></canvas></div>
+{% endif %}
+
+{% if not report.rows_view %}
+<div class="usage-by">
+    <span class="lbl">{{ (measures[view.measure] if view.tab == 'ai' else 'Tasks') }} by{{ help('application-usage.drill-down') }}</span>
+    {% for key, title in report.dimensions.items() %}
+    <a href="{{ usage_url(by=key, view=None, page=None) }}" class="{{ 'active' if report.by == key }}">{{ title }}</a>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="usage-table-wrap">
+    <div class="usage-table-head">
+        <span>{{ report.description }}
+            <span style="font-weight:400; color:var(--text-muted);">
+            {% if report.rows_view %}({{ '{:,}'.format(report.total) }} record{{ 's' if report.total != 1 }}, newest first)
+            {% else %}({{ report.table.rows|length }} row{{ 's' if report.table.rows|length != 1 }}{% if drills | select | list %}; click a row to look inside it{% endif %}){% endif %}
+            </span></span>
+        {% if report.rows_view %}
+        <a href="{{ usage_url(view=None, page=None) }}">← Back to the breakdown</a>
+        {% else %}
+        <a href="{{ usage_url(view='rows', page=None) }}">Show the {{ '{:,}'.format(report.total) }} records →</a>
+        {% endif %}
+    </div>
+    <table class="doctor-table" {{ 'data-sortable' if not report.rows_view }}>
+        <thead><tr>{% for c in report.table.columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+        {% for row in report.table.rows %}
+            {% set go = drills[loop.index0] %}
+            <tr{% if go %} class="usage-drill" data-href="{{ go }}"{% endif %}>
+                {% for v in row %}<td>{% if loop.first and go %}<a href="{{ go }}">{{ v }}</a>{% else %}{{ v }}{% endif %}</td>{% endfor %}
+            </tr>
+        {% else %}
+            <tr><td colspan="{{ report.table.columns | length or 1 }}" class="text-center">
+                Nothing recorded for these filters.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% if report.rows_view and report.pages > 1 %}
+    <div class="usage-pager">
+        {% if report.page > 1 %}<a href="{{ usage_url(page=report.page - 1) }}">← Newer</a>{% endif %}
+        <span>Page {{ report.page }} of {{ report.pages }}</span>
+        {% if report.page < report.pages %}<a href="{{ usage_url(page=report.page + 1) }}">Older →</a>{% endif %}
+    </div>
+    {% endif %}
+</div>
+
+{% for note in report.notes %}<p class="usage-notes">{{ note }}</p>{% endfor %}
+{% endblock %}
+
+{% block doctor_filters %}
+<form method="GET" action="{{ url_for('doctor.usage') }}" id="usageForm">
+    <input type="hidden" name="src_set" value="1">
+    <input type="hidden" name="tab" value="{{ view.tab }}">
+    <input type="hidden" name="measure" value="{{ view.measure }}">
+    <input type="hidden" name="by" value="{{ view.by }}">
+    {% if report.rows_view %}<input type="hidden" name="view" value="rows">{% endif %}
+    <input type="hidden" name="names" value="{{ '1' if show_names else '0' }}">
+    <label class="usage-switch" title="Names are shown by default; turn off to show labels (Doctor 2), e.g. while sharing your screen">
+        <input type="checkbox" {{ 'checked' if show_names }}
+               onchange="this.form.names.value = this.checked ? '1' : '0'; this.form.submit()"> Show names
+    </label>
+    <hr class="filter-sep">
+    <span class="filter-label">Period</span>
+    <select name="period" id="periodSelect" class="filter-select" onchange="usagePeriod(this)">
+        {% for v, l in [('7days','Last 7 Days'), ('month','This Month'), ('last_month','Last Month'),
+                        ('year','This Year'), ('last_year','Last Year'), ('custom','Custom Range')] %}
+        <option value="{{ v }}" {{ 'selected' if period == v }}>{{ l }}</option>
+        {% endfor %}
+    </select>
+    <span class="filter-label">From</span>
+    <input type="date" name="date_from" class="filter-input" value="{{ start_date.isoformat() }}"
+           onchange="document.getElementById('periodSelect').value='custom'">
+    <span class="filter-label">To</span>
+    <input type="date" name="date_to" class="filter-input" value="{{ end_date.isoformat() }}"
+           onchange="document.getElementById('periodSelect').value='custom'">
+    <span class="filter-label">Chart by</span>
+    <select name="group" class="filter-select">
+        {% for g in ['day', 'week', 'month'] %}
+        <option value="{{ g }}" {{ 'selected' if filters.group == g }}>{{ g | capitalize }}</option>
+        {% endfor %}
+    </select>
+    <hr class="filter-sep">
+    <span class="filter-label">Person</span>
+    <select name="user_id" class="filter-select">
+        <option value="">Everyone</option>
+        {% for uid, label in people %}
+        <option value="{{ uid }}" {{ 'selected' if filters.user_id == uid }}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <span class="filter-label">Role</span>
+    <select name="role" class="filter-select">
+        <option value="">Any</option>
+        {% for v in choices.roles %}<option value="{{ v }}" {{ 'selected' if filters.role == v }}>{{ v }}</option>{% endfor %}
+    </select>
+    <hr class="filter-sep">
+    {% if view.tab == 'ai' %}
+    {% set lists = [('feature', 'Feature', choices.features), ('provider', 'Provider', choices.providers),
+                    ('model', 'Model', choices.models), ('pipeline', 'Pipeline', choices.pipelines),
+                    ('locality', 'Local or cloud', ['local', 'cloud', 'unknown']),
+                    ('result', 'Result', choices.results), ('privacy', 'Privacy check', choices.privacy)] %}
+    {% else %}
+    {% set lists = [('area', 'Area', choices.areas), ('task', 'Task', choices.tasks),
+                    ('outcome', 'Outcome', choices.outcomes)] %}
+    {% endif %}
+    {% for key, label, values in lists %}
+    <span class="filter-label">{{ label }}</span>
+    <select name="{{ key }}" class="filter-select">
+        <option value="">Any</option>
+        {% for v in values %}<option value="{{ v }}" {{ 'selected' if filters[key] == v }}>{{ labels(key, v) }}</option>{% endfor %}
+    </select>
+    {% endfor %}
+    <hr class="filter-sep">
+    <span class="filter-label">Include</span>
+    <div class="usage-sources">
+        <label><input type="checkbox" name="src_live" value="1" {{ 'checked' if 'live' in filters.sources }}> Live record</label>
+        <label><input type="checkbox" name="src_imported" value="1" {{ 'checked' if 'imported' in filters.sources }}> Imported history</label>
+        <label title="Tasks from the web server log before live recording, with no person">
+            <input type="checkbox" name="src_unattributed" value="1" {{ 'checked' if 'unattributed' in filters.sources }}> Unattributed history</label>
+    </div>
+    <button type="submit" class="btn btn-primary" style="width:100%; font-size:var(--text-sm);">Apply</button>
+    <hr class="filter-sep">
+    <span class="filter-label">Export this view{{ help('application-usage.exports') }}</span>
+    <label class="usage-switch" title="Exports use labels unless you confirm otherwise">
+        <input type="checkbox" id="exportNames"> Include staff names
+    </label>
+    <div class="usage-export-row">
+        <button type="button" class="btn btn-outline" onclick="usageExport('csv')">CSV</button>
+        <button type="button" class="btn btn-outline" onclick="usageExport('md')">Markdown</button>
+        <button type="button" class="btn btn-outline" onclick="usageExport('print')">PDF</button>
+    </div>
+</form>
+
+<div class="usage-modal-overlay" id="namesModal" role="dialog" aria-modal="true" aria-labelledby="namesModalTitle">
+    <div class="usage-modal">
+        <h3 id="namesModalTitle">Include staff names in this export?</h3>
+        <p>Staff identity is personal information. By default exports show permanent
+           labels (e.g. "Doctor 2"). A named export should stay inside the practice and
+           not be shared with Best Practice or other practices.</p>
+        <p>This export, and that it included names, will be recorded.</p>
+        <div class="usage-modal-actions">
+            <button type="button" class="btn btn-outline" onclick="usageModal(false)">Use labels</button>
+            <button type="button" class="btn btn-primary" onclick="usageModal(true)">Include names</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block doctor_scripts %}
+<script src="{{ url_for('static', filename='vendor/chartjs-4.6.1/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/sortable-table.js') }}"></script>
+<script>
+(function () {
+    const spec = {{ chart_json | safe }};
+    const el = document.getElementById('usageChart');
+    if (el && spec.data && spec.data.labels.length) {
+        new Chart(el, {
+            type: spec.type,
+            data: spec.data,
+            options: { responsive: true, maintainAspectRatio: false,
+                       plugins: { legend: { display: spec.data.datasets.length > 1,
+                                            labels: { boxWidth: 12, font: { size: 11 } } } },
+                       scales: spec.data.datasets.length > 1
+                               ? { x: { stacked: true }, y: { stacked: true } } : {} }
+        });
+    }
+    // A breakdown row opens the next level; the first cell is a real link too.
+    document.querySelectorAll('tr.usage-drill').forEach(function (tr) {
+        tr.addEventListener('click', function (ev) {
+            if (ev.target.closest('a')) return;
+            window.location = tr.dataset.href;
+        });
+    });
+})();
+function usagePeriod(sel) { if (sel.value !== 'custom') sel.form.submit(); }
+let _pendingFormat = null;
+function usageExport(format) {
+    if (document.getElementById('exportNames').checked) {
+        _pendingFormat = format;
+        document.getElementById('namesModal').classList.add('open');
+    } else {
+        _usageGo(format, false);
+    }
+}
+function usageModal(confirmed) {
+    document.getElementById('namesModal').classList.remove('open');
+    if (!confirmed) document.getElementById('exportNames').checked = false;
+    if (_pendingFormat) _usageGo(_pendingFormat, confirmed);
+    _pendingFormat = null;
+}
+function _usageGo(format, identified) {
+    // Exactly what is on screen: the page's own URL arguments, then the form's.
+    const params = new URLSearchParams(window.location.search);
+    new FormData(document.getElementById('usageForm')).forEach(function (v, k) { params.set(k, v); });
+    params.delete('names');                       // the screen switch never reaches an export
+    params.delete('page');                        // an export holds every row, not one page
+    params.set('format', format);
+    if (identified) params.set('identify', '1');
+    const url = '{{ url_for('doctor.usage_export') }}?' + params.toString();
+    if (format === 'print') window.open(url, '_blank'); else window.location = url;
+}
+</script>
+{% endblock %}

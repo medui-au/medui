@@ -1,0 +1,175 @@
+{% extends 'doctor/base.html' %}
+
+{% block doctor_styles %}
+.doctor-content { overflow: hidden; min-height: 0; }
+{% endblock %}
+
+{% block doctor_content %}
+
+<div class="doctor-content-header">
+    <h2>Consultation Transcripts</h2>
+    <p>
+        {{ filter_start.strftime('%d/%m/%Y') }} – {{ filter_end.strftime('%d/%m/%Y') }}
+        <span style="color:var(--text-muted);">
+            · {{ transcripts|length }} transcript{{ 's' if transcripts|length != 1 }}
+        </span>
+    </p>
+</div>
+
+<div style="flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:0.5rem;">
+    {% for t in transcripts %}
+    {% set pname = patient_names.get(t.patient_id, 'Patient ' ~ t.patient_id) %}
+    <div style="border:1px solid var(--border-color); border-radius:0.4rem; overflow:hidden; flex-shrink:0;">
+
+        <!-- Row header -->
+        <div style="display:flex; justify-content:space-between; align-items:center;
+                    padding:0.35rem 0.65rem; background:var(--bg-secondary);
+                    border-bottom:1px solid var(--border-color); gap:0.75rem; flex-wrap:wrap;">
+            <div style="display:flex; gap:0.75rem; align-items:center;
+                        flex-wrap:wrap; font-size:0.72rem;">
+                <span style="font-weight:700; color:var(--accent-primary);">
+                    {{ t.created_at | localdt }}
+                </span>
+                {% if is_admin %}
+                {% set doc_user = doctor_users | selectattr('id', 'equalto', t.user_id) | first %}
+                <span style="color:var(--text-muted);">
+                    {{ doc_user.display_name if doc_user else 'User ' ~ t.user_id }}
+                </span>
+                {% endif %}
+                <a href="{{ url_for('clinical.patient', patient_id=t.patient_id) }}"
+                   style="font-weight:600; color:var(--accent-primary); text-decoration:none;">
+                    {{ pname }}
+                </a>
+                {% if t.is_final %}
+                <span style="padding:0.1rem 0.4rem; border-radius:0.25rem;
+                             background:var(--success); color:#fff;
+                             font-size:0.65rem; font-weight:700;">Final</span>
+                {% else %}
+                <span style="padding:0.1rem 0.4rem; border-radius:0.25rem;
+                             background:#ffc107; color:#000;
+                             font-size:0.65rem; font-weight:700;">Draft</span>
+                {% endif %}
+                <span style="padding:0.1rem 0.4rem; border-radius:0.25rem;
+                             background:var(--bg-secondary);
+                             border:1px solid var(--border-color);
+                             font-size:0.65rem; color:var(--text-muted);">Encrypted</span>
+            </div>
+            <button class="copy-btn"
+                    data-id="{{ t.id }}"
+                    style="padding:0.2rem 0.5rem; font-size:0.68rem;
+                           border:1px solid var(--border-color); border-radius:0.3rem;
+                           background:var(--bg-primary); color:var(--text-primary);
+                           cursor:pointer;"
+                    title="Copy transcript">
+                Copy
+            </button>
+        </div>
+
+        <!-- Transcript text -->
+        <div class="transcript-text"
+             id="tr-{{ t.id }}"
+             style="padding:0.55rem 0.65rem; font-size:var(--text-sm);
+                    line-height:1.6; white-space:pre-wrap; word-break:break-word;
+                    max-height:3.8rem; overflow:hidden; cursor:pointer;"
+             title="Click to expand">{{ t.transcript_text or '' }}</div>
+
+        {% if t.session_id %}
+        <div style="padding:0.2rem 0.65rem 0.3rem;
+                    font-size:0.65rem; color:var(--text-muted);
+                    border-top:1px solid var(--border-color);">
+            Session: {{ t.session_id }}
+            · Expires: {{ t.expires_at.strftime('%d/%m/%Y') if t.expires_at else '—' }}
+        </div>
+        {% endif %}
+
+    </div>
+    {% else %}
+    <div style="text-align:center; color:var(--text-muted); padding:2rem;
+                font-size:var(--text-sm);">
+        No transcripts found for this selection.
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
+
+
+{% block doctor_filters %}
+<form method="GET" action="{{ url_for('doctor.transcripts') }}" id="txForm">
+
+    {% if is_admin %}
+    <span class="filter-label">Doctor</span>
+    <select name="doctor_id" class="filter-select">
+        <option value="">All Doctors</option>
+        {% for u in doctor_users %}
+        <option value="{{ u.id }}"
+                {{ 'selected' if filter_user_id|string == u.id|string }}>
+            {{ u.display_name or u.username }}
+        </option>
+        {% endfor %}
+    </select>
+    <hr class="filter-sep">
+    {% endif %}
+
+    <span class="filter-label">Patient</span>
+    <select name="patient_id" class="filter-select">
+        <option value="">All Patients</option>
+        {% for p in patient_options %}
+        <option value="{{ p.patient_id }}"
+                {{ 'selected' if filter_patient_id|string == p.patient_id|string }}>
+            {{ p.name }} ({{ p.patient_id }})
+        </option>
+        {% endfor %}
+    </select>
+
+    <hr class="filter-sep">
+    <span class="filter-label">From</span>
+    <input type="date" name="start_date" class="filter-input"
+           value="{{ filter_start.isoformat() }}">
+
+    <span class="filter-label">To</span>
+    <input type="date" name="end_date" class="filter-input"
+           value="{{ filter_end.isoformat() }}">
+
+    <hr class="filter-sep">
+    <button type="submit" class="btn btn-primary"
+            style="width:100%; font-size:var(--text-sm);">Apply</button>
+    <a href="{{ url_for('doctor.transcripts') }}"
+       style="display:block; text-align:center; margin-top:0.4rem;
+              font-size:0.7rem; color:var(--text-muted);">Clear filters</a>
+
+    <hr class="filter-sep">
+    <p style="font-size:0.68rem; color:var(--text-muted); margin:0; line-height:1.4;">
+        Transcripts are stored for up to 30 days. Click any transcript to expand it.
+    </p>
+
+</form>
+{% endblock %}
+
+
+{% block doctor_scripts %}
+<script>
+(function () {
+    document.querySelectorAll('.transcript-text').forEach(el => {
+        el.addEventListener('click', function () {
+            const expanded = this.style.maxHeight === 'none';
+            this.style.maxHeight = expanded ? '3.8rem' : 'none';
+            this.style.overflow  = expanded ? 'hidden' : 'visible';
+        });
+    });
+
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const el = document.getElementById('tr-' + this.dataset.id);
+            if (!el) return;
+            navigator.clipboard.writeText(el.textContent || '').then(() => {
+                const orig = this.textContent;
+                this.textContent = 'Copied';
+                this.style.color = 'var(--success)';
+                setTimeout(() => { this.textContent = orig; this.style.color = ''; }, 2000);
+            });
+        });
+    });
+}());
+</script>
+{% endblock %}

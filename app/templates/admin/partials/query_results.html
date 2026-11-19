@@ -1,0 +1,103 @@
+<div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.4rem;
+            font-size:0.72rem; color:var(--text-muted);">
+    <span>{{ count }} row{{ 's' if count != 1 }} · {{ '%.1f' | format(elapsed) }}ms</span>
+    {% if results %}
+    <button type="button" onclick="qmCopyTSV(this)"
+            style="background:none; border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                   padding:0.15rem 0.5rem; font-size:0.68rem; cursor:pointer; color:var(--text-muted);">
+        Copy TSV
+    </button>
+    <button type="button" onclick="qmToggleWrap(this)"
+            style="background:none; border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                   padding:0.15rem 0.5rem; font-size:0.68rem; cursor:pointer; color:var(--text-muted);">
+        Wrap
+    </button>
+    {% endif %}
+</div>
+
+{% if results %}
+<div style="overflow:auto; max-height:340px; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+<table id="qm-results-table" style="width:100%; border-collapse:collapse; font-size:0.72rem;">
+    <thead style="position:sticky; top:0; background:var(--bg-secondary); z-index:1;">
+        <tr>
+            {% for col in columns %}
+            <th style="padding:0.3rem 0.5rem; text-align:left; border-bottom:2px solid var(--border-color);
+                       white-space:nowrap;">{{ col }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in results %}
+        <tr style="border-bottom:1px solid var(--border-color);"
+            {% if loop.index is divisibleby 2 %}style="background:var(--bg-secondary);"{% endif %}>
+            {% for col in columns %}
+            {% set val = row[col] %}
+            <td style="padding:0.3rem 0.5rem; vertical-align:top; max-width:280px;
+                       overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer;"
+                title="{{ val | string | truncate(300) }}"
+                onclick="qmShowCell(this, {{ val | tojson }})">
+                {{ val if val is not none else '' }}
+            </td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+{# Cell inspector popover #}
+<div id="qm-cell-popover"
+     style="display:none; position:fixed; z-index:999; background:var(--bg-primary);
+            border:1px solid var(--border-color); border-radius:var(--radius-sm);
+            padding:0.6rem 0.75rem; max-width:420px; max-height:300px; overflow:auto;
+            box-shadow:0 4px 12px rgba(0,0,0,0.15); font-size:var(--text-sm); white-space:pre-wrap;">
+</div>
+
+<script>
+window.qmShowCell = function(td, val) {
+    var pop = document.getElementById('qm-cell-popover');
+    if (!pop) return;
+    pop.textContent = val === null ? '(NULL)' : String(val);
+    var r = td.getBoundingClientRect();
+    pop.style.display = 'block';
+    pop.style.top  = (r.bottom + 4) + 'px';
+    pop.style.left = r.left + 'px';
+};
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('td')) {
+        var pop = document.getElementById('qm-cell-popover');
+        if (pop) pop.style.display = 'none';
+    }
+});
+
+window.qmCopyTSV = function(btn) {
+    var tbl = document.getElementById('qm-results-table');
+    if (!tbl) return;
+    var lines = [];
+    tbl.querySelectorAll('tr').forEach(function(tr) {
+        lines.push(Array.from(tr.querySelectorAll('th,td')).map(function(c) {
+            return c.textContent.trim();
+        }).join('\t'));
+    });
+    navigator.clipboard.writeText(lines.join('\n')).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy TSV'; }, 1500);
+    });
+};
+
+window.qmToggleWrap = function(btn) {
+    var tbl = document.getElementById('qm-results-table');
+    if (!tbl) return;
+    var wrap = btn.dataset.wrapped !== '1';
+    tbl.querySelectorAll('td').forEach(function(td) {
+        td.style.whiteSpace = wrap ? 'pre-wrap' : 'nowrap';
+        td.style.maxWidth   = wrap ? 'none' : '280px';
+    });
+    btn.dataset.wrapped = wrap ? '1' : '0';
+    btn.textContent = wrap ? 'No Wrap' : 'Wrap';
+};
+</script>
+
+{% else %}
+<p style="color:var(--text-muted); font-size:var(--text-sm); margin:0;">(no rows returned)</p>
+{% endif %}

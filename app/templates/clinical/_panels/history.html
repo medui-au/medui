@@ -1,0 +1,32 @@
+{% if rows %}
+<div style="overflow-x:auto; max-height:400px; overflow-y:auto;">
+    <table style="width:100%; border-collapse:collapse; font-size:var(--text-sm); line-height:1.2;">
+        <thead style="position:sticky; top:0; background:var(--bg-secondary); z-index:1;">
+            <tr style="border-bottom:2px solid var(--border-color);">
+                <th style="padding:0.25rem 0.5rem; text-align:left; white-space:nowrap; width:2.5rem;">Yr</th>
+                <th style="padding:0.25rem 0.5rem; text-align:left;">Diagnosis</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr style="border-bottom:1px solid var(--border-color);">
+                <td style="padding:0.25rem 0.5rem; vertical-align:top; color:var(--text-muted); white-space:nowrap;">
+                    {{ row.get('YR', '') }}
+                </td>
+                <td style="padding:0.25rem 0.5rem; vertical-align:top;">
+                    {{ row.get('ItemText', '') }}
+                    {% set detail = row.get('DiagDetail', '') %}
+                    {% if detail and detail.strip() %}
+                    <span style="display:block; font-size:0.8em; color:var(--text-muted); font-weight:500; margin-top:0.1rem;">
+                        {{ detail.strip() }}
+                    </span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-muted" style="margin:0; padding:0.5rem; font-size:var(--text-sm);">No past history recorded.</p>
+{% endif %}

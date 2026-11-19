@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% block title %}Mapping Tables — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+.mp-layout  { display:flex; height:calc(100vh - var(--topnav-height,48px)); overflow:hidden; }
+.mp-sidebar { width:260px; flex-shrink:0; border-right:1px solid var(--border-color);
+              display:flex; flex-direction:column; background:var(--bg-secondary); overflow:hidden; }
+.mp-sidebar-hdr { padding:0.55rem 0.75rem; border-bottom:1px solid var(--border-color); flex-shrink:0; }
+.mp-sidebar-hdr h2 { font-size:0.9rem; margin:0 0 0.4rem 0; }
+.mp-list { flex:1; overflow-y:auto; }
+.mp-item { padding:0.4rem 0.75rem; border-bottom:1px solid var(--border-color);
+           cursor:pointer; user-select:none; }
+.mp-item:hover { background:var(--accent-light,rgba(59,130,246,.07)); }
+.mp-item.active { background:var(--accent-light,rgba(59,130,246,.12)); }
+.mp-item-name { font-size:var(--text-sm); font-weight:600; display:flex; align-items:center; gap:0.4rem; }
+.mp-item-meta { font-size:0.68rem; color:var(--text-muted); }
+.mp-dot-fresh { color:var(--success); font-size:0.65rem; }
+.mp-dot-stale { color:var(--warning,#d97706); font-size:0.65rem; }
+.mp-main { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+.mp-placeholder { display:flex; align-items:center; justify-content:center;
+                  height:100%; color:var(--text-muted); font-size:var(--text-sm); }
+.mp-new-form { background:var(--bg-primary); border-top:1px solid var(--border-color);
+               padding:0.6rem 0.75rem; flex-shrink:0; }
+.mp-new-form input, .mp-new-form textarea {
+  width:100%; box-sizing:border-box; padding:0.28rem 0.45rem; font-size:var(--text-sm);
+  border:1px solid var(--border-color); border-radius:var(--radius-sm);
+  background:var(--bg-primary); color:var(--text-primary); margin-bottom:0.3rem; }
+.mp-new-form input:focus, .mp-new-form textarea:focus { outline:none; border-color:var(--accent); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mp-layout">
+
+  {# ── Sidebar ── #}
+  <aside class="mp-sidebar">
+    <div class="mp-sidebar-hdr">
+      <h2>Mapping Tables</h2>
+      <div style="display:flex; gap:0.4rem;">
+        <button class="btn btn-primary" style="padding:0.22rem 0.6rem; font-size:0.72rem;"
+                onclick="toggleNewForm()">+ New Table</button>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline"
+           style="padding:0.22rem 0.5rem; font-size:0.72rem; margin-left:auto;">← Admin</a>
+      </div>
+    </div>
+
+    <div class="mp-list" id="mp-table-list">
+      {% for mt in tables %}
+      <div class="mp-item" id="mpi-{{ mt.name }}" onclick="loadGrid('{{ mt.name }}')">
+        <div class="mp-item-name">
+          {{ mt.label }}
+          {% if mt.cache_ttl_seconds %}
+            {% if mt.is_stale %}
+              <span class="mp-dot-stale" title="Stale">⚠</span>
+            {% else %}
+              <span class="mp-dot-fresh" title="Fresh">●</span>
+            {% endif %}
+          {% endif %}
+          <span style="margin-left:auto; font-size:0.65rem; color:var(--text-muted);">
+            {{ mt.row_count }} rows
+          </span>
+        </div>
+        <div class="mp-item-meta">{{ mt.name }}</div>
+      </div>
+      {% else %}
+      <p style="padding:1rem; font-size:var(--text-sm); color:var(--text-muted);">
+        No mapping tables yet. Click + New Table to create one.
+      </p>
+      {% endfor %}
+    </div>
+
+    {# New table form (hidden by default) #}
+    <div class="mp-new-form" id="mp-new-form" style="display:none;">
+      <form method="post" action="{{ url_for('admin.mapping_create') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="text" name="name" placeholder="slug (e.g. vaccine)" required
+               pattern="[a-z][a-z0-9_]{1,39}" title="Lowercase letters, digits, underscores, 2–40 chars">
+        <input type="text" name="label" placeholder="Label (e.g. Vaccine Names)" required>
+        <input type="text" name="description" placeholder="Description (optional)">
+        <div style="display:flex; gap:0.4rem;">
+          <button type="submit" class="btn btn-primary"
+                  style="flex:1; padding:0.25rem; font-size:0.72rem;">Create</button>
+          <button type="button" class="btn btn-outline"
+                  style="padding:0.25rem 0.5rem; font-size:0.72rem;"
+                  onclick="toggleNewForm()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </aside>
+
+  {# ── Main grid area ── #}
+  <div class="mp-main" id="mp-grid-area">
+    <div class="mp-placeholder">Select a table from the list, or create a new one.</div>
+  </div>
+
+</div>
+
+{# Flash messages (shown after redirects like create/drop/import) #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div style="position:fixed; bottom:1rem; right:1rem; z-index:999; display:flex; flex-direction:column; gap:0.4rem;">
+  {% for cat, msg in messages %}
+  <div class="alert alert-{{ cat }}" style="margin:0; min-width:260px; box-shadow:var(--shadow-md);">
+    {{ msg }}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+<script>
+(function () {
+  var _activeTable = null;
+
+  function _csrf() {
+    var el = document.querySelector('meta[name="csrf-token"]');
+    return el ? el.content : '';
+  }
+
+  window.toggleNewForm = function () {
+    var f = document.getElementById('mp-new-form');
+    f.style.display = f.style.display === 'none' ? '' : 'none';
+    if (f.style.display !== 'none') f.querySelector('input[name="name"]').focus();
+  };
+
+  window.loadGrid = function (name) {
+    _activeTable = name;
+    document.querySelectorAll('.mp-item').forEach(function (el) {
+      el.classList.toggle('active', el.id === 'mpi-' + name);
+    });
+    var area = document.getElementById('mp-grid-area');
+    area.innerHTML = '<div style="padding:1rem;color:var(--text-muted);font-size:var(--text-sm);">Loading…</div>';
+    fetch('{{ url_for("admin.mappings") }}/' + name + '/grid', {
+      headers: { 'X-CSRFToken': _csrf() }
+    })
+    .then(function (r) { return r.text(); })
+    .then(function (html) {
+      area.innerHTML = html;
+      area.querySelectorAll('script').forEach(function (s) {
+        var ns = document.createElement('script'); ns.text = s.text;
+        document.body.appendChild(ns);
+      });
+      if (window.htmx) htmx.process(area);
+    });
+  };
+
+  // Auto-load table if redirected back with ?table= param
+  var params = new URLSearchParams(window.location.search);
+  var autoTable = params.get('table');
+  if (autoTable) {
+    window.loadGrid(autoTable);
+  }
+
+  // Expose for grid partial use
+  window._getActiveTable = function () { return _activeTable; };
+  window._csrf = _csrf;
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends 'doctor/base.html' %}
+{% block title %}{{ recipe.title if recipe else 'New recipe' }} — Care Plan Recipes — {{ app_name }}{% endblock %}
+{% block doctor_styles %}
+.rc-form label { display:block; font-size:0.75rem; color:var(--text-muted); margin-top:0.5rem; }
+.rc-form input[type=text], .rc-form input[type=date], .rc-form textarea, .rc-form select { width:100%; box-sizing:border-box; font-size:0.85rem; }
+.rc-form textarea { min-height:7rem; }
+.rc-row { display:flex; gap:0.6rem; } .rc-row > div { flex:1; }
+.rc-targets { width:100%; border-collapse:collapse; font-size:0.8rem; margin-top:0.3rem; }
+.rc-targets td, .rc-targets th { padding:0.2rem; border-bottom:1px solid var(--border-color); vertical-align:top; text-align:left; }
+.rc-targets input, .rc-targets select, .rc-targets textarea { width:100%; box-sizing:border-box; font-size:0.78rem; }
+.cp-muted { color:var(--text-muted); font-size:0.8rem; }
+.cp-status { font-size:0.72rem; padding:0.05rem 0.4rem; border-radius:0.6rem; background:var(--bg-secondary); border:1px solid var(--border-color); }
+.rc-assist textarea { width:100%; min-height:9rem; box-sizing:border-box; font-size:0.82rem; }
+.rc-out { white-space:pre-wrap; font-size:0.78rem; background:var(--bg-secondary); padding:0.4rem; max-height:16rem; overflow:auto; }
+{% endblock %}
+{% block doctor_content %}
+<div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+  <a href="{{ url_for('careplan.recipes') }}" class="cp-muted">← Recipes</a>
+  <h2 style="margin:0; font-size:1.1rem;">{{ recipe.title if recipe else 'New recipe' }}</h2>
+  {% if recipe %}
+    <span class="cp-status">{{ recipe.status.value }}</span>
+    <span class="cp-muted">version {{ recipe.current_version.version if recipe.current_version else '' }}
+      {% if recipe.current_version and recipe.current_version.is_approved %}· approved {{ recipe.current_version.approved_at | localdt }}{% else %}· draft{% endif %}
+      {% if recipe.current_version and recipe.current_version.ai_assisted %}· written with AI help{% endif %}</span>
+  {% endif %}
+</div>
+{% if not editable %}
+<p class="cp-muted">This is {{ 'a practice recipe' if recipe.scope.value == 'practice' else 'another doctor\'s recipe' }}.
+Copy it to make your own version.</p>
+{% endif %}
+
+<div class="rc-form" id="rc-form">
+  <div class="rc-row">
+    <div><label for="rc-issue">Issue</label><input type="text" id="rc-issue" value="{{ payload.issue_label if payload else '' }}" placeholder="e.g. Gout"></div>
+    <div><label for="rc-variant">Variant (optional)</label><input type="text" id="rc-variant" value="{{ payload.variant or '' if payload else '' }}" placeholder="e.g. with CKD"></div>
+  </div>
+  <div class="rc-row">
+    <div><label for="rc-mods">Modifiers (optional, for grouping variants: key: value; key: value)</label>
+      <input type="text" id="rc-mods" value="{% if payload %}{% for k, v in payload.modifiers.items() %}{{ k }}: {{ v }}{{ '; ' if not loop.last }}{% endfor %}{% endif %}" placeholder="age: 50–75; sex: female"></div>
+    <div><label for="rc-review">Review by</label><input type="date" id="rc-review" value="{{ recipe.current_version.review_due_on.isoformat() if recipe and recipe.current_version and recipe.current_version.review_due_on else '' }}"></div>
+  </div>
+  <label><input type="checkbox" id="rc-standing" {{ 'checked' if payload and payload.always_offer }}> Standing issue (offered in every patient's plan, e.g. Preventive health)</label>
+  {% if can_practice %}
+  <label><input type="checkbox" id="rc-practice" {{ 'checked' if payload and payload.scope == 'practice' }}> Practice recipe (approved practice recipes are offered to every doctor)</label>
+  {% endif %}
+
+  <label for="rc-goals">Goals</label><textarea id="rc-goals">{{ payload.goals if payload else '' }}</textarea>
+  <label for="rc-management">Management</label><textarea id="rc-management">{{ payload.management if payload else '' }}</textarea>
+  <label for="rc-providers">Providers (roles)</label><textarea id="rc-providers" style="min-height:3rem">{{ payload.providers if payload else '' }}</textarea>
+
+  <label>Targets — one per result; each cites its source</label>
+  <table class="rc-targets">
+    <thead><tr><th style="width:14%">Result</th><th style="width:12%">Target</th><th style="width:20%">Guideline</th><th style="width:9%">Edition</th><th style="width:12%">Section</th><th>Quote (verbatim) and link</th><th></th></tr></thead>
+    <tbody id="rc-target-rows"></tbody>
+  </table>
+  <button class="btn btn-outline btn-sm" type="button" id="rc-add-target" style="margin-top:0.3rem;">+ Target</button>
+  <label for="rc-note">Change note</label><input type="text" id="rc-note" placeholder="what changed in this version">
+
+  <div style="display:flex; gap:0.5rem; margin-top:0.8rem; flex-wrap:wrap;">
+    {% if editable %}<button class="btn btn-primary btn-sm" id="rc-save">Save draft</button>{% endif %}
+    {% if recipe and editable and recipe.current_version and not recipe.current_version.is_approved %}
+      <button class="btn btn-outline btn-sm" data-action="approve">Approve…</button>{% endif %}
+    {% if recipe %}<button class="btn btn-outline btn-sm" data-action="copy">Copy to my recipes</button>{% endif %}
+    {% if recipe and editable %}<button class="btn btn-outline btn-sm" data-action="retire">Retire</button>{% endif %}
+  </div>
+</div>
+<script id="rc-data" type="application/json">{{ {'id': recipe.id if recipe else None, 'targets': targets,
+  'tokens': token_labels,
+  'save': url_for('careplan.recipe_save'), 'assist': url_for('careplan.recipe_assist'),
+  'action': url_for('careplan.recipe_action', recipe_id=recipe.id, action='ACTION') if recipe else None,
+  'editable': editable} | tojson }}</script>
+{% endblock %}
+{% block doctor_filters %}
+{% if current_user.can_use_ai %}
+<div class="rc-assist">
+  <strong style="font-size:0.85rem;">AI assistance</strong>
+  <p class="cp-muted">Describe the recipe or paste guideline wording. No patient is involved. The reply fills the
+  fields for you to check and edit; check every quote against its source before approving.</p>
+  {% if pipelines %}
+  <select id="rc-pipeline" style="width:100%; font-size:0.8rem;">
+    {% for p in pipelines %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+  </select>
+  <textarea id="rc-assist-text" placeholder="e.g. Gout, recurrent flares, on allopurinol. Australian guideline urate target and lifestyle measures."></textarea>
+  <button class="btn btn-outline btn-sm" id="rc-assist-run" style="margin-top:0.3rem;">Draft with AI</button>
+  <div id="rc-assist-status" class="cp-muted"></div>
+  <div id="rc-assist-out" class="rc-out" style="display:none;"></div>
+  {% else %}
+  <p class="cp-muted">No recipe assistant yet: an administrator makes an active pipeline whose classifier includes
+  <code>[recipe]</code> (Prompt Manager).</p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+{% block doctor_scripts %}
+<script src="{{ url_for('static', filename='js/careplan_recipe.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,65 @@
+@echo off
+setlocal
+rem MedUI: make this PC trust the practice's MedUI root certificate, made on @@HOST@@.
+rem That root may only vouch for MedUI's own names. Written by install.sh --https; see
+rem docs/https.md in MedUI. Double-click to run; Windows asks for administrator approval.
+set "MEDUI_SELF=%~f0"
+fltmc >nul 2>&1 && goto run
+echo Asking Windows for administrator approval, to set up MedUI for every user of this PC...
+powershell -NoProfile -Command "try { Start-Process -FilePath $env:MEDUI_SELF -Verb RunAs -ErrorAction Stop; exit 0 } catch { exit 1 }" && exit /b
+echo Not approved: setting up MedUI for your Windows account only.
+:run
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t = [IO.File]::ReadAllText($env:MEDUI_SELF); iex $t.Substring($t.IndexOf('#' + 'MEDUI-PS'))"
+exit /b
+#MEDUI-PS (PowerShell from here on; the lines above are for cmd.exe)
+$ErrorActionPreference = 'Stop'
+$CertB64  = '@@CERT_B64@@'
+$Expected = '@@THUMB@@'
+$MeduiUrl = '@@URL@@'
+try {
+    $cert = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new([Convert]::FromBase64String($CertB64))
+    if ($cert.Thumbprint -ne $Expected) { throw "This file is damaged (thumbprint doesn't match). Download it again." }
+    $basic = $cert.Extensions | Where-Object { $_.Oid.Value -eq '2.5.29.19' }
+    $nc    = $cert.Extensions | Where-Object { $_.Oid.Value -eq '2.5.29.30' }
+    if (-not $basic -or -not $basic.CertificateAuthority -or -not $nc) {
+        throw "This isn't a name-restricted MedUI root. Nothing was installed."
+    }
+    $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+        [Security.Principal.WindowsBuiltInRole]::Administrator)
+    if ($admin) { $loc = 'LocalMachine'; $who = 'every user of this PC' } else { $loc = 'CurrentUser'; $who = 'your Windows account' }
+
+    Write-Host ""
+    Write-Host "=== Set up this PC for MedUI ===" -ForegroundColor Cyan
+    Write-Host "MedUI on this practice's network uses its own certificate. This PC needs to trust it once."
+    Write-Host ""
+    Write-Host "    Certificate : $($cert.Subject)"
+    Write-Host "    Valid until : $($cert.NotAfter.ToString('yyyy-MM-dd'))"
+    Write-Host "    Thumbprint  : $($cert.Thumbprint)" -ForegroundColor Yellow
+    Write-Host "    May vouch for only:"
+    $nc.Format($true) -split "`r?`n" | Where-Object { $_ -match '\S' } | ForEach-Object { Write-Host "        $_" }
+    Write-Host ""
+    Write-Host "The thumbprint should match the one on MedUI's setup page and the one your IT or"
+    Write-Host "practice manager has. If it doesn't, stop and ask them."
+    Write-Host ""
+
+    $store = [System.Security.Cryptography.X509Certificates.X509Store]::new('Root', $loc)
+    $store.Open('ReadWrite')
+    try {
+        if ($store.Certificates.Find('FindByThumbprint', $cert.Thumbprint, $false).Count -gt 0) {
+            Write-Host "[+] This PC already trusts it, for $who." -ForegroundColor Green
+        } elseif ((Read-Host "Trust it for ${who}? (y/N)") -match '^[yY]$') {
+            $store.Add($cert)
+            Write-Host "[+] Done: trusted for $who." -ForegroundColor Green
+            Write-Host "    Chrome and Edge use it at once (restart them if they were open). Firefox: see MedUI's"
+            Write-Host "    setup page. To undo: certlm.msc (or certmgr.msc), Trusted Root Certification Authorities."
+        } else {
+            Write-Host "Nothing was installed."
+            $MeduiUrl = $null
+        }
+    } finally { $store.Close() }
+    if ($MeduiUrl) { Start-Process $MeduiUrl }
+} catch {
+    Write-Host "[!] $($_.Exception.Message)" -ForegroundColor Red
+}
+Write-Host ""
+Read-Host "Press Enter to close"

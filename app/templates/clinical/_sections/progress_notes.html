@@ -1,0 +1,18 @@
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+{% if not rows %}
+<p class="section-empty">No progress notes found.</p>
+{% else %}
+<div class="notes-list">
+  {% for r in rows %}
+  <div class="note-item">
+    <div class="note-header">
+      <span class="note-date">{{ r.VisitDateFormatted }}</span>
+      {% if r.DrName %}<span class="note-author">{{ r.DrName }}</span>{% endif %}
+    </div>
+    {% if r.VisitNotes %}
+    <div class="note-body">{{ r.VisitNotes | strip_tags | truncate(300) }}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}

@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}My settings — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+.mys-wrap      { max-width:640px; margin:1.25rem auto; padding:0 1rem; }
+.mys-wrap h1   { font-size:1.25rem; margin:0 0 0.25rem; }
+.mys-intro     { font-size:var(--text-sm); color:var(--text-muted); margin:0 0 1rem; }
+.mys-row       { padding:0.6rem 0; border-top:1px solid var(--border-color); }
+.mys-row:first-child { border-top:none; }
+.mys-label     { font-weight:600; font-size:var(--text-sm); display:block; margin-bottom:0.3rem; }
+.mys-help      { font-size:0.72rem; color:var(--text-muted); margin:0.25rem 0 0; }
+.mys-locked    { font-size:0.72rem; color:var(--text-muted); font-style:italic; }
+.mys-toggle    { display:flex; align-items:center; gap:0.75rem; }
+.mys-actions   { margin-top:1rem; display:flex; justify-content:flex-end; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mys-wrap">
+  <h1>My settings{{ help('my-settings.overview') }}</h1>
+  <p class="mys-intro">These apply to you only. Settings your practice has fixed are shown greyed out.</p>
+
+  {% if not sections %}
+  <p class="mys-intro">There are no personal settings for your login yet.</p>
+  {% else %}
+  <form method="post" action="{{ url_for('my_settings.save') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {% for section, items in sections %}
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="card-header">{{ section }}</div>
+      <div style="padding:0.25rem 0.9rem;">
+        {% for it in items %}
+        {% set p = it.pref %}
+        <div class="mys-row">
+          {% if p.kind == 'bool' %}
+          <div class="mys-toggle">
+            <label class="toggle-switch">
+              <input type="checkbox" name="{{ p.key }}" value="true"
+                     {% if it.value %}checked{% endif %} {% if it.locked %}disabled{% endif %}>
+              <span class="toggle-switch-slider"></span>
+            </label>
+            <span class="mys-label" style="margin:0;">{{ p.label }}</span>
+          </div>
+          {% elif p.kind == 'choice' %}
+          <label class="mys-label" for="pref-{{ loop.index }}-{{ section }}">{{ p.label }}</label>
+          <select class="form-control" id="pref-{{ loop.index }}-{{ section }}" name="{{ p.key }}"
+                  style="max-width:220px;" {% if it.locked %}disabled{% endif %}>
+            {% for v, lbl in p.choices %}
+            <option value="{{ v }}" {% if v == it.value %}selected{% endif %}>{{ lbl }}</option>
+            {% endfor %}
+          </select>
+          {% elif p.kind == 'line' %}
+          <label class="mys-label" for="pref-{{ loop.index }}-{{ section }}">{{ p.label }}</label>
+          <input type="text" class="form-control" id="pref-{{ loop.index }}-{{ section }}" name="{{ p.key }}"
+                 value="{{ it.value or '' }}" maxlength="120" style="max-width:360px;"
+                 placeholder="{{ current_user.bp_display_name or '' }}" {% if it.locked %}disabled{% endif %}>
+          {% elif p.kind == 'text' %}
+          <label class="mys-label" for="pref-{{ loop.index }}-{{ section }}">{{ p.label }}</label>
+          <textarea class="form-control" id="pref-{{ loop.index }}-{{ section }}" name="{{ p.key }}"
+                    rows="4" {% if it.locked %}disabled{% endif %}>{{ it.value or '' }}</textarea>
+          {% endif %}
+          {% if it.locked %}<p class="mys-locked">Set by your practice.</p>{% endif %}
+          {% if p.help %}<p class="mys-help">{{ p.help }}</p>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+
+    <div class="mys-actions">
+      <button type="submit" class="btn btn-primary">Save</button>
+    </div>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

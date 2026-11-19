@@ -1,0 +1,232 @@
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}" id="global-csrf">
+
+{% macro field(label, name, value, type='text', placeholder='', hint='') %}
+<div style="margin-bottom:1rem;">
+    <label style="display:block; font-weight:600; margin-bottom:0.3rem; font-size:var(--text-sm);">{{ label }}</label>
+    <input type="{{ type }}" name="{{ name }}" value="{{ value }}"
+           placeholder="{{ placeholder }}"
+           autocomplete="{% if type == 'password' %}new-password{% else %}off{% endif %}"
+           style="width:100%; padding:0.4rem 0.6rem; border:1px solid var(--border-color);
+                  border-radius:var(--radius-sm); font-size:var(--text-sm);
+                  background:var(--bg-primary); color:var(--text-primary);">
+    {% if hint %}<p style="margin:0.2rem 0 0; font-size:0.7rem; color:var(--text-muted);">{{ hint }}</p>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro toggle(label, name, checked, hint='') %}
+<div style="margin-bottom:1rem; display:flex; align-items:center; gap:0.75rem;">
+    <label class="toggle-switch">
+        <input type="checkbox" name="{{ name }}" value="true" {% if checked %}checked{% endif %}>
+        <span class="toggle-switch-slider"></span>
+    </label>
+    <div>
+        <span style="font-weight:600; font-size:var(--text-sm);">{{ label }}</span>
+        {% if hint %}<p style="margin:0; font-size:0.7rem; color:var(--text-muted);">{{ hint }}</p>{% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{% set d = tab_data %}
+
+<div class="setup-section">
+    <h2 class="setup-h2">Messaging</h2>
+
+    {# ── Section A: Outbound Email ──────────────────────────────────────── #}
+    <div class="provider-card" style="margin-bottom:1rem;">
+        <div class="provider-card-header">
+            <span style="font-weight:600;">Outbound Email (SMTP){{ help('setup.messaging') }}</span>
+        </div>
+        <div style="padding:0.75rem;">
+            <p style="font-size:var(--text-sm); color:var(--text-muted); margin:0 0 1rem;">
+                Used for patient communications, referral delivery, and AI output approval.
+            </p>
+
+            {% if flash_email %}
+            <div style="margin-bottom:0.75rem; padding:0.5rem 0.75rem; border-radius:var(--radius-sm);
+                        font-size:var(--text-sm);
+                        {% if flash_email_ok %}background:rgba(25,135,84,0.08); border:1px solid var(--success); color:var(--success);
+                        {% else %}background:rgba(220,53,69,0.08); border:1px solid var(--danger); color:var(--danger);{% endif %}">
+                {{ flash_email }}
+            </div>
+            {% endif %}
+
+            <form id="email-settings-form"
+                  hx-post="{{ url_for('setup.messaging_save_email') }}"
+                  hx-target="#setup-content" hx-swap="innerHTML"
+                  style="max-width:520px;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div style="display:grid; grid-template-columns:1fr 110px; gap:0.6rem;">
+                    <div>{{ field('SMTP Host', 'email.smtp_host', d.get('email.smtp_host',''), placeholder='smtp.fastmail.com') }}</div>
+                    <div>{{ field('Port', 'email.smtp_port', d.get('email.smtp_port', 587), type='number', placeholder='587') }}</div>
+                </div>
+                {{ field('Username', 'email.smtp_username', d.get('email.smtp_username',''), placeholder='user@fastmail.com') }}
+                {{ field('Password', 'email.smtp_password', '',
+                         type='password',
+                         placeholder=('••••••••  (stored)' if d.get('email_password_set') else 'Enter password'),
+                         hint='Leave blank to keep the existing password.') }}
+                {% if d.get('email_password_from_env') %}
+                <div style="margin-top:-0.5rem; margin-bottom:0.75rem; padding:0.4rem 0.65rem;
+                            background:var(--bg-secondary); border-left:3px solid var(--accent);
+                            border-radius:0 var(--radius-sm) var(--radius-sm) 0; font-size:0.72rem; color:var(--text-muted);">
+                    Password overridden by <code>EMAIL_SMTP_PASSWORD</code> env var — field above is ignored.
+                </div>
+                {% endif %}
+                {{ field('Sender Name', 'email.sender_name', d.get('email.sender_name',''), placeholder='Bayside Medical Centre') }}
+                {{ field('Sender Address', 'email.sender_address', d.get('email.sender_address',''),
+                         type='email', placeholder='noreply@clinic.com.au') }}
+                {{ toggle('Use STARTTLS', 'email.use_tls', d.get('email.use_tls', True),
+                          hint='Recommended for port 587. Disable for port 465 (implicit SSL).') }}
+
+                <div style="display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap;">
+                    <button type="submit" class="btn btn-primary" style="font-size:var(--text-sm);">Save Email Settings</button>
+                    <button type="button" class="btn btn-outline" onclick="testEmail()" style="font-size:var(--text-sm);">Test Connection</button>
+                    <span id="email-test-result" style="font-size:var(--text-sm);"></span>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# ── Section B: SMS Gateway ─────────────────────────────────────────── #}
+    <div class="provider-card" style="margin-bottom:1rem;">
+        <div class="provider-card-header">
+            <span style="font-weight:600;">SMS Gateway (Email-to-SMS)</span>
+        </div>
+        <div style="padding:0.75rem;">
+            <p style="font-size:var(--text-sm); color:var(--text-muted); margin:0 0 1rem;">
+                Sends SMS by emailing a gateway that converts messages to SMS.
+                The gateway may be a local relay requiring no authentication.
+            </p>
+
+            {% if flash_sms %}
+            <div style="margin-bottom:0.75rem; padding:0.5rem 0.75rem; border-radius:var(--radius-sm);
+                        font-size:var(--text-sm);
+                        {% if flash_sms_ok %}background:rgba(25,135,84,0.08); border:1px solid var(--success); color:var(--success);
+                        {% else %}background:rgba(220,53,69,0.08); border:1px solid var(--danger); color:var(--danger);{% endif %}">
+                {{ flash_sms }}
+            </div>
+            {% endif %}
+
+            <form hx-post="{{ url_for('setup.messaging_save_sms') }}"
+                  hx-target="#setup-content" hx-swap="innerHTML"
+                  style="max-width:520px;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div style="display:grid; grid-template-columns:1fr 110px; gap:0.6rem;">
+                    <div>{{ field('Gateway Host', 'sms.smtp_host', d.get('sms.smtp_host',''), placeholder='sms-gateway.example') }}</div>
+                    <div>{{ field('Port', 'sms.smtp_port', d.get('sms.smtp_port', 25), type='number', placeholder='25') }}</div>
+                </div>
+                {{ field('Sender Address', 'sms.sender_address', d.get('sms.sender_address',''),
+                         type='email', placeholder='sms@clinic.local') }}
+                {{ field('Recipient Template', 'sms.recipient_template', d.get('sms.recipient_template',''),
+                         placeholder='{number}@sms.provider.com',
+                         hint='Use {number} as the placeholder for the digits-only mobile number.') }}
+
+                {{ toggle('Requires Authentication', 'sms.requires_auth', d.get('sms.requires_auth', False),
+                          hint='Enable if the gateway requires SMTP login credentials.') }}
+
+                <div id="sms-auth-fields"
+                     style="{% if not d.get('sms.requires_auth') %}display:none;{% endif %}
+                            padding:0.6rem 0.75rem; border:1px solid var(--border-color);
+                            border-radius:var(--radius-sm); margin-bottom:1rem;
+                            background:var(--bg-secondary);">
+                    {{ field('Username', 'sms.smtp_username', d.get('sms.smtp_username','')) }}
+                    {{ field('Password', 'sms.smtp_password', '',
+                             type='password',
+                             placeholder=('••••••••  (stored)' if d.get('sms_password_set') else 'Enter password'),
+                             hint='Leave blank to keep the existing password.') }}
+                    {{ toggle('Use STARTTLS', 'sms.use_tls', d.get('sms.use_tls', False)) }}
+                </div>
+
+                <div style="display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap;">
+                    <button type="submit" class="btn btn-primary" style="font-size:var(--text-sm);">Save SMS Settings</button>
+                    <button type="button" class="btn btn-outline" onclick="testSms()" style="font-size:var(--text-sm);">Test SMS</button>
+                    <span id="sms-test-result" style="font-size:var(--text-sm);"></span>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# ── Section C: Best Practice PIT Export ────────────────────────────── #}
+    <div class="provider-card">
+        <div class="provider-card-header">
+            <span style="font-weight:600;">Best Practice PIT Export</span>
+        </div>
+        <div style="padding:0.75rem;">
+            <p style="font-size:var(--text-sm); color:var(--text-muted); margin:0 0 1rem;">
+                Patient communications can be delivered to Best Practice as PIT investigation files.
+                Enter the shared folder path that BP polls for incoming results.
+            </p>
+
+            {% if flash_pit %}
+            <div style="margin-bottom:0.75rem; padding:0.5rem 0.75rem; border-radius:var(--radius-sm);
+                        font-size:var(--text-sm);
+                        {% if flash_pit_ok %}background:rgba(25,135,84,0.08); border:1px solid var(--success); color:var(--success);
+                        {% else %}background:rgba(220,53,69,0.08); border:1px solid var(--danger); color:var(--danger);{% endif %}">
+                {{ flash_pit }}
+            </div>
+            {% endif %}
+
+            <form hx-post="{{ url_for('setup.messaging_save_pit') }}"
+                  hx-target="#setup-content" hx-swap="innerHTML"
+                  style="max-width:520px;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {{ field('PIT Export Folder', 'pit_export_path', d.get('pit_export_path',''),
+                         placeholder='\\\\SERVER\\BPS\\Incoming  or  /mnt/bps/incoming',
+                         hint='UNC or local path accessible to this server. Leave blank to disable.') }}
+                {{ toggle('Provenance footer on AI drafts', 'ai.provenance_footer', d.get('ai.provenance_footer', False),
+                          hint='Ends a filed AI assistant or scribe draft with: AI-assisted draft · filed by … · date and time · MedUI ref (the run, for the full record).') }}
+                {{ toggle('Include the model name', 'ai.provenance_include_model', d.get('ai.provenance_include_model', False),
+                          hint='Adds the AI model to the footer.') }}
+                <button type="submit" class="btn btn-primary" style="font-size:var(--text-sm);">Save PIT Settings</button>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+
+<script>
+(function () {
+    var authToggle = document.querySelector('[name="sms.requires_auth"]');
+    var authFields = document.getElementById('sms-auth-fields');
+    if (authToggle && authFields) {
+        authToggle.addEventListener('change', function () {
+            authFields.style.display = this.checked ? '' : 'none';
+        });
+    }
+
+    function setResult(el, ok, msg) {
+        el.textContent = msg;
+        el.style.color = ok ? 'var(--success)' : 'var(--danger)';
+    }
+
+    window.testEmail = function () {
+        var form = document.getElementById('email-settings-form');
+        var data = new FormData(form);
+        var el   = document.getElementById('email-test-result');
+        el.textContent = 'Testing…';
+        el.style.color = 'var(--text-muted)';
+        fetch('{{ url_for("setup.messaging_test_email") }}', {method: 'POST', body: data})
+            .then(function (r) { return r.json(); })
+            .then(function (d) { setResult(el, d.ok, d.message); })
+            .catch(function () { setResult(el, false, 'Request failed.'); });
+    };
+
+    window.testSms = function () {
+        var number = prompt('Enter a mobile number to send a test SMS to:');
+        if (!number) return;
+        var el   = document.getElementById('sms-test-result');
+        var csrf = document.getElementById('global-csrf');
+        el.textContent = 'Sending…';
+        el.style.color = 'var(--text-muted)';
+        var data = new FormData();
+        data.append('csrf_token', csrf ? csrf.value : '');
+        data.append('mobile_number', number);
+        fetch('{{ url_for("setup.messaging_test_sms") }}', {method: 'POST', body: data})
+            .then(function (r) { return r.json(); })
+            .then(function (d) { setResult(el, d.ok, d.message); })
+            .catch(function () { setResult(el, false, 'Request failed.'); });
+    };
+}());
+</script>

@@ -1,0 +1,39 @@
+{
+  "format_version": 4,
+  "source": "Legacy MedUI reference configuration, read-only extraction 2026-10-01; no patient records or accounts.",
+  "files": {
+    "reference.json": "1adc4b1faf586ba94a8d9203bdd07015d85b8508faef575bf32f95d82dc2f835",
+    "starter.json": "c26e4044f753dd098620a4b33ac9748e943e039c007e0c73b188fc8220f2d1a7",
+    "admin_lists.json": "8b116cd97d086b598ad79f5cb7e0c21eb703a841c588495d404b24246d006322",
+    "seed_history.json": "63f183a52cf367dcf45402564d43e6c774177fc8de0d98c502ea704845c2df2d"
+  },
+  "counts": {
+    "system_prompts": 12,
+    "user_prompts": 17,
+    "data_bundles": 4,
+    "pipelines": 12,
+    "message_templates": 6,
+    "drug_mappings": 402,
+    "vaccine_mapping": 57,
+    "nip_risk_mapping": 2,
+    "identifier_labels": 17
+  },
+  "notes": [
+    "Drug approvals reset: each practice must review BP product identifiers before approval.",
+    "Five vaccine rows without numeric BP identifiers omitted.",
+    "NIP risk mappings are a legacy snapshot, not a complete or current immunisation schedule.",
+    "Site-specific model IDs, authors, credentials and private summary blocks removed.",
+    "Experimental, unredacted, duplicate local and external-summary pipelines omitted.",
+    "Old bundle placeholders translated to data.blocks; practice-specific message contact details removed.",
+    "Format 2 (2026-10-13): optional per-workflow redaction_policy, the generic chatbot's prompt-only sequences, and inference model_default (local or chatbot); adds the generic chatbot's two workflows and their prompts from upstream.",
+    "Format 3 (2026-10-15): admin_lists.json, admin lists created only when their table doesn't exist yet (never changed afterwards); adds identifier_labels, the 17 starting labels for the labelled-identifier rule.",
+    "2026-10-17: Life Expectancy Discussion (prompt and workflow) removed; Second Opinion replaced by Case Summary, a factual summary of what is recorded with its own system prompt (Record Summary (factual)): no diagnoses, differentials or recommendations.",
+    "2026-10-17: Default Info Sheet Prompt reworded: asks for plain, natural clinical language and to avoid stock AI phrases, instead of telling the model to hide that it is AI.",
+    "2026-10-17: removed for 1.0 (likely medical devices, or personalised advice, pending TGA advice): Interaction Checker, Medication Review, Developmental Milestones, the pathology result explainers and SMS, Report Explainer, the GP chronic conditions and mental health care plans, Health Status Report, and the personalised lifestyle prompts (exercise, hypertension, travel, meal planner, Mind Gymnasium).",
+    "2026-10-17: chatbot system prompts confined. Patient chatbot: answers only about what is recorded (no diagnoses, risk assessment or management recommendations). General chatbot: general medical reference for a registered practitioner, not about a specific patient; 'no censorship / answer any question' wording replaced. Both keep the JSON response format.",
+    "2026-10-17: remaining AI prompts confined. Scribe: issues organised as discussed, whether or not existing diagnoses, headed by a stated or recorded diagnosis or a plain description, optionally grouped; no added diagnoses, inferred management, inferred examination findings or undiscussed actions. To-Do: items the record shows as outstanding only. Document summary: summary only (explanation mode removed; renamed Summarise Document). User Query: own factual system prompt, Record Questions (factual).",
+    "Format 4 (2026-10-21): system prompts carry scope_key (the AI scope instruction: record, scribe, correspondence, general or none — none only for the text-cleanup and PII-eraser utilities); a workflow's prompt step may set scope_key and its inference step ai_notice (the on-screen notice). From upstream ADR-087/088.",
+    "2026-10-24: General chatbot (Chatbot Generic) reworded from upstream (its version 6): written for a health professional, not a patient; questions outside medicine answered as fully as needed; a question with a particular patient's details gets a one-line notice and general information about the topic at the level of the question, without restating or interpreting the patient's findings; a Sources section (title, organisation, year; link only for stable official addresses; marked as AI-suggested). Keeps the JSON response format.",
+    "2026-10-24 (0.19.0): Default Info Sheet Prompt confined: writing rules and task discipline kept; result grading, clinical alert policies (diabetes thresholds, cholesterol risk categories and targets, FIB-4, PSA, BP and weight categories), preventive-health and immunisation advice, triage lines and invented-data assumptions removed; general information allowed. Health Timeline 7/10 detail describes what is recorded (no grading, targets, gaps or screening rules). Clinical Assistant (unused) dropped. Library Assistant typos fixed."
+  ]
+}

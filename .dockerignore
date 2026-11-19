@@ -1,0 +1,15 @@
+**
+!app/
+!app/**
+!migrations/
+!migrations/**
+!requirements.txt
+!vendor/
+!vendor/**
+!wsgi.py
+!docs/
+!docs/**
+!deploy/
+!deploy/**
+**/__pycache__
+**/*.pyc

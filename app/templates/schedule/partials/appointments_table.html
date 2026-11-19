@@ -1,0 +1,66 @@
+{# HTMX partial: appointments table. Requires: rows (list), bpsdb_userid (str). #}
+{% if rows %}
+<div style="overflow-x:auto;">
+  <table style="width:100%; border-collapse:collapse; font-size:var(--text-sm); line-height:1.2;">
+    <thead style="position:sticky; top:0; background:var(--bg-secondary); z-index:1;">
+      <tr style="border-bottom:2px solid var(--border-color);">
+        <th style="padding:0.25rem 0.4rem; text-align:left; white-space:nowrap;">Time</th>
+        <th style="padding:0.25rem 0.4rem; text-align:left;">Dr</th>
+        <th style="padding:0.25rem 0.4rem; text-align:left;">Patient</th>
+        <th style="padding:0.25rem 0.4rem; text-align:left;">DOB</th>
+        <th style="padding:0.25rem 0.4rem; text-align:left;">Reason</th>
+        <th style="padding:0.25rem 0.4rem; text-align:left;">Eligibility</th>
+        <th style="padding:0.25rem 0.4rem; text-align:left; white-space:nowrap;">Length</th>
+        <th style="padding:0.25rem 0.4rem; text-align:left;">Bkd by</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      {% set own_row = (bpsdb_userid and bpsdb_userid == row.get('provider_id', '') | string) %}
+      <tr class="{{ row.get('row_class', '') }}{% if own_row %} own-provider{% endif %}"
+          data-provider-id="{{ row.get('provider_id', '') }}"
+          style="border-bottom:1px solid var(--border-color);">
+        <td style="padding:0.2rem 0.4rem; white-space:nowrap; vertical-align:top;">{{ row.get('APPT_TIME', '') }}</td>
+        <td style="padding:0.2rem 0.4rem; vertical-align:top; font-weight:{% if own_row %}700{% else %}normal{% endif %};">
+          {{ row.get('Provider', '') }}
+        </td>
+        <td style="padding:0.2rem 0.4rem; vertical-align:top; white-space:nowrap;">
+          {% if row.get('internalid') %}
+            <a href="{{ url_for('clinical.patient', patient_id=row.get('internalid')) }}"
+               style="color:var(--accent-primary); text-decoration:none;">
+              {{ row.get('patient_name', '—') }}
+            </a>
+          {% else %}
+            {{ row.get('patient_name', '—') }}
+          {% endif %}
+        </td>
+        <td style="padding:0.2rem 0.4rem; vertical-align:top; white-space:nowrap;">
+          {{ row.get('dob', '') | clinical_date }}
+        </td>
+        <td style="padding:0.2rem 0.4rem; vertical-align:top;">
+          {{ row.get('reason', '') }}
+          {% if row.get('created_age') %}
+            <span style="display:block; font-size:0.72rem; color:var(--text-muted);">{{ row.get('created_age') }}</span>
+          {% endif %}
+        </td>
+        <td style="padding:0.2rem 0.4rem; vertical-align:top;">
+          {% set elig = row.get('eligibility', '') %}
+          {% if elig and elig not in ('', 'Neither', 'None Prior') %}
+            <span style="font-size:0.7rem; padding:0.1rem 0.35rem; border-radius:0.25rem;
+                         background:var(--accent-primary); color:white; font-weight:700;">
+              {{ elig }}
+            </span>
+          {% elif elig == 'Neither' %}
+            <span style="font-size:0.7rem; color:var(--text-muted);">—</span>
+          {% endif %}
+        </td>
+        <td style="padding:0.2rem 0.4rem; vertical-align:top; white-space:nowrap;">{{ row.get('visit_length', '') }}</td>
+        <td style="padding:0.2rem 0.4rem; vertical-align:top; color:var(--text-muted);">{{ row.get('booker', '') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+  <p style="margin:0; padding:0.75rem; font-size:var(--text-sm); color:var(--text-muted);">No appointments found.</p>
+{% endif %}

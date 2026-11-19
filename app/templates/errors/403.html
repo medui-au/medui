@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Access Restricted — {{ app_name }}{% endblock %}
+
+{% block content %}
+<div style="display:flex; align-items:center; justify-content:center; min-height:60vh; padding:2rem;">
+  <div style="max-width:480px; text-align:center;">
+
+    {% if privacy %}
+
+    <div style="font-size:5rem; line-height:1; margin-bottom:1rem;">😊</div>
+
+    <h1 style="font-size:1.4rem; font-weight:700; margin:0 0 0.75rem; color:var(--text-primary);">
+      This record is privately protected
+    </h1>
+
+    <p style="font-size:var(--text-sm); color:var(--text-muted); line-height:1.6; margin-bottom:1.25rem;">
+      {{ app_name }} includes a built-in staff privacy feature that prevents colleagues
+      from accessing each other's personal health records within the practice.
+      This patient file belongs to a staff member and is only visible to them
+      and to practice administrators.
+    </p>
+
+    <p style="font-size:var(--text-sm); color:var(--text-muted); line-height:1.6; margin-bottom:1.75rem;">
+      If you believe you have reached this page in error, please speak with your
+      practice manager or administrator.
+    </p>
+
+    {% else %}
+
+    <div style="font-size:4rem; line-height:1; margin-bottom:1rem;">🔒</div>
+
+    <h1 style="font-size:1.4rem; font-weight:700; margin:0 0 0.75rem; color:var(--text-primary);">
+      Access restricted
+    </h1>
+
+    <p style="font-size:var(--text-sm); color:var(--text-muted); line-height:1.6; margin-bottom:1.75rem;">
+      You don't have permission to view this page.
+      Please contact your administrator if you think this is a mistake.
+    </p>
+
+    {% endif %}
+
+    <a href="javascript:history.back()"
+       class="btn btn-outline" style="margin-right:0.5rem;">Go back</a>
+    <a href="{{ url_for('main.index') }}" class="btn btn-primary">Home</a>
+
+  </div>
+</div>
+{% endblock %}

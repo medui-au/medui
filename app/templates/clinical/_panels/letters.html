@@ -1,0 +1,54 @@
+{% if rows %}
+<div style="overflow-x:auto; max-height:400px; overflow-y:auto;">
+    <table style="width:100%; border-collapse:collapse; font-size:var(--text-sm); line-height:1.2;">
+        <thead style="position:sticky; top:0; background:var(--bg-secondary); z-index:1;">
+            <tr style="border-bottom:2px solid var(--border-color);">
+                <th style="padding:0.25rem 0.5rem; text-align:left;">Date</th>
+                <th style="padding:0.25rem 0.5rem; text-align:left;">To</th>
+                <th style="padding:0.25rem 0.5rem; text-align:left;">Subject</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr style="border-bottom:1px solid var(--border-color);">
+                <td style="padding:0.25rem 0.5rem; vertical-align:top; white-space:nowrap;">
+                    {{ row.get('CORRESPONDENCEDATE', '') | clinical_date }}
+                </td>
+                <td style="padding:0.25rem 0.5rem; vertical-align:top;">
+                    {{ row.get('Recipient', '') }}
+                </td>
+                <td style="padding:0.25rem 0.5rem; vertical-align:top;">
+                    {% if row.get('RecordId') and patient_id %}
+                    <a href="{{ url_for('viewer.letters_viewer', patient_id=patient_id, record_id=row.get('RecordId')) }}"
+                       style="color:var(--accent-primary); text-decoration:none;"
+                       title="Open in viewer">
+                        {{ row.get('Subject') or '(no subject)' }}
+                    </a>
+                    <span style="white-space:nowrap; margin-left:0.35rem;">
+                        {% if current_user.can_use_ai %}
+                        <a href="{{ url_for('clinical.ai_panel', patient_id=patient_id) }}?auto=txt&doc_type=letter&doc_id={{ row.get('RecordId') }}&label={{ (row.get('Subject') or '') | urlencode }}"
+                           target="_blank" rel="noopener"
+                           style="font-size:0.65rem; color:var(--text-muted); text-decoration:none;"
+                           title="Load document text into AI panel">[TXT]</a>
+                        <a href="{{ url_for('clinical.ai_panel', patient_id=patient_id) }}?auto=sum&doc_type=letter&doc_id={{ row.get('RecordId') }}&label={{ (row.get('Subject') or '') | urlencode }}"
+                           target="_blank" rel="noopener"
+                           style="font-size:0.65rem; color:var(--accent); text-decoration:none; margin-left:0.2rem;"
+                           title="Summarise with AI">[SUM]</a>
+                        <a href="{{ url_for('clinical.ai_panel', patient_id=patient_id) }}?auto=exp&doc_type=letter&doc_id={{ row.get('RecordId') }}&label={{ (row.get('Subject') or '') | urlencode }}"
+                           target="_blank" rel="noopener"
+                           style="font-size:0.65rem; color:var(--accent); text-decoration:none; margin-left:0.2rem;"
+                           title="Summarise with AI">[EXP]</a>
+                        {% endif %}
+                    </span>
+                    {% else %}
+                    {{ row.get('Subject') or '(no subject)' }}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-muted" style="margin:0; padding:0.5rem; font-size:var(--text-sm);">No letters found.</p>
+{% endif %}

@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Sign in — {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="login-logo">Med<span>UI</span></div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+    {% endwith %}
+
+    <form method="post" action="{{ url_for('auth.login_post') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label class="form-label" for="username">User</label>
+        {% if users %}
+        <select class="form-control" id="username" name="username" required autofocus>
+          <option value="" disabled selected>— Select your name —</option>
+          {% for u in users %}
+          <option value="{{ u.value }}">{{ u.name }}</option>
+          {% endfor %}
+        </select>
+        {% else %}
+        <input class="form-control" type="text" id="username" name="username"
+               autocomplete="username" autofocus required placeholder="Username">
+        <p class="text-sm text-danger mt-xs">No users found. Create the first administrator using the installation command.</p>
+        {% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input class="form-control" type="password" id="password" name="password"
+               autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full mt-2">Sign in</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

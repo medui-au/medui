@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+{% block title %}Privacy hits — run #{{ run.id }} — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+.ph-wrap   { max-width:1100px; margin:0 auto; padding:1rem 1.25rem; }
+.ph-wrap h1 { font-size:1.1rem; margin:0 0 0.25rem 0; }
+.ph-intro  { font-size:var(--text-sm); color:var(--text-muted); margin:0 0 1rem 0; max-width:780px; }
+.ph-table  { width:100%; border-collapse:collapse; font-size:var(--text-sm); }
+.ph-table th, .ph-table td { text-align:left; vertical-align:top; padding:0.45rem 0.5rem;
+                             border-bottom:1px solid var(--border-color); }
+.ph-table th { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); }
+.ph-ctx    { font-family:var(--font-mono, monospace); font-size:0.75rem; color:var(--text-muted);
+             white-space:pre-wrap; word-break:break-word; max-width:460px; }
+.ph-ctx mark { background:#fde68a; color:#111; padding:0 1px; border-radius:2px; }
+.ph-word   { font-weight:700; }
+.ph-act select, .ph-act button { font-size:0.75rem; padding:0.18rem 0.4rem; }
+.ph-msg    { font-size:0.75rem; margin-top:0.3rem; }
+.ph-ok     { color:var(--success, #15803d); }
+.ph-err    { color:var(--danger, #b91c1c); }
+.ph-none   { font-size:0.72rem; color:var(--text-muted); }
+.ph-h2     { font-size:0.95rem; margin:0.5rem 0 0.35rem 0; }
+.ph-nav    { display:flex; flex-wrap:wrap; gap:1rem; align-items:center; font-size:var(--text-sm); margin:0 0 0.6rem 0; }
+.ph-review { margin:1.5rem 0 0 0; padding:0.75rem 0.9rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); max-width:780px; }
+.ph-review fieldset { border:none; padding:0; margin:0 0 0.6rem 0; }
+.ph-review legend { font-weight:600; font-size:var(--text-sm); margin-bottom:0.25rem; }
+.ph-review label { display:block; font-size:var(--text-sm); margin:0.15rem 0; }
+.ph-review textarea { width:100%; min-height:4rem; font-size:var(--text-sm); padding:0.35rem; border:1px solid var(--border-color);
+                      border-radius:var(--radius-sm); background:var(--bg-primary); color:var(--text-primary); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ph-wrap">
+  {% if review and review.around %}
+  <nav class="ph-nav" aria-label="Privacy Review list">
+    <a href="{{ url_for('admin.privacy_review', **review.args) }}">← Back to the list</a>
+    <span class="ph-none">{{ review.around.position }} of {{ review.around.total }}</span>
+    {% if review.around.previous %}<a href="{{ url_for('admin.privacy_hits', run_id=review.around.previous, **review.args) }}">← Previous</a>{% else %}<span class="ph-none">← Previous</span>{% endif %}
+    {% if review.around.next %}<a href="{{ url_for('admin.privacy_hits', run_id=review.around.next, **review.args) }}">Next →</a>{% else %}<span class="ph-none">Next →</span>{% endif %}
+  </nav>
+  {% elif review %}
+  <nav class="ph-nav"><a href="{{ url_for('admin.privacy_review') }}">Privacy Review list</a></nav>
+  {% endif %}
+  <h1>Privacy hits — run #{{ run.id }}{{ help('privacy-review.run-page') }}</h1>
+  <p class="ph-intro">
+    What MedUI's pre-send check found in the prompt as it was sent to the model. Adding a hit makes it a
+    redaction from now on: a <strong>shortened name</strong> goes on the name-variant list and is
+    redacted for every patient with the name it is short for; another person's name or a recurring
+    string goes on the <strong>always-redact list</strong> and is redacted for everyone. Both lists can
+    be reviewed, switched off or removed in
+    <a href="{{ url_for('admin.mappings') }}">Admin → Mapping Tables</a>.
+  </p>
+
+  {% if reports %}
+  <h2 class="ph-h2">Reported by users</h2>
+  <p class="ph-intro">Text a user selected on the <strong>Sent to AI</strong> tab as something that should
+    have been redacted (ADR-115). Add it to a list as for a hit, or dismiss it if it is not identifying.</p>
+  <table class="ph-table" style="margin-bottom:1.5rem;">
+    <thead><tr><th>Reported</th><th>By</th><th>In context</th><th>Action</th></tr></thead>
+    <tbody>
+    {% for r in reports %}
+      <tr>
+        <td class="ph-word">{{ r.word }}{% if r.note %}<br><span class="ph-none">“{{ r.note }}”</span>{% endif %}</td>
+        <td>{{ r.reporter }}<br><span class="ph-none">{{ r.reported_at.strftime('%Y-%m-%d') if r.reported_at }}</span></td>
+        <td class="ph-ctx">…{{ r.before }}<mark>{{ r.word }}</mark>{{ r.after }}…</td>
+        <td class="ph-act" data-report="{{ r.id }}">
+          {% if r.status != 'open' %}
+            <span class="ph-none">{{ r.status | capitalize }}{% if r.outcome and r.status == 'added' %}: {{ r.outcome }}{% endif %}{% if r.handler %} by {{ r.handler }}{% endif %}.</span>
+          {% else %}
+            <div>Always redact, as
+              <select name="label">{% for l in labels %}<option value="{{ l }}">{{ l }}</option>{% endfor %}</select>
+              <button type="button" onclick="phReport(this, 'always_redact')">Add</button>
+            </div>
+            {% if r.single_word and given_names %}
+            <div style="margin-top:0.25rem;">Short form of
+              <select name="name">
+                {% for n in given_names %}
+                  <option value="{{ n.name }}">{{ n.display }} ({{ n.role }}{% if n.patients is not none %}, {{ n.patients }} patients{% endif %})</option>
+                {% endfor %}
+              </select>
+              <button type="button" onclick="phReport(this, 'name_variant')">Add</button>
+            </div>
+            {% endif %}
+            <div style="margin-top:0.25rem;"><button type="button" onclick="phReport(this, 'dismiss')">Dismiss</button>
+              <span class="ph-none">not identifying</span></div>
+          {% endif %}
+          <div class="ph-msg"></div>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <h2 class="ph-h2">Found by the privacy check</h2>
+  {% endif %}
+
+  {% if not checked %}
+    <p>This run has no pre-send check result: it was not checked, or it ran on a local model.</p>
+  {% elif not hits %}
+    <p>No hits with a position to show. (Runs checked before 2026-10-04 report counts only.)</p>
+  {% else %}
+  <table class="ph-table">
+    <thead><tr><th>Found</th><th>Tier and type{{ help('privacy-review.tiers') }}</th><th>In context</th><th>Add to future redactions</th></tr></thead>
+    <tbody>
+    {% for h in hits %}
+      <tr>
+        <td class="ph-word">{{ h.word }}</td>
+        <td>tier {{ h.tier }}{% if h.tier in tier_labels %} <span class="ph-none">({{ tier_labels[h.tier] }})</span>{% endif %}<br>{{ type_label(h.type) }}{% if h.kind %}<br><span class="ph-none">{{ h.kind }}</span>{% endif %}</td>
+        <td class="ph-ctx">…{{ h.before }}<mark>{{ h.word }}</mark>{{ h.after }}…</td>
+        <td class="ph-act" data-index="{{ h.index }}">
+          {% if h.action == 'name_variant' %}
+            <div>Short form of
+              <select name="name">
+                {% for n in given_names %}
+                  <option value="{{ n.name }}">{{ n.display }} ({{ n.role }}{% if n.patients is not none %}, {{ n.patients }} patients{% endif %})</option>
+                {% endfor %}
+              </select>
+              <button type="button" onclick="phAdd(this, 'name_variant')">Add</button>
+            </div>
+          {% elif h.action == 'always_redact' %}
+            <div>Always redact, as
+              <select name="label">
+                {% for l in labels %}<option value="{{ l }}">{{ l }}</option>{% endfor %}
+              </select>
+              <button type="button" onclick="phAdd(this, 'always_redact')">Add</button>
+            </div>
+          {% else %}
+            <span class="ph-none">No list for this type{% if h.type and h.type.startswith('patient_') and h.type != 'patient_name_variant' %} — the patient's own identifier; worth reporting{% endif %}.</span>
+          {% endif %}
+          <div class="ph-msg"></div>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if review %}
+  <form class="ph-review" id="review" method="post"
+        action="{{ url_for('admin.privacy_review_save', run_id=run.id, **review.args) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2 class="ph-h2" style="margin-top:0;">Your review{{ help('privacy-review.reviewing') }}</h2>
+    <p class="ph-intro" style="margin-bottom:0.6rem;">Look at each finding above in context, then record what it was. This is
+      the practice's own record of how well redaction is working; it changes nothing that was sent. To stop the
+      same thing getting through again, use <em>Add</em> above as well.</p>
+    {% set saved = review.saved %}
+    <fieldset>
+      <legend>What the findings were</legend>
+      <label><input type="radio" name="disposition" value="true_leak" {% if saved and saved.disposition == 'true_leak' %}checked{% endif %}>
+        <strong>Real leak</strong>: it identifies a person and got through to the AI (or would have, if the user had not stopped it)</label>
+      <label><input type="radio" name="disposition" value="false_positive" {% if saved and saved.disposition == 'false_positive' %}checked{% endif %}>
+        <strong>False alarm</strong>: not identifying (an ordinary word, a drug name, a made-up example…)</label>
+      <label><input type="radio" name="disposition" value="acceptable" {% if saved and saved.disposition == 'acceptable' %}checked{% endif %}>
+        <strong>Acceptable</strong>: identifying, but appropriate for this request (for example a hospital's name)</label>
+      <label><input type="radio" name="disposition" value="unreviewed" {% if not saved %}checked{% endif %}>
+        <span class="ph-none">Not reviewed (choose this to clear a saved review)</span></label>
+    </fieldset>
+    <fieldset>
+      <legend>How serious, if it was a leak</legend>
+      <label style="display:inline-block; margin-right:1rem;"><input type="radio" name="severity" value="" {% if not saved or not saved.severity %}checked{% endif %}> Not stated</label>
+      {% for key, label in review.severities.items() %}
+      <label style="display:inline-block; margin-right:1rem;"><input type="radio" name="severity" value="{{ key }}" {% if saved and saved.severity == key %}checked{% endif %}> {{ label }}</label>
+      {% endfor %}
+    </fieldset>
+    <fieldset>
+      <legend>Comment <span class="ph-none">(optional; stored encrypted. Describe the pattern, not the patient)</span></legend>
+      <textarea name="comment" maxlength="2000">{{ saved.comment if saved and saved.comment }}</textarea>
+    </fieldset>
+    <button type="submit" class="btn btn-primary" style="font-size:var(--text-sm);">Save review</button>
+    {% if saved %}<span class="ph-none" style="margin-left:0.6rem;">Last saved {{ saved.reviewed_at | localdt('%-d %b %Y %H:%M') }}{% if saved.reviewed_by %} by {{ saved.reviewed_by.display_name or saved.reviewed_by.username }}{% endif %}.</span>{% endif %}
+    {% if review.around and review.around.next %}<a href="{{ url_for('admin.privacy_hits', run_id=review.around.next, **review.args) }}" style="margin-left:0.8rem; font-size:var(--text-sm);">Next →</a>{% endif %}
+  </form>
+  {% endif %}
+</div>
+
+<script>
+async function phAdd(btn, list, confirmed) {
+  const cell = btn.closest('.ph-act');
+  const msg = cell.querySelector('.ph-msg');
+  const form = new FormData();
+  form.append('index', cell.dataset.index);
+  form.append('list', list);
+  const sel = cell.querySelector('select');
+  if (sel) form.append(sel.name, sel.value);
+  if (confirmed) form.append('confirmed', '1');
+  btn.disabled = true;
+  msg.className = 'ph-msg'; msg.textContent = 'Adding…';
+  try {
+    const csrf = document.querySelector('meta[name="csrf-token"]');
+    const r = await fetch('{{ url_for("admin.privacy_hits_add", run_id=run.id) }}', {
+      method: 'POST', body: form, credentials: 'same-origin',
+      headers: csrf ? {'X-CSRFToken': csrf.content} : {},
+    });
+    const d = await r.json();
+    if (d.confirm && !confirmed && window.confirm(d.message)) { btn.disabled = false; return phAdd(btn, list, true); }
+    msg.className = 'ph-msg ' + (d.ok ? 'ph-ok' : 'ph-err');
+    msg.textContent = d.message || (d.ok ? 'Added.' : 'Not added.');
+    btn.disabled = !!d.ok;
+  } catch (e) {
+    msg.className = 'ph-msg ph-err'; msg.textContent = 'Request failed.';
+    btn.disabled = false;
+  }
+}
+async function phReport(btn, action, confirmed) {
+  const cell = btn.closest('.ph-act');
+  const msg = cell.querySelector('.ph-msg');
+  const form = new FormData();
+  form.append('action', action);
+  const sel = btn.parentElement.querySelector('select');
+  if (sel) form.append(sel.name, sel.value);
+  if (confirmed) form.append('confirmed', '1');
+  cell.querySelectorAll('button').forEach(b => b.disabled = true);
+  msg.className = 'ph-msg'; msg.textContent = 'Saving…';
+  try {
+    const csrf = document.querySelector('meta[name="csrf-token"]');
+    const r = await fetch(`{{ url_for("admin.privacy_hits", run_id=run.id) }}/report/${cell.dataset.report}`, {
+      method: 'POST', body: form, credentials: 'same-origin',
+      headers: csrf ? {'X-CSRFToken': csrf.content} : {},
+    });
+    const d = await r.json();
+    if (d.confirm && !confirmed) {
+      if (window.confirm(d.message)) return phReport(btn, action, true);
+      cell.querySelectorAll('button').forEach(b => b.disabled = false);
+      msg.textContent = 'Not added.';
+      return;
+    }
+    msg.className = 'ph-msg ' + (d.ok ? 'ph-ok' : 'ph-err');
+    msg.textContent = d.message || (d.ok ? 'Done.' : 'Not done.');
+    if (!d.ok) cell.querySelectorAll('button').forEach(b => b.disabled = false);
+  } catch (e) {
+    msg.className = 'ph-msg ph-err'; msg.textContent = 'Request failed.';
+    cell.querySelectorAll('button').forEach(b => b.disabled = false);
+  }
+}
+</script>
+{% endblock %}

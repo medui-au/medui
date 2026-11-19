@@ -1,0 +1,7 @@
+{% if fmt == 'json' %}
+<pre class="pj-output pj-json">{{ rendered }}</pre>
+{% elif fmt == 'markdown' %}
+<div class="pj-output pj-markdown">{{ rendered | markdown }}</div>
+{% else %}
+<pre class="pj-output pj-text">{{ rendered }}</pre>
+{% endif %}

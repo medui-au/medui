@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ current_user.theme if current_user.is_authenticated else 'light' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+  {% if current_user.is_authenticated %}
+  {% include 'components/topnav.html' %}
+  {% include 'components/results_rollup_modal.html' %}
+  {% endif %}
+
+  <main class="main-content">
+    {% if current_user.is_authenticated %}
+    {% set bp_warn = bp_login_warning() %}
+    {% if bp_warn %}
+    <div class="container-fluid">
+      <div class="alert alert-warning">MedUI's Best Practice login can change Best Practice data. MedUI never writes to it, but a read-only login is safer: use the read-only account BP supplies for database access. Details in <a href="{{ url_for('setup.index') }}">Setup</a> → Database.</div>
+    </div>
+    {% endif %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="container-fluid">
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer style="text-align:right; padding:0.4rem 1rem; font-size:0.72rem; color:var(--text-muted);">
+    <a href="{{ url_for('main.about') }}" style="color:inherit;">MedUI {{ app_version }}</a>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/htmx.min.js') }}" defer></script>
+  {% if current_user.is_authenticated %}
+  <script src="{{ url_for('static', filename='js/dictation.js') }}" defer></script>
+  {% include 'components/help_panel.html' %}
+  <script src="{{ url_for('static', filename='js/help_panel.js') }}" defer></script>
+  {% endif %}
+  {% block scripts %}{% endblock %}
+
+  {% if current_user.is_authenticated %}
+  <script>
+  // Attach CSRF token to all HTMX requests
+  document.body.addEventListener('htmx:configRequest', function (evt) {
+    var csrf = document.querySelector('meta[name="csrf-token"]');
+    if (csrf) evt.detail.headers['X-CSRFToken'] = csrf.content;
+  });
+  </script>
+  {% endif %}
+
+</body>
+</html>

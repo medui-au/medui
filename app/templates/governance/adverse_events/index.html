@@ -1,0 +1,100 @@
+{% extends 'governance/base.html' %}
+
+{% block title %}Adverse Events &amp; Near Miss Register{% endblock %}
+
+{% block gov_main %}
+
+<div class="gov-list" id="ae-list-panel">
+    <div class="gov-list-header">
+        <h3>Events{{ help('governance.adverse-events') }}</h3>
+        {% if has_gov_level(1) %}
+        <a href="{{ url_for('governance.ae_new') }}"
+           hx-get="{{ url_for('governance.ae_new') }}"
+           hx-target="#ae-detail-panel"
+           hx-swap="innerHTML"
+           class="btn btn-sm btn-primary">+ New</a>
+        {% endif %}
+    </div>
+
+    <form style="padding:0.5rem 0.75rem;border-bottom:1px solid var(--border-color);"
+          hx-get="{{ url_for('governance.ae_list') }}"
+          hx-trigger="change, input delay:400ms"
+          hx-target="#ae-rows"
+          hx-swap="innerHTML">
+        <input class="filter-input" name="search" placeholder="Search ref / title…"
+               value="{{ filters.get('search','') }}" style="margin-bottom:0.35rem;">
+        <select class="filter-select" name="event_type" style="margin-bottom:0.35rem;">
+            <option value="">All types</option>
+            {% for t in event_types %}
+            <option value="{{ t.value }}" {{ 'selected' if filters.get('event_type') == t.value }}>
+                {{ t.value.replace('_',' ').title() }}
+            </option>
+            {% endfor %}
+        </select>
+        <select class="filter-select" name="severity" style="margin-bottom:0.35rem;">
+            <option value="">All severities</option>
+            {% for s in severities %}
+            <option value="{{ s.value }}" {{ 'selected' if filters.get('severity') == s.value }}>
+                {{ s.value.replace('_',' ').title() }}
+            </option>
+            {% endfor %}
+        </select>
+        <select class="filter-select" name="status">
+            <option value="">All statuses</option>
+            {% for s in statuses %}
+            <option value="{{ s.value }}" {{ 'selected' if filters.get('status') == s.value }}>
+                {{ s.value.replace('_',' ').title() }}
+            </option>
+            {% endfor %}
+        </select>
+        {% if has_gov_level(9) %}
+        <label style="display:flex; align-items:center; gap:0.4rem; font-size:var(--text-sm); margin-top:0.2rem;">
+            <input type="checkbox" name="show_voided" value="1" {{ 'checked' if filters.get('show_voided') }}>
+            Show voided entries
+        </label>
+        {% endif %}
+    </form>
+
+    <div class="gov-list-body" id="ae-rows">
+        {% include 'governance/adverse_events/partials/list.html' %}
+    </div>
+</div>
+
+<div class="gov-detail" id="ae-detail-panel"
+     {% if selected_id %}
+     hx-get="{{ url_for('governance.ae_detail', event_id=selected_id) }}"
+     hx-trigger="load"
+     hx-swap="innerHTML"
+     {% endif %}>
+    <div class="gov-detail-empty">Select an event to view details</div>
+</div>
+
+{% endblock %}
+
+{% block gov_sidebar %}
+<span class="gov-sidebar-label">SAC Rating</span>
+<div style="font-size:0.72rem; line-height:1.6;">
+    <span class="badge-status badge-sac1">SAC 1</span> Catastrophic / Death<br>
+    <span class="badge-status badge-sac2">SAC 2</span> Major disability<br>
+    <span class="badge-status badge-sac3">SAC 3</span> Moderate harm<br>
+    <span class="badge-status badge-sac4">SAC 4</span> Minor / no harm<br>
+    <span class="badge-status badge-sac5">SAC 5</span> Near miss
+</div>
+<hr class="filter-sep">
+<span class="gov-sidebar-label">Triage SLA</span>
+<div style="font-size:0.72rem; line-height:1.6; color:var(--text-muted);">
+    SAC 1–2: <strong>24 h</strong><br>
+    SAC 3: <strong>48 h</strong><br>
+    SAC 4–5: <strong>5 business days</strong>
+</div>
+{% endblock %}
+
+{% block gov_scripts %}
+<script>
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail.target.id === 'ae-detail-panel') {
+        evt.detail.target.scrollTop = 0;
+    }
+});
+</script>
+{% endblock %}

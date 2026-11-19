@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Care plan</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 1.5cm; color: #111; }
+.cp-doc table { width:100%; border-collapse:collapse; font-size:10pt; }
+.cp-doc th, .cp-doc td { border:1px solid #888; padding:4pt; vertical-align:top; text-align:left; white-space:pre-wrap; }
+.cp-doc td.cp-issue { background:#eee; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+@media print { .cp-screen-only { display:none; } }
+.cp-draft-note { border:1px dashed #888; padding:3pt 6pt; margin:6pt 0 8pt 0; font-size:9pt; }
+</style></head>
+<body>
+<div class="cp-screen-only">
+<button onclick="window.print()">Print</button>
+{% if draft %}
+<div class="cp-draft-note">This plan is not filed yet (this note doesn't print). If you hand this copy over,
+file the plan without changing it, so the record holds what the patient has.</div>
+{% endif %}
+</div>
+{{ document | safe }}
+</body></html>

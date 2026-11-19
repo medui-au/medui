@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quality Report — {{ display_name }} — {{ start_date.strftime('%d %b %Y') }} to {{ end_date.strftime('%d %b %Y') }}</title>
+<style>
+/* Standalone document — deliberately NOT extending base.html/style.css.
+   This page is meant to be printed and downloaded as a self-contained
+   .html file (see downloadReport() below); depending on the app's
+   external stylesheet would mean a downloaded copy loses all styling
+   the moment it's opened outside this server. Colours are the app's own
+   light-theme palette (app/static/css/style.css), hardcoded — a printed
+   report is conventionally light-background regardless of the viewer's
+   in-app theme. */
+:root {
+    --bg: #ffffff;
+    --bg-secondary: #f4f6f8;
+    --border: #d1d9e0;
+    --text: #1a1f2e;
+    --muted: #718096;
+    --accent: #2563eb;
+}
+* { box-sizing: border-box; }
+body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--text);
+    background: var(--bg-secondary);
+    margin: 0;
+    padding: 1.5rem;
+}
+.qr-toolbar {
+    position: sticky;
+    top: 0;
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 0.6rem 0.9rem;
+    margin: 0 auto 1.25rem;
+    max-width: 820px;
+}
+.qr-toolbar h1 { font-size: 1rem; margin: 0; flex: 1; }
+.qr-btn {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+.qr-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.qr-slide {
+    max-width: 820px;
+    margin: 0 auto 1.5rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 1.5rem 1.75rem;
+}
+.qr-slide h2 { margin: 0 0 0.2rem; font-size: 1.3rem; }
+.qr-slide .qr-sub { color: var(--muted); font-size: 0.85rem; margin: 0 0 1rem; }
+.qr-slide .qr-note { color: var(--muted); font-size: 0.85rem; }
+
+.qr-tiles { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+.qr-tile {
+    flex: 1 1 100px;
+    min-width: 100px;
+    padding: 0.5rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--bg-secondary);
+    text-align: center;
+}
+.qr-tile-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-bottom: 0.2rem;
+}
+.qr-tile-value { font-size: 1.35rem; font-weight: 700; color: var(--accent); }
+
+.qr-chart-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin: 0.9rem 0 0.3rem;
+}
+.qr-chart-canvas { position: relative; height: 280px; margin-bottom: 1.25rem; }
+
+.qr-rationale-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-bottom: 0.3rem;
+}
+.qr-rationale {
+    border: 1px dashed var(--border);
+    border-radius: 0.375rem;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    min-height: 3.5em;
+}
+.qr-rationale:focus { outline: 2px solid var(--accent); border-style: solid; }
+
+@media print {
+    body { background: #fff; padding: 0; }
+    .qr-toolbar { display: none; }
+    .qr-slide {
+        border: none;
+        border-radius: 0;
+        max-width: none;
+        page-break-after: always;
+        margin: 0;
+        padding: 1cm;
+    }
+    .qr-rationale { border-style: solid; }
+    .qr-chart-block {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+}
+
+.qr-cover h1.qr-cover-title { font-size: 1.9rem; margin: 0 0 0.3rem; }
+.qr-cover .qr-sub { margin-bottom: 1.5rem; }
+.qr-cover-lead { font-size: 1rem; line-height: 1.6; margin: 0 0 0.9rem; }
+.qr-cover-facts {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin: 1.25rem 0;
+}
+.qr-cover-fact {
+    flex: 1 1 220px;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--bg-secondary);
+    padding: 0.7rem 1rem;
+}
+.qr-cover-fact-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-bottom: 0.2rem;
+}
+.qr-cover-fact-value { font-size: 1rem; font-weight: 600; }
+.qr-cover-hint { font-size: 0.9rem; color: var(--muted); line-height: 1.55; margin: 0.9rem 0 1.5rem; }
+.qr-cover .qr-rationale { min-height: 8em; }
+</style>
+</head>
+<body>
+
+<div class="qr-toolbar">
+    <h1>Quality Report — {{ display_name }}</h1>
+    <button type="button" class="qr-btn" onclick="downloadReport()">Download HTML</button>
+    <button type="button" class="qr-btn primary" onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<section class="qr-slide qr-cover">
+    <h1 class="qr-cover-title">Reviewing Performance</h1>
+    <p class="qr-sub">
+        {{ display_name }} · {{ start_date.strftime('%d/%m/%Y') }} – {{ end_date.strftime('%d/%m/%Y') }}
+        · generated {{ generated_at.strftime('%d/%m/%Y') }}
+    </p>
+
+    <p class="qr-cover-lead">
+        This is a self-initiated performance review which focusses on the best-practice habits of
+        general practitioners.
+    </p>
+    <p class="qr-cover-lead">
+        In the case of registrars, this review will help inform your training and supervisor reports.
+    </p>
+
+    <div class="qr-cover-facts">
+        <div class="qr-cover-fact">
+            <div class="qr-cover-fact-label">Suggested Reflection Time</div>
+            <div class="qr-cover-fact-value">2.5 hours (self-logged CPD)</div>
+        </div>
+        <div class="qr-cover-fact">
+            <div class="qr-cover-fact-label">Suggested Frequency</div>
+            <div class="qr-cover-fact-value">CPD: Twice Yearly<br>Registrars: Monthly self-assessment</div>
+        </div>
+    </div>
+
+    <p class="qr-cover-hint">
+        Improvements or weaknesses can be identified by running this review using different date
+        filters — e.g. this 6-month period and the previous 6-month period.
+    </p>
+    <p class="qr-cover-hint">
+        You may enter your observations and reflections in the space below prior to printing to PDF.
+    </p>
+
+    <div class="qr-rationale-label">Observations &amp; Planned Actions</div>
+    <div class="qr-rationale" contenteditable="true"></div>
+</section>
+
+{% for slide in slides %}
+{% set indicator = slide.indicator %}
+{% set slide_idx = loop.index0 %}
+<section class="qr-slide">
+    <h2>{{ indicator.label }}</h2>
+    <p class="qr-sub">
+        {{ display_name }}
+        {% if indicator.uses_period_filter %}
+        · {{ start_date.strftime('%d/%m/%Y') }} – {{ end_date.strftime('%d/%m/%Y') }}
+        {% else %}
+        · live snapshot
+        {% endif %}
+    </p>
+
+    {% if slide.error %}
+    <p class="qr-note">Could not load this indicator's data from the practice database.</p>
+    {% elif not slide.row %}
+    <p class="qr-note">No data recorded for this period.</p>
+    {% else %}
+    <div class="qr-tiles">
+        {% for col in indicator.columns %}
+        {% if col.always_show_tile or slide.row[col.key] %}
+        <div class="qr-tile">
+            <div class="qr-tile-label">{{ col.label }}</div>
+            <div class="qr-tile-value">{{ slide.row[col.key] }}</div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% for c in slide.charts %}
+    <div class="qr-chart-block">
+        {% if indicator.charts|length > 1 %}
+        <div class="qr-chart-label">{{ c.label }}</div>
+        {% endif %}
+        <div class="qr-chart-canvas">
+            <canvas id="qrChart{{ slide_idx }}_{{ loop.index0 }}"></canvas>
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="qr-rationale-label">Why this is a quality measure</div>
+    <div class="qr-rationale" contenteditable="true">{{ indicator.rationale }}</div>
+</section>
+{% endfor %}
+
+<script src="{{ url_for('static', filename='vendor/chartjs-4.6.1/chart.umd.min.js') }}"></script>
+<script>
+const REPORT_CHARTS = [
+    {% for slide in slides %}
+    {% set outer_idx = loop.index0 %}
+    {% for c in slide.charts %}
+    { elId: 'qrChart{{ outer_idx }}_{{ loop.index0 }}', data: {{ c.data | tojson }} },
+    {% endfor %}
+    {% endfor %}
+];
+
+(function () {
+    if (typeof Chart === 'undefined') return;
+    const accent = '#2563eb';
+    const mutedFill = '#718096';
+    const gridColor = '#d1d9e0';
+    const textColor = '#718096';
+    const palette = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'];
+    const seriesColor = i => palette[i % palette.length];
+
+    REPORT_CHARTS.forEach(({ elId, data: chartData }) => {
+        const canvas = document.getElementById(elId);
+        if (!canvas) return;
+
+        if (chartData.indexAxis === 'y') {
+            const perBar = 26, basePadding = 40, minHeight = 280;
+            canvas.parentElement.style.height = Math.max(minHeight, chartData.labels.length * perBar + basePadding) + 'px';
+        }
+
+        const mineIdx = chartData.mine_index;
+        const haveMine = chartData.anonymize && mineIdx !== null && mineIdx !== undefined;
+        const singleSeries = chartData.datasets.length === 1;
+
+        const datasets = chartData.datasets.map(ds => ({
+            label: ds.label,
+            data: ds.data,
+            backgroundColor: (haveMine && singleSeries)
+                ? ds.data.map((_, i) => (i === mineIdx ? accent : mutedFill))
+                : seriesColor(ds.series),
+            borderRadius: 3,
+            borderSkipped: false,
+        }));
+
+        const mineHalo = {
+            id: 'qrMineHalo' + elId,
+            afterDatasetsDraw(chart) {
+                if (!haveMine) return;
+                const elements = chart.data.datasets
+                    .map((_, di) => chart.getDatasetMeta(di).data[mineIdx])
+                    .filter(Boolean);
+                if (!elements.length) return;
+                const margin = 6;
+                const left = elements[0].x - elements[0].width / 2 - margin;
+                const right = elements[0].x + elements[0].width / 2 + margin;
+                const top = Math.min(...elements.map(el => el.y)) - margin;
+                const bottom = Math.max(...elements.map(el => el.base ?? el.y)) + margin;
+                const ctx = chart.ctx;
+                ctx.save();
+                ctx.strokeStyle = accent;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                if (ctx.roundRect) { ctx.roundRect(left, top, right - left, bottom - top, 6); }
+                else { ctx.rect(left, top, right - left, bottom - top); }
+                ctx.stroke();
+                ctx.restore();
+            },
+        };
+
+        new Chart(canvas.getContext('2d'), {
+            type: chartData.type,
+            data: { labels: chartData.labels, datasets },
+            plugins: [mineHalo],
+            options: {
+                indexAxis: chartData.indexAxis,
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: { display: chartData.datasets.length > 1, labels: { color: textColor } },
+                    tooltip: chartData.anonymize ? {
+                        callbacks: {
+                            title: items => (items[0] && items[0].dataIndex === mineIdx) ? 'You' : 'Colleague',
+                        },
+                    } : {},
+                },
+                scales: {
+                    x: {
+                        stacked: chartData.stacked,
+                        grid: { color: gridColor },
+                        ticks: {
+                            autoSkip: false,
+                            color: ctx => (chartData.anonymize && ctx.index === mineIdx) ? accent : textColor,
+                            font: ctx => (chartData.anonymize && ctx.index === mineIdx) ? { weight: 'bold' } : {},
+                        },
+                    },
+                    y: {
+                        stacked: chartData.stacked,
+                        grid: { color: gridColor },
+                        ticks: { autoSkip: false, color: textColor },
+                        beginAtZero: true,
+                    },
+                },
+            },
+        });
+    });
+}());
+
+// Captures the live DOM (including any edits made in the contenteditable
+// rationale boxes) as a standalone .html file — outerHTML reflects
+// contenteditable content directly, which is why those boxes are divs
+// rather than <textarea> elements (a textarea's typed value is never
+// reflected back into the page's HTML source).
+function downloadReport() {
+    const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = document.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.html';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+}
+</script>
+
+</body>
+</html>

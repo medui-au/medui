@@ -1,0 +1,83 @@
+<div class="pm-editor" id="pm-editor-content">
+    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.25rem;">
+        <h3 style="font-size:0.88rem; font-weight:700; margin:0; flex:1;">{{ sp.name }}</h3>
+        <span style="font-size:0.7rem; color:var(--text-muted);">v{{ sp.version }}</span>
+        {% if sp.is_default %}
+        <span style="font-size:0.65rem; background:var(--accent); color:#fff;
+                     padding:0.05rem 0.35rem; border-radius:0.2rem;">DEFAULT</span>
+        {% endif %}
+        <button type="button" onclick="openHistoryDrawer({{ sp.id }})"
+                class="btn btn-outline" style="font-size:0.68rem; padding:0.15rem 0.45rem;">
+            History
+        </button>
+    </div>
+    <div style="font-size:0.68rem; color:var(--text-muted); margin-bottom:1rem;">
+        Created {{ sp.created_at.strftime('%d %b %Y %H:%M') if sp.created_at }}
+    </div>
+
+    <form id="sys-edit-form-{{ sp.id }}"
+          hx-post="{{ url_for('prompt_manager.system_save', prompt_id=sp.id) }}"
+          hx-target="#pm-sys-save-status"
+          hx-swap="innerHTML"
+          hx-include="[name='csrf_token']">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div style="margin-bottom:0.75rem;">
+            <label class="pm-field-lbl">Description</label>
+            <input type="text" name="description" value="{{ sp.description or '' }}"
+                   class="pm-input" placeholder="Optional note">
+        </div>
+
+        <div style="margin-bottom:0.75rem;">
+            <label class="pm-field-lbl">Prompt text</label>
+            <textarea name="prompt_text" class="pm-textarea" rows="16">{{ sp.prompt_text }}</textarea>
+        </div>
+
+        <div style="margin-bottom:0.75rem;">
+            <label class="pm-field-lbl">Scope instruction</label>
+            {% set _scope_labels = dict(scope_choices) %}
+            <select name="scope_key" class="pm-input">
+                <option value="" {% if not sp.scope_key %}selected{% endif %}>
+                    Practice default ({{ _scope_labels.get(scope_default_key, scope_default_key) }})
+                </option>
+                {% for k, lbl in scope_choices %}
+                <option value="{{ k }}" {% if sp.scope_key == k %}selected{% endif %}>{{ lbl }}</option>
+                {% endfor %}
+            </select>
+            <div style="font-size:0.68rem; color:var(--text-muted); margin-top:0.2rem;">
+                Placed in front of this prompt on every AI call (Setup → AI scope){% if not scope_enabled %} — scope instructions are currently <strong>off</strong> for the practice{% endif %}.
+                A workflow can override it on its prompt step.
+            </div>
+        </div>
+
+        <div style="margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;">
+            <input type="checkbox" name="is_default" value="1" id="se-default-{{ sp.id }}"
+                   {{ 'checked' if sp.is_default }}>
+            <label for="se-default-{{ sp.id }}" style="font-size:0.75rem; cursor:pointer;">
+                Set as global default
+            </label>
+        </div>
+
+        <div style="display:flex; gap:0.5rem; align-items:center;">
+            <button type="submit" class="btn btn-primary" style="font-size:0.78rem;">
+                Save (creates v{{ sp.version + 1 }})
+            </button>
+            <button type="button" class="btn btn-outline" style="font-size:0.78rem;"
+                    onclick="clearEditor()">Cancel</button>
+            <span id="pm-sys-save-status" style="font-size:0.75rem; margin-left:0.5rem;"></span>
+            <span style="flex:1;"></span>
+            <form method="post"
+                  hx-post="{{ url_for('prompt_manager.system_delete', prompt_id=sp.id) }}"
+                  hx-target="#sys-list" hx-swap="innerHTML"
+                  hx-include="[name='csrf_token']"
+                  hx-on:htmx:after-request="if(event.detail.successful){clearEditor();}"
+                  onsubmit="return confirm('Delete all versions of \'{{ sp.name | e }}\'?')"
+                  style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline"
+                        style="font-size:0.68rem; padding:0.15rem 0.45rem;
+                               border-color:var(--danger); color:var(--danger);">Delete all</button>
+            </form>
+        </div>
+    </form>
+</div>

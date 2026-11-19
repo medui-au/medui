@@ -1,0 +1,71 @@
+<div class="setup-section">
+    <h2 class="setup-h2">User defaults{{ help('setup.user-defaults') }}</h2>
+    <p style="font-size:var(--text-sm); color:var(--text-muted); margin:0 0 1rem; max-width:640px;">
+        What each user starts with on their <strong>My settings</strong> page. Untick
+        <em>Users may change</em> to fix a setting for everyone: users then see it greyed out,
+        marked "Set by your practice".
+    </p>
+
+    {% if flash_msg %}
+    <div style="margin-bottom:0.75rem; padding:0.5rem 0.75rem; border-radius:var(--radius-sm); font-size:var(--text-sm);
+                {% if flash_ok %}background:rgba(25,135,84,0.08); border:1px solid var(--success); color:var(--success);
+                {% else %}background:rgba(220,53,69,0.08); border:1px solid var(--danger); color:var(--danger);{% endif %}">
+        {{ flash_msg }}
+    </div>
+    {% endif %}
+
+    {% if not rows %}
+    <p style="font-size:var(--text-sm); color:var(--text-muted);">
+        No personal settings have a practice default yet.
+    </p>
+    {% else %}
+    <form hx-post="{{ url_for('setup.user_defaults_save') }}"
+          hx-target="#setup-content" hx-swap="innerHTML">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <table class="table" style="max-width:760px; font-size:var(--text-sm);">
+            <thead>
+                <tr>
+                    <th style="text-align:left;">Setting</th>
+                    <th style="text-align:left;">Practice default</th>
+                    <th style="text-align:center;">Users may change</th>
+                    <th style="text-align:right;">Users who changed it</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in rows %}
+                {% set p = r.pref %}
+                <tr>
+                    <td>
+                        <strong>{{ p.label }}</strong>
+                        {% if p.help %}<div style="font-size:0.7rem; color:var(--text-muted);">{{ p.help }}</div>{% endif %}
+                    </td>
+                    <td>
+                        {% if p.kind == 'bool' %}
+                        <label class="toggle-switch">
+                            <input type="checkbox" name="default.{{ p.key }}" value="true" {% if r.default %}checked{% endif %}>
+                            <span class="toggle-switch-slider"></span>
+                        </label>
+                        {% elif p.kind == 'choice' %}
+                        <select class="form-control" name="default.{{ p.key }}">
+                            {% for v, lbl in p.choices %}
+                            <option value="{{ v }}" {% if v == r.default %}selected{% endif %}>{{ lbl }}</option>
+                            {% endfor %}
+                        </select>
+                        {% else %}
+                        <input class="form-control" name="default.{{ p.key }}" value="{{ r.default or '' }}">
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center;">
+                        <input type="checkbox" name="may_change.{{ p.key }}" value="true" {% if not r.locked %}checked{% endif %}>
+                    </td>
+                    <td style="text-align:right;">
+                        {% if r.locked %}<span style="color:var(--text-muted);">— (fixed)</span>{% else %}{{ r.overrides }}{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+    {% endif %}
+</div>

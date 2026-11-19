@@ -1,0 +1,367 @@
+{% extends 'base.html' %}
+{% set editing = bundle is not none %}
+{% block title %}{{ 'Edit' if editing else 'New' }} Bundle — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+.be-form       { max-width: 760px; margin: 1.5rem auto; padding: 0 1rem; }
+.be-section    { margin-bottom: 1rem; }
+.be-section h3 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+                 letter-spacing: 0.04em; color: var(--text-muted); margin: 0 0 0.5rem 0; }
+
+/* Block order list */
+.be-block-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+.be-block-item {
+    display: flex; align-items: center; gap: 0.5rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.35rem 0.5rem;
+    font-size: var(--text-sm);
+}
+.be-block-item .be-handle   { cursor: grab; color: var(--text-muted); font-size: 1rem; }
+.be-block-item .be-icon     { font-size: 1rem; flex-shrink: 0; }
+.be-block-item .be-name     { font-weight: 600; flex: 1; }
+.be-block-item .be-label-in { font-size: 0.7rem; padding: 0.15rem 0.4rem; border: 1px solid var(--border-color);
+                               border-radius: var(--radius-sm); background: var(--bg-primary);
+                               width: 140px; color: var(--text-primary); }
+.be-block-item .be-moves    { display: flex; flex-direction: column; gap: 0; }
+.be-block-item .be-move-btn { background: none; border: none; cursor: pointer; padding: 0; line-height: 1;
+                               color: var(--text-muted); font-size: 0.7rem; }
+.be-block-item .be-move-btn:hover { color: var(--text-primary); }
+.be-block-item .be-remove   { background: none; border: none; cursor: pointer; color: var(--danger);
+                               font-size: 0.8rem; padding: 0 0.25rem; }
+
+/* Picker modal */
+.be-modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45); z-index: 500;
+    align-items: center; justify-content: center;
+}
+.be-modal-overlay.open { display: flex; }
+.be-modal {
+    background: var(--bg-primary); border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm); width: 520px; max-width: 95vw;
+    max-height: 80vh; display: flex; flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+}
+.be-modal-header {
+    display: flex; align-items: center; padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.be-modal-header h3 { margin: 0; font-size: 0.9rem; flex: 1; }
+.be-modal-body { overflow-y: auto; padding: 0.75rem 1rem; flex: 1; }
+.be-modal-footer {
+    padding: 0.65rem 1rem; border-top: 1px solid var(--border-color);
+    display: flex; gap: 0.5rem; justify-content: flex-end;
+}
+
+.be-pick-item {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.4rem 0.5rem; border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+.be-pick-item:hover { background: var(--bg-secondary); }
+.be-pick-item input { flex-shrink: 0; cursor: pointer; }
+.be-pick-item .be-pick-icon  { font-size: 1.1rem; }
+.be-pick-item .be-pick-label { font-weight: 600; font-size: var(--text-sm); }
+.be-pick-item .be-pick-desc  { font-size: 0.7rem; color: var(--text-muted); }
+.be-pick-section-header {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text-muted);
+    padding: 0.5rem 0.5rem 0.2rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 0.25rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="be-form">
+
+    <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+        <h1 style="font-size:1.1rem; margin:0;">
+            {{ '✏️ Edit Bundle' if editing else '+ New Bundle' }}
+            {% if editing %}<span style="color:var(--text-muted); font-weight:400;"> — {{ bundle.name }}</span>{% endif %}
+        </h1>
+        <a href="{{ url_for('admin.bundles') }}" class="btn btn-outline"
+           style="padding:0.3rem 0.75rem; font-size:var(--text-sm); margin-left:auto;">← Bundles</a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}" style="margin-bottom:0.75rem;">{{ msg }}</div>
+    {% endfor %}
+    {% endwith %}
+
+    <form method="post"
+          action="{{ url_for('admin.bundle_edit_post', bundle_id=bundle.id) if editing else url_for('admin.bundle_new_post') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {# ── Name + Description ──────────────────────────────────────────── #}
+        <div class="card" style="padding:0.75rem; margin-bottom:0.75rem;">
+            <div class="be-section">
+                <h3>Bundle Details</h3>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; margin-bottom:0.6rem;">
+                    <div>
+                        <label style="font-size:var(--text-sm); font-weight:600; display:block; margin-bottom:0.25rem;">
+                            Name <span style="color:var(--danger);">*</span>
+                        </label>
+                        <input type="text" name="name" required
+                               value="{{ bundle.name if editing else '' }}"
+                               placeholder="e.g. deid_context"
+                               style="width:100%; box-sizing:border-box; padding:0.35rem 0.5rem;
+                                      border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                                      background:var(--bg-primary); color:var(--text-primary); font-size:var(--text-sm);">
+                    </div>
+                    {% if editing %}
+                    <div style="display:flex; align-items:center; gap:0.5rem; padding-top:1.4rem;">
+                        <input type="checkbox" id="is_active" name="is_active" value="1"
+                               {{ 'checked' if bundle.is_active }}>
+                        <label for="is_active" style="font-size:var(--text-sm); cursor:pointer;">Active</label>
+                    </div>
+                    {% endif %}
+                </div>
+                <div>
+                    <label style="font-size:var(--text-sm); font-weight:600; display:block; margin-bottom:0.25rem;">Description</label>
+                    <textarea name="description" rows="2"
+                              placeholder="Brief description of this bundle's purpose"
+                              style="width:100%; box-sizing:border-box; padding:0.35rem 0.5rem;
+                                     border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                                     background:var(--bg-primary); color:var(--text-primary); font-size:var(--text-sm);
+                                     resize:vertical;">{{ bundle.description if editing and bundle.description else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        {# ── Block composition ───────────────────────────────────────────── #}
+        <div class="card" style="padding:0.75rem; margin-bottom:0.75rem;">
+            <div class="be-section">
+                <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem;">
+                    <h3 style="margin:0;">Block Composition</h3>
+                    <button type="button" class="btn btn-outline"
+                            style="padding:0.2rem 0.65rem; font-size:0.75rem;"
+                            onclick="openPicker()">+ Add Blocks</button>
+                    <span id="be-block-count" style="font-size:0.72rem; color:var(--text-muted); margin-left:auto;"></span>
+                </div>
+
+                <ul class="be-block-list" id="be-block-list">
+                    {# Populated by JS on load; server-side pre-fill for edit mode #}
+                    {% for bb in current_blocks %}
+                    <li class="be-block-item" data-source="{{ bb.block_source }}">
+                        {% set meta = block_meta.get(bb.block_source, {}) %}
+                        <input type="hidden" name="block_source[]" value="{{ bb.block_source }}">
+                        <span class="be-handle">⠿</span>
+                        <span class="be-icon">{{ meta.icon if meta else '📦' }}</span>
+                        <div class="be-name">
+                            {{ meta.label if meta else bb.block_source }}
+                            <div style="font-size:0.68rem; color:var(--text-muted);">{{ meta.desc if meta else '' }}</div>
+                        </div>
+                        <input type="text" name="block_label[]" class="be-label-in"
+                               value="{{ bb.label or '' }}"
+                               placeholder="Custom label (optional)">
+                        <div class="be-moves">
+                            <button type="button" class="be-move-btn" onclick="moveUp(this)">▲</button>
+                            <button type="button" class="be-move-btn" onclick="moveDown(this)">▼</button>
+                        </div>
+                        <button type="button" class="be-remove" onclick="removeBlock(this)" title="Remove">✕</button>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <p id="be-empty-msg" style="color:var(--text-muted); font-size:var(--text-sm); margin:0.5rem 0 0;"
+                   {% if current_blocks %}style="display:none"{% endif %}>
+                    No blocks added yet. Click "+ Add Blocks" to begin.
+                </p>
+            </div>
+        </div>
+
+        {# ── Query Manager blocks (future) ───────────────────────────────── #}
+        <div class="card" style="padding:0.75rem; margin-bottom:0.75rem; opacity:0.6;">
+            <div class="be-section">
+                <h3>Query Manager Blocks</h3>
+                <p style="font-size:var(--text-sm); color:var(--text-muted); margin:0;">
+                    App-enabled queries from the Query Manager will appear here once the Query Manager is available.
+                    Up to 5 queries can be enabled for use in bundles.
+                </p>
+            </div>
+        </div>
+
+        {# ── Save ────────────────────────────────────────────────────────── #}
+        <div style="display:flex; gap:0.5rem;">
+            <button type="submit" class="btn btn-primary" style="padding:0.4rem 1.25rem;">
+                {{ 'Save Changes' if editing else 'Create Bundle' }}
+            </button>
+            <a href="{{ url_for('admin.bundles') }}" class="btn btn-outline" style="padding:0.4rem 0.9rem;">Cancel</a>
+        </div>
+
+    </form>
+</div>
+
+{# ── Block picker modal ───────────────────────────────────────────────────── #}
+<div class="be-modal-overlay" id="be-picker-overlay" onclick="closePicker(event)">
+    <div class="be-modal" onclick="event.stopPropagation()">
+        <div class="be-modal-header">
+            <h3>Select Blocks</h3>
+            <button type="button" class="btn btn-outline"
+                    style="padding:0.2rem 0.5rem; font-size:0.75rem;" onclick="closePicker()">✕</button>
+        </div>
+        <div class="be-modal-body">
+            <div class="be-pick-section-header">Built-in Atomic Blocks</div>
+            {% for name, meta in block_meta.items() %}
+            <label class="be-pick-item" id="picker-item-{{ name }}">
+                <input type="checkbox" class="picker-cb" data-source="{{ name }}"
+                       data-icon="{{ meta.icon }}" data-label="{{ meta.label }}" data-desc="{{ meta.desc }}">
+                <span class="be-pick-icon">{{ meta.icon }}</span>
+                <div>
+                    <div class="be-pick-label">{{ meta.label }}</div>
+                    <div class="be-pick-desc">{{ meta.desc }}</div>
+                </div>
+            </label>
+            {% endfor %}
+
+            <div class="be-pick-section-header" style="margin-top:0.75rem;">Query Manager Blocks</div>
+            <p style="font-size:0.72rem; color:var(--text-muted); padding:0.4rem 0.5rem; margin:0;">
+                None enabled — configure in the Query Manager.
+            </p>
+        </div>
+        <div class="be-modal-footer">
+            <span id="picker-count" style="font-size:var(--text-sm); color:var(--text-muted); margin-right:auto;"></span>
+            <button type="button" class="btn btn-outline" onclick="closePicker()">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="applyPicker()">Apply</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    'use strict';
+
+    var BLOCK_META = {{ block_meta | tojson }};
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function currentSources() {
+        var out = [];
+        document.querySelectorAll('#be-block-list .be-block-item').forEach(function (li) {
+            out.push(li.dataset.source);
+        });
+        return out;
+    }
+
+    function updateCount() {
+        var n = document.querySelectorAll('#be-block-list .be-block-item').length;
+        document.getElementById('be-block-count').textContent = n + ' block' + (n !== 1 ? 's' : '');
+        document.getElementById('be-empty-msg').style.display = n ? 'none' : '';
+    }
+
+    function makeItem(source, icon, label, desc, customLabel) {
+        var li = document.createElement('li');
+        li.className = 'be-block-item';
+        li.dataset.source = source;
+        li.innerHTML = [
+            '<input type="hidden" name="block_source[]" value="' + source + '">',
+            '<span class="be-handle">⠿</span>',
+            '<span class="be-icon">' + icon + '</span>',
+            '<div class="be-name">' + label +
+                '<div style="font-size:0.68rem;color:var(--text-muted);">' + desc + '</div></div>',
+            '<input type="text" name="block_label[]" class="be-label-in"',
+            '       value="' + (customLabel || '') + '" placeholder="Custom label (optional)">',
+            '<div class="be-moves">',
+            '  <button type="button" class="be-move-btn" onclick="moveUp(this)">▲</button>',
+            '  <button type="button" class="be-move-btn" onclick="moveDown(this)">▼</button>',
+            '</div>',
+            '<button type="button" class="be-remove" onclick="removeBlock(this)" title="Remove">✕</button>',
+        ].join('');
+        return li;
+    }
+
+    // ── Reorder / remove ─────────────────────────────────────────────────────
+
+    window.moveUp = function (btn) {
+        var li = btn.closest('.be-block-item');
+        var prev = li.previousElementSibling;
+        if (prev) li.parentNode.insertBefore(li, prev);
+        updateCount();
+    };
+
+    window.moveDown = function (btn) {
+        var li = btn.closest('.be-block-item');
+        var next = li.nextElementSibling;
+        if (next) li.parentNode.insertBefore(next, li);
+        updateCount();
+    };
+
+    window.removeBlock = function (btn) {
+        btn.closest('.be-block-item').remove();
+        updateCount();
+        syncPickerState();
+    };
+
+    // ── Picker modal ─────────────────────────────────────────────────────────
+
+    function syncPickerState() {
+        var active = currentSources();
+        document.querySelectorAll('.picker-cb').forEach(function (cb) {
+            cb.checked = active.indexOf(cb.dataset.source) >= 0;
+        });
+        updatePickerCount();
+    }
+
+    function updatePickerCount() {
+        var n = document.querySelectorAll('.picker-cb:checked').length;
+        var el = document.getElementById('picker-count');
+        if (el) el.textContent = n + ' selected';
+    }
+
+    window.openPicker = function () {
+        syncPickerState();
+        document.getElementById('be-picker-overlay').classList.add('open');
+    };
+
+    window.closePicker = function (evt) {
+        if (!evt || evt.target === document.getElementById('be-picker-overlay')) {
+            document.getElementById('be-picker-overlay').classList.remove('open');
+        }
+    };
+
+    window.applyPicker = function () {
+        var list    = document.getElementById('be-block-list');
+        var active  = currentSources();
+        var checked = [];
+
+        document.querySelectorAll('.picker-cb:checked').forEach(function (cb) {
+            checked.push(cb.dataset.source);
+        });
+
+        // Add newly checked blocks (in picker order)
+        checked.forEach(function (src) {
+            if (active.indexOf(src) < 0) {
+                var meta = BLOCK_META[src] || {};
+                list.appendChild(makeItem(src, meta.icon || '📦', meta.label || src, meta.desc || '', ''));
+            }
+        });
+
+        // Remove unchecked blocks
+        document.querySelectorAll('#be-block-list .be-block-item').forEach(function (li) {
+            if (checked.indexOf(li.dataset.source) < 0) li.remove();
+        });
+
+        updateCount();
+        document.getElementById('be-picker-overlay').classList.remove('open');
+    };
+
+    document.querySelectorAll('.picker-cb').forEach(function (cb) {
+        cb.addEventListener('change', updatePickerCount);
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closePicker();
+    });
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+    updateCount();
+})();
+</script>
+{% endblock %}

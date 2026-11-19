@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{# Shared workspace layout: persistent patient sidebar + swappable main area.
+   Requires context: patient (dict), patient_id (int).
+   Child templates override {% block patient_main %} for their content.
+   Override {% block workspace_main_class %} to add modifier classes (e.g. for scribe).
+   Override {% block workspace_extra %} to add a sibling column after the main section
+   (e.g. a fixed-width right rail) — empty by default, so pages that don't override it
+   are unaffected. #}
+
+{% block title %}{{ patient.get('SURNAME','') | upper }}, {{ patient.get('FIRSTNAME','') }} — {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="workspace">
+
+    {# ── Left sidebar — always visible ───────────────────────────────────── #}
+    <aside class="workspace-sidebar">
+        <div class="card" style="padding:0.6rem;">
+            {% include 'clinical/_demographics.html' %}
+        </div>
+        {% include 'clinical/_patient_tools.html' %}
+    </aside>
+
+    {# ── Main area — swappable per screen ─────────────────────────────────── #}
+    <section class="{% block workspace_main_class %}workspace-main{% endblock %}" id="patient-main">
+        {% block patient_main %}{% endblock %}
+    </section>
+
+    {% block workspace_extra %}{% endblock %}
+
+</div>
+{% endblock %}

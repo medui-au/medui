@@ -1,0 +1,329 @@
+{% extends 'clinical/patient_workspace.html' %}
+
+{% block title %}Atomized Pathology — {{ patient.get('SURNAME','') | upper }}, {{ patient.get('FIRSTNAME','') }} — {{ app_name }}{% endblock %}
+
+{% block workspace_main_class %}workspace-main workspace-main--pathatom{% endblock %}
+
+{% block head %}
+<script src="{{ url_for('static', filename='vendor/moment-2.29.4/moment.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/chartjs-4.6.1/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/chartjs-adapter-moment-1.0.1/chartjs-adapter-moment.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/path_chart.js') }}"></script>
+<style>
+    .workspace-main--pathatom {
+        overflow: hidden !important;
+        padding: 0 !important;
+        display: flex !important;
+    }
+
+    .pathatom-outer {
+        display: flex;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .pathatom-main {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 0.75rem;
+        gap: 0.75rem;
+        overflow: hidden;
+    }
+
+    .pathatom-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-shrink: 0;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0.5rem;
+    }
+
+    .pathatom-controls label {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--text-primary);
+        white-space: nowrap;
+    }
+
+    #test-selector {
+        flex: 1;
+        max-width: 420px;
+        padding: 0.3rem 0.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.3rem;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-size: 0.85rem;
+    }
+
+    #test-selector:focus {
+        outline: none;
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary) 20%, transparent);
+    }
+
+    .pathatom-copy-group {
+        display: flex;
+        gap: 0.4rem;
+    }
+
+    .pathatom-copy-btn {
+        font-size: 0.72rem;
+        padding: 0.25rem 0.55rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.3rem;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        cursor: pointer;
+    }
+
+    .pathatom-copy-btn:hover {
+        border-color: var(--accent-primary);
+        color: var(--accent-primary);
+    }
+
+    .pathatom-chart-area {
+        flex: 1;
+        min-height: 0;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    [data-theme="dark"] .pathatom-chart-area {
+        background-color: #f8f9fa !important;
+        color: #212529 !important;
+        border-color: #dee2e6 !important;
+    }
+
+    #pathatom-chart-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+        flex-shrink: 0;
+    }
+
+    [data-theme="dark"] #pathatom-chart-title {
+        color: #212529 !important;
+    }
+
+    .pathatom-canvas-wrap {
+        flex: 1;
+        min-height: 0;
+        position: relative;
+    }
+
+    #pathatom-chart {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    .pathatom-no-data {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+    }
+
+    .pathatom-sidebar {
+        width: 220px;
+        min-width: 180px;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid var(--border-color);
+        overflow: hidden;
+    }
+
+    .pathatom-sidebar-header {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        border-bottom: 1px solid var(--border-color);
+        flex-shrink: 0;
+        background: var(--bg-secondary);
+    }
+
+    .pathatom-sidebar-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.5rem 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block patient_main %}
+<div class="pathatom-outer">
+
+    <!-- Main chart area -->
+    <div class="pathatom-main">
+        <div class="pathatom-controls">
+            <label for="test-selector">Test:</label>
+            <select id="test-selector">
+                {% for test in sorted_tests %}
+                <option value="{{ test | e }}"{% if test == initial_test %} selected{% endif %}>{{ test }}</option>
+                {% endfor %}
+            </select>
+            <div class="pathatom-copy-group">
+                <button type="button" class="pathatom-copy-btn" onclick="copyChartData('csv', this)" title="Copy this test's data as CSV">CSV</button>
+                <button type="button" class="pathatom-copy-btn" onclick="copyChartData('md', this)" title="Copy this test's data as a Markdown table">MD</button>
+                <button type="button" class="pathatom-copy-btn" onclick="copyChartData('json', this)" title="Copy this test's data as JSON">JSON</button>
+            </div>
+        </div>
+
+        <div class="pathatom-chart-area">
+            <h4 id="pathatom-chart-title"></h4>
+            <div class="pathatom-canvas-wrap">
+                <canvas id="pathatom-chart"></canvas>
+                <div class="pathatom-no-data" id="pathatom-no-data" style="display:none;">
+                    No data available for this test.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent pathology sidebar -->
+    <aside class="pathatom-sidebar">
+        <div class="pathatom-sidebar-header">Recent Pathology</div>
+        <div class="pathatom-sidebar-body">
+            {% if path_summary %}
+            <table style="width:100%;border-collapse:collapse;font-size:0.78rem;line-height:1.3;">
+                <tbody>
+                    {% for row in path_summary %}
+                    {% set view_url = url_for('viewer.pathology_viewer', patient_id=patient_id,
+                                             report_id=row.get('ReportID'), inbox=row.get('IsInBox', 0)) %}
+                    <tr style="border-bottom:1px solid var(--border-color);">
+                        <td style="padding:0.25rem 0.25rem 0.25rem 0;vertical-align:top;
+                                   white-space:nowrap;color:var(--text-muted);">
+                            {{ row.get('CollectionDate', '') }}
+                        </td>
+                        <td style="padding:0.25rem 0;vertical-align:top;">
+                            <a href="{{ view_url }}"
+                               style="color:var(--accent-primary);text-decoration:none;">
+                                {{ row.get('TestName', '(unknown)') }}
+                            </a>
+                            {% if row.get('IsInBox') == 1 %}
+                            <span style="font-size:0.65rem;padding:0.05rem 0.25rem;border-radius:0.15rem;
+                                         background:var(--info);color:white;font-weight:bold;margin-left:0.2rem;">In</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p style="font-size:0.78rem;color:var(--text-muted);margin:0;">No pathology reports found.</p>
+            {% endif %}
+        </div>
+    </aside>
+
+</div>
+
+<script>
+(function () {
+    'use strict';
+    const chartData   = {{ chart_data_json | safe }};
+    const initialTest = {{ initial_test | tojson }};
+    let currentChart  = null;
+
+    function renderChart(testName) {
+        const titleEl  = document.getElementById('pathatom-chart-title');
+        const noDataEl = document.getElementById('pathatom-no-data');
+        const canvas   = document.getElementById('pathatom-chart');
+
+        if (currentChart) { currentChart.destroy(); currentChart = null; }
+
+        const data = chartData[testName];
+        if (!data || !data.data || data.data.length === 0) {
+            canvas.style.display   = 'none';
+            noDataEl.style.display = 'flex';
+            titleEl.textContent    = testName;
+            return;
+        }
+
+        canvas.style.display   = 'block';
+        noDataEl.style.display = 'none';
+
+        titleEl.textContent = data.title || testName;
+        currentChart = PathChart.draw(canvas, data, testName);
+    }
+
+    function toCsvRows(testName, entry) {
+        const isBP = testName === 'Blood Pressure';
+        const rows = [isBP ? 'Date,Systolic,Diastolic' : 'Date,Value,Units'];
+        entry.data.forEach(function (p) {
+            rows.push(isBP ? (p.x + ',' + p.y + ',' + p.yLow)
+                            : (p.x + ',' + p.y + ',' + (entry.units || '')));
+        });
+        return rows.join('\n');
+    }
+
+    function toMarkdownTable(testName, entry) {
+        const isBP = testName === 'Blood Pressure';
+        const lines = ['### ' + testName, ''];
+        lines.push(isBP ? '| Date | Systolic | Diastolic |' : '| Date | Value | Units |');
+        lines.push('|---|---|---|');
+        entry.data.forEach(function (p) {
+            lines.push(isBP ? ('| ' + p.x + ' | ' + p.y + ' | ' + p.yLow + ' |')
+                             : ('| ' + p.x + ' | ' + p.y + ' | ' + (entry.units || '') + ' |'));
+        });
+        return lines.join('\n');
+    }
+
+    function toJsonBlock(testName, entry) {
+        const isBP = testName === 'Blood Pressure';
+        const points = entry.data.map(function (p) {
+            return isBP ? { date: p.x, systolic: p.y, diastolic: p.yLow }
+                         : { date: p.x, value: p.y };
+        });
+        return JSON.stringify({ test: testName, units: entry.units || undefined, data: points }, null, 2);
+    }
+
+    window.copyChartData = function (format, btnEl) {
+        const testName = document.getElementById('test-selector').value;
+        const entry = chartData[testName];
+        if (!entry || !entry.data || entry.data.length === 0) {
+            alert('No data to copy for this test.');
+            return;
+        }
+
+        let text;
+        if (format === 'csv') text = toCsvRows(testName, entry);
+        else if (format === 'md') text = toMarkdownTable(testName, entry);
+        else text = toJsonBlock(testName, entry);
+
+        navigator.clipboard.writeText(text).then(function () {
+            const orig = btnEl.textContent;
+            btnEl.textContent = 'Copied ✓';
+            btnEl.disabled = true;
+            setTimeout(function () { btnEl.textContent = orig; btnEl.disabled = false; }, 1200);
+        }).catch(function () {
+            alert('Copy failed — clipboard access was denied.');
+        });
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        Chart.defaults.font.size   = 14;
+        Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+        document.getElementById('test-selector').addEventListener('change', function () {
+            renderChart(this.value);
+        });
+        if (initialTest) renderChart(initialTest);
+    });
+})();
+</script>
+{% endblock %}

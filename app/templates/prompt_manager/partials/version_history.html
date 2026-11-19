@@ -1,0 +1,37 @@
+{% for row in history %}
+<div style="border:1px solid var(--border-color); border-radius:var(--radius-sm);
+            margin-bottom:0.6rem; overflow:hidden;
+            {{ 'opacity:1;' if row.is_active else 'opacity:0.55;' }}">
+    <div style="padding:0.4rem 0.6rem; background:var(--bg-secondary);
+                display:flex; align-items:center; gap:0.5rem;">
+        <span style="font-size:0.75rem; font-weight:600;">v{{ row.version }}</span>
+        {% if row.is_active %}
+        <span style="font-size:0.6rem; background:var(--success); color:#fff;
+                     padding:0.05rem 0.3rem; border-radius:0.2rem;">CURRENT</span>
+        {% else %}
+        <span style="font-size:0.6rem; background:var(--bg-secondary); color:var(--text-muted);
+                     border:1px solid var(--border-color); padding:0.05rem 0.3rem; border-radius:0.2rem;">
+            ARCHIVED
+        </span>
+        {% endif %}
+        {% if row.is_default %}
+        <span style="font-size:0.6rem; background:var(--accent); color:#fff;
+                     padding:0.05rem 0.3rem; border-radius:0.2rem;">DEFAULT</span>
+        {% endif %}
+        <span style="font-size:0.65rem; color:var(--text-muted); margin-left:auto;">
+            {{ row.created_at.strftime('%d %b %Y %H:%M') if row.created_at }}
+        </span>
+    </div>
+    {% if row.description %}
+    <div style="padding:0.3rem 0.6rem; font-size:0.68rem; color:var(--text-muted);
+                border-bottom:1px solid var(--border-color);">
+        {{ row.description }}
+    </div>
+    {% endif %}
+    <pre style="margin:0; padding:0.5rem 0.6rem; font-size:0.7rem; white-space:pre-wrap;
+                font-family:var(--font-mono, monospace); color:var(--text-primary);
+                max-height:180px; overflow-y:auto;">{{ row.prompt_text }}</pre>
+</div>
+{% else %}
+<p style="color:var(--text-muted); font-size:var(--text-sm);">No history found.</p>
+{% endfor %}

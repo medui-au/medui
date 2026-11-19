@@ -1,0 +1,1294 @@
+{% extends 'clinical/patient_workspace.html' %}
+
+{% block title %}Voice Scribe — {{ patient.get('SURNAME','') | upper }}, {{ patient.get('FIRSTNAME','') }} — {{ app_name }}{% endblock %}
+
+{% block workspace_main_class %}workspace-main workspace-main--scribe{% endblock %}
+
+{% block head %}
+<style>
+/* ── Three-column scribe layout ──────────────────────────────────────────── */
+.scribe-wrap {
+    display: flex;
+    gap: 0.75rem;
+    height: 100%;
+    min-height: 0;
+}
+
+/* ── Left: controls column ───────────────────────────────────────────────── */
+.scribe-left {
+    width: 180px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.65rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background: var(--bg-primary);
+    overflow-y: auto;
+}
+.scribe-left .ctrl-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+.scribe-left .ctrl-sep {
+    border: none;
+    border-top: 1px dashed var(--border-color);
+    margin: 0.25rem 0;
+}
+.scribe-left .btn { font-size: var(--text-sm); width: 100%; }
+
+/* ── Record button ───────────────────────────────────────────────────────── */
+#recordBtn {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: #fff;
+}
+#recordBtn.recording {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #fff;
+    animation: record-pulse 1.6s ease-out infinite;
+}
+@keyframes record-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(220,38,38,0.55); }
+    60%  { box-shadow: 0 0 0 8px rgba(220,38,38,0); }
+    100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
+}
+
+.scribe-select {
+    width: 100%;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+}
+
+.verbosity-wrap { display: flex; flex-direction: column; gap: 0.2rem; }
+.verbosity-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+#verbositySlider { width: 100%; cursor: pointer; }
+#verbosityValue {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+    text-align: center;
+}
+
+.scribe-info-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    border: 1px solid var(--text-muted);
+    background: none;
+    color: var(--text-muted);
+    font-size: 0.6rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    vertical-align: middle;
+    margin-left: 0.3rem;
+    transition: border-color 0.15s, color 0.15s;
+}
+.scribe-info-btn:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+
+/* ── Setup info modal ────────────────────────────────────────────────────── */
+#scribe-info-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: rgba(0,0,0,0.45);
+    align-items: center;
+    justify-content: center;
+}
+#scribe-info-modal.open { display: flex; }
+#scribe-info-modal-box {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    max-width: 480px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+}
+#scribe-info-modal-box h4 {
+    font-size: 0.88rem;
+    font-weight: 700;
+    margin: 0 0 1rem;
+}
+#scribe-info-modal-box h5 {
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin: 1rem 0 0.3rem;
+    color: var(--accent-primary);
+}
+#scribe-info-modal-box p, #scribe-info-modal-box li {
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    margin: 0 0 0.4rem;
+}
+#scribe-info-modal-box code {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.2rem;
+    padding: 0.05rem 0.3rem;
+    font-size: 0.72rem;
+    color: var(--text-primary);
+}
+#scribe-info-modal-box ul { padding-left: 1.1rem; margin: 0.3rem 0; }
+
+/* ── Instructions given to the AI (ADR-096) ─────────────────────────────── */
+.scribe-instr-line {
+    display: block;
+    width: 100%;
+    margin-top: 0.3rem;
+    padding: 0;
+    border: none;
+    background: none;
+    text-align: left;
+    font-size: 0.66rem;
+    line-height: 1.35;
+    color: var(--text-muted);
+    cursor: pointer;
+    text-decoration: underline dotted;
+    word-break: break-word;
+}
+.scribe-instr-line:hover { color: var(--accent-primary); }
+#scribe-instr-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: rgba(0,0,0,0.45);
+    align-items: center;
+    justify-content: center;
+}
+#scribe-instr-modal.open { display: flex; }
+#scribe-instr-modal-box {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1.25rem 1.5rem;
+    max-width: 720px;
+    width: 92%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+}
+#scribe-instr-modal-box h4 { font-size: 0.88rem; font-weight: 700; margin: 0 0 0.2rem; }
+#scribe-instr-modal-box .instr-sub { font-size: 0.72rem; color: var(--text-muted); margin: 0 0 0.75rem; }
+#scribe-instr-text {
+    white-space: pre-wrap;
+    font-family: inherit;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    max-height: 60vh;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.3rem;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+
+#scribeStatusLabel {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    font-style: italic;
+    word-break: break-word;
+    min-height: 1.2rem;
+    margin-top: auto;
+}
+
+/* ── Centre: tabbed transcript + output ─────────────────────────────────── */
+.scribe-centre {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background: var(--bg-primary);
+    overflow: hidden;
+}
+
+.scribe-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+.scribe-tab {
+    flex: 1;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    background: var(--bg-secondary);
+    border: none;
+    color: var(--text-muted);
+    transition: background 0.12s, color 0.12s;
+}
+.scribe-tab:first-child { border-radius: 0.5rem 0 0 0; }
+.scribe-tab:last-child  { border-radius: 0 0.5rem 0 0; }
+.scribe-tab.active {
+    background: var(--bg-primary);
+    color: var(--accent-primary);
+    border-bottom: 2px solid var(--accent-primary);
+    margin-bottom: -1px;
+}
+
+.scribe-tab-pane {
+    display: none;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+.scribe-tab-pane.active { display: flex; }
+#tab-pane-debug.active  { display: block; }
+
+#transcriptTextarea {
+    flex: 1;
+    resize: none;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.75rem;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    line-height: 1.65;
+    font-family: inherit;
+    outline: none;
+    min-height: 0;
+}
+
+.transcript-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.35rem 0.75rem;
+    border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+#charCount { font-size: 0.68rem; color: var(--text-muted); flex: 1; }
+
+.output-pane-inner {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+#sse-steps {
+    flex-shrink: 0;
+    padding: 0.4rem 0.65rem;
+    border-bottom: 1px solid var(--border-color);
+    display: none;
+}
+
+#outputTextarea {
+    flex: 1;
+    resize: none;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.75rem;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    line-height: 1.65;
+    font-family: inherit;
+    outline: none;
+    min-height: 0;
+    display: block;
+}
+
+#outputRendered {
+    flex: 1;
+    padding: 0.75rem;
+    overflow-y: auto;
+    font-size: var(--text-sm);
+    line-height: 1.65;
+    display: none;
+}
+
+.output-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.65rem;
+    border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+.out-btn {
+    padding: 0.25rem 0.55rem;
+    font-size: 0.7rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.3rem;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+    line-height: 1.3;
+}
+.out-btn:hover { background: var(--border-color); }
+.out-btn.active { background: var(--accent-primary); color: #fff; border-color: var(--accent-primary); }
+
+.output-footer .out-btn {
+    padding: 0.5rem 1.1rem;
+    font-size: 1.4rem;
+    background: #dde2e7;
+    border-color: #b8c0c8;
+    color: #111111;
+    font-weight: 600;
+}
+.output-footer .out-btn:hover { background: #c8d0d8; }
+.output-footer .out-btn.active { background: var(--accent-primary); color: #fff; border-color: var(--accent-primary); }
+
+@keyframes copy-flash {
+    0%   { background: var(--success); color: #fff; border-color: var(--success); transform: scale(1.08); }
+    70%  { background: var(--success); color: #fff; border-color: var(--success); transform: scale(1.04); }
+    100% { background: var(--bg-secondary); color: var(--text-primary); border-color: var(--border-color); transform: scale(1); }
+}
+.out-btn.copied { animation: copy-flash 0.6s ease-out forwards; }
+#sseError { font-size: var(--text-sm); color: var(--danger); padding: 0.5rem 0.65rem; display: none; }
+
+/* ── Right: chunk status ─────────────────────────────────────────────────── */
+.scribe-right {
+    width: 190px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background: var(--bg-primary);
+    overflow: hidden;
+    transition: width 0.2s ease;
+}
+.scribe-right.collapsed { width: 26px; min-width: 26px; }
+.scribe-right-header {
+    padding: 0.45rem 0.65rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    overflow: hidden;
+}
+.scribe-right-header:hover { color: var(--accent-primary); }
+.scribe-right.collapsed .scribe-right-header {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    padding: 0.65rem 0.3rem;
+    border-bottom: none;
+    border-right: 1px solid var(--border-color);
+    justify-content: flex-end;
+    height: 100%;
+    overflow: visible;
+}
+.scribe-right.collapsed #chunkStatusList { display: none; }
+#toggleRightChevron { font-size: 0.8rem; transition: transform 0.2s ease; flex-shrink: 0; }
+.scribe-right.collapsed #toggleRightChevron { display: none; }
+
+#chunkStatusList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    overflow-y: auto;
+    flex: 1;
+    font-size: 0.72rem;
+    font-family: monospace;
+}
+#chunkStatusList li {
+    padding: 0.25rem 0.65rem;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#chunkStatusList li:last-child { border-bottom: none; }
+
+/* SSE step dots */
+.step-row-inline { display: flex; align-items: center; gap: 0.5rem; padding: 0.2rem 0; font-size: 0.72rem; }
+.step-dot {
+    width: 0.9rem; height: 0.9rem; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.5rem; font-weight: 700;
+    background: var(--bg-secondary); border: 1.5px solid var(--border-color);
+    color: var(--text-muted);
+}
+.step-dot.ok    { background: var(--success); border-color: var(--success); color: #fff; }
+.step-dot.error { background: var(--danger);  border-color: var(--danger);  color: #fff; }
+.step-dot.run   { background: var(--accent-primary); border-color: var(--accent-primary); color: #fff; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+    display: inline-block; width: 0.7rem; height: 0.7rem;
+    border: 2px solid var(--border-color);
+    border-top-color: var(--accent-primary);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+</style>
+{% endblock %}
+
+{% block patient_main %}
+
+<div id="scribe-root"
+     class="scribe-wrap"
+     data-patient-id="{{ patient_id }}"
+     data-chunk-url="{{ url_for('voice.scribe_chunk', patient_id=patient_id) }}"
+     data-sync-url="{{ url_for('voice.scribe_sync', patient_id=patient_id) }}"
+     data-content-url="{{ url_for('voice.scribe_content', patient_id=patient_id) }}"
+     data-clear-url="{{ url_for('voice.scribe_clear', patient_id=patient_id) }}"
+     data-save-url="{{ url_for('voice.scribe_save', patient_id=patient_id) }}"
+     data-recompose-url="{{ url_for('voice.scribe_recompose', patient_id=patient_id) }}"
+     data-pit-url="{{ url_for('voice.scribe_export_pit', patient_id=patient_id) }}"
+     data-worklet-url="{{ url_for('static', filename='js/audio-processor.js') }}"
+     data-chunk-interval="{{ selected_chunk_interval_ms }}">
+
+    <!-- ── Left: controls ──────────────────────────────────────────────── -->
+    <div class="scribe-left">
+
+        <button id="recordBtn" class="btn">● Record</button>{{ help('scribe.recording') }}
+
+        <hr class="ctrl-sep">
+        <span class="ctrl-label">ASR Model
+            <button type="button" class="scribe-info-btn" onclick="openScribeInfo('diarize')"
+                    title="How speaker diarization works">ⓘ</button>
+        </span>
+        {% if not asr_models %}
+        <div style="font-size:0.7rem; color:var(--danger); padding:0.2rem 0; line-height:1.4;">
+            No ASR model configured.<br>
+            <a href="{{ url_for('setup.index') }}#ai-providers" style="color:var(--accent-primary);">
+                Setup →
+            </a>
+        </div>
+        {% else %}
+        <select id="asrModelSelect" class="scribe-select"
+                data-pref-url="{{ url_for('voice.scribe_set_asr_model') }}">
+            {% for m in asr_models %}
+            <option value="{{ m.id }}"
+                data-speakers="{{ speaker_status[m.id].text }}"
+                data-speakers-kind="{{ speaker_status[m.id].kind }}"
+                {% if selected_asr_model_id == m.id %}selected{% endif %}>
+                {{ m.provider.name }} — {{ m.display_name or m.model_id }}
+            </option>
+            {% endfor %}
+        </select>
+        {# How this model's chunks get their speakers (ADR-151); set from the option chosen. #}
+        <div id="speakerStatus" style="font-size:0.65rem; line-height:1.35; margin-top:0.2rem;
+                                       color:var(--text-muted);"></div>
+        {% endif %}
+
+        <hr class="ctrl-sep">
+        <span class="ctrl-label">Chunk interval</span>
+        <select id="chunkDurationSelector" class="scribe-select" title="Audio chunk interval"
+                autocomplete="off"
+                data-pref-url="{{ url_for('voice.scribe_set_chunk_interval') }}">
+            {% for ms in chunk_intervals_ms %}
+            <option value="{{ ms }}"
+                {% if selected_chunk_interval_ms == ms %}selected{% endif %}>{{ ms // 1000 }} s</option>
+            {% endfor %}
+        </select>
+
+        <hr class="ctrl-sep">
+        <span class="ctrl-label">Pipeline
+            <button type="button" class="scribe-info-btn" onclick="openScribeInfo('pipeline')"
+                    title="How to configure scribe pipelines">ⓘ</button>
+        </span>
+        {% if not pipelines %}
+        <div style="font-size:0.7rem; color:var(--text-muted); padding:0.25rem 0;">
+            No active pipelines.
+        </div>
+        {% else %}
+        <select id="pipelineSelect" class="scribe-select"
+                data-pref-url="{{ url_for('voice.scribe_set_pipeline') }}">
+            <option value="">— select —</option>
+            {% for p in pipelines %}
+            <option value="{{ p.id }}"
+                {% if selected_pipeline_id == p.id %}selected{% endif %}>{{ p.name }}</option>
+            {% endfor %}
+        </select>
+        {# The system prompt the chosen workflow sends, read-only (ADR-096, as ADR-086) #}
+        <button type="button" id="scribeInstrLine" class="scribe-instr-line" style="display:none;"
+                data-url="{{ url_for('clinical.ai_pipeline_prompt_text', patient_id=patient_id, pipeline_id=0) }}"
+                onclick="openScribeInstructions()"
+                title="Read the instructions this workflow gives the AI"></button>
+        {% endif %}
+
+        <hr class="ctrl-sep">
+        <span class="ctrl-label">Verbosity</span>
+        <div class="verbosity-wrap">
+            <input type="range" id="verbositySlider" min="1" max="3" value="2" step="1">
+            <div class="verbosity-labels">
+                <span>Brief</span><span>Normal</span><span>Detailed</span>
+            </div>
+            <div id="verbosityValue">Normal</div>
+        </div>
+
+        <hr class="ctrl-sep">
+        <button id="recomposeBtn" class="btn btn-primary" disabled>✦ Recompose</button>{{ help('scribe.write-up') }}
+
+        <hr class="ctrl-sep">
+        <button id="saveBtn" class="btn btn-outline">💾 Save to Chart</button>{{ help('scribe.saving') }}
+
+        {% if has_cached_transcript %}
+        <button class="btn btn-outline" style="margin-top:0.25rem;"
+                onclick="clearScribeCache()">Clear Cache</button>
+        {% endif %}
+
+        <div id="scribeStatusLabel"></div>
+    </div>
+
+    <!-- ── Centre: tabbed panels ───────────────────────────────────────── -->
+    <div class="scribe-centre">
+
+        <div class="scribe-tabs" role="tablist">
+            <button class="scribe-tab active" id="tab-btn-transcript"
+                    onclick="switchScribeTab('transcript')" role="tab">
+                📝 Transcript
+            </button>
+            <button class="scribe-tab" id="tab-btn-output"
+                    onclick="switchScribeTab('output')" role="tab">
+                ✦ Output
+            </button>
+            {# Shown once a write-up goes to a cloud AI: "Sending" while held for review, then "Sent" (ADR-094) #}
+            <button class="scribe-tab" id="tab-btn-sent" style="display:none;"
+                    onclick="switchScribeTab('sent')" role="tab">Sent</button>
+            {% if current_user.is_local_admin %}
+            <button class="scribe-tab" id="tab-btn-debug"
+                    onclick="switchScribeTab('debug')" role="tab">
+                🔧 Debug
+            </button>
+            {% endif %}
+        </div>
+
+        <!-- Transcript pane -->
+        <div class="scribe-tab-pane active" id="tab-pane-transcript">
+            <textarea id="transcriptTextarea"
+                      placeholder="Transcript will appear here as each chunk is processed.&#10;&#10;You may also type or paste directly before pressing Recompose."
+                      spellcheck="true"></textarea>
+            <div class="transcript-footer">
+                <span id="charCount">0 words · 0 chars</span>
+            </div>
+        </div>
+
+        <!-- Output pane -->
+        <div class="scribe-tab-pane" id="tab-pane-output">
+            <div class="output-pane-inner">
+                <div id="sse-steps"></div>
+                <div id="privacy-badge-bar" style="padding:0 0.65rem 0.35rem; display:flex; gap:0.4rem; flex-wrap:wrap; flex-shrink:0;"></div>
+                <div id="sseError"></div>
+                {% set ai_notice = ai_notice_for(selected_pipeline_id, 'draft') %}{% include 'components/ai_draft_notice.html' %}
+                <textarea id="outputTextarea"
+                          placeholder="Clinical notes will appear here after Recompose."
+                          spellcheck="true"></textarea>
+                <div id="outputRendered"></div>
+                <div class="output-footer">
+                    <button class="out-btn" id="outPrintVersionBtn"
+                            onclick="toggleOutputView()">Print Version</button>
+                    <button class="out-btn" onclick="printOutput()">Print</button>
+                    <button class="out-btn" id="copyOutputBtn" onclick="copyOutput()">Copy</button>
+                    <button class="out-btn" onclick="exportOutputToBP()">BP →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sending / Sent pane: the write-up prompt as it goes to the AI (ADR-094) -->
+        <div class="scribe-tab-pane" id="tab-pane-sent" style="overflow-y:auto;padding:0.65rem;"></div>
+
+        {% if current_user.is_local_admin %}
+        <!-- Debug pane -->
+        <div class="scribe-tab-pane" id="tab-pane-debug"
+             style="overflow-y:auto;padding:0.65rem;font-size:0.72rem;">
+            <div id="debug-run-info" style="color:var(--text-muted);font-style:italic;margin-bottom:0.4rem;">
+                No recompose run yet this session.
+            </div>
+            <div id="debug-privacy-badges" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.4rem;"></div>
+            <div id="debug-steps" style="border:1px solid var(--border-color);border-radius:0.35rem;overflow:hidden;margin-bottom:0.5rem;"></div>
+            <div id="debug-error"
+                 style="margin-bottom:0.5rem;color:var(--danger);display:none;
+                        white-space:pre-wrap;padding:0.4rem 0.5rem;
+                        background:rgba(220,53,69,0.07);border-radius:0.35rem;
+                        border:1px solid rgba(220,53,69,0.3);"></div>
+            <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+                <button class="out-btn" id="debugFetchCtxBtn"
+                        onclick="debugFetchContext()" disabled>Fetch Step Details</button>
+                <button class="out-btn" onclick="debugClearLog()">Clear</button>
+            </div>
+            <div id="debug-step-details" style="margin-top:0.5rem;"></div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- ── Right: chunk status ──────────────────────────────────────────── -->
+    <div class="scribe-right" id="scribeRight">
+        <div class="scribe-right-header" onclick="toggleScribeRight()" title="Toggle chunk panel">
+            <span>📡 Chunks</span>
+            <span id="toggleRightChevron">›</span>
+        </div>
+        <ul id="chunkStatusList">
+            <li style="color:var(--text-muted);font-family:inherit;font-size:0.7rem;
+                       padding:0.4rem 0.65rem;">Press Record to begin.</li>
+        </ul>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ── Tab switching ───────────────────────────────────────────────────────── */
+window.switchScribeTab = function (tab) {
+    var tabs = ['transcript', 'output', 'sent'];
+    if (document.getElementById('tab-btn-debug')) tabs.push('debug');
+    tabs.forEach(function (t) {
+        var pane = document.getElementById('tab-pane-' + t);
+        var btn  = document.getElementById('tab-btn-'  + t);
+        if (pane) pane.classList.toggle('active', t === tab);
+        if (btn)  btn.classList.toggle('active',  t === tab);
+    });
+};
+
+/* ── Output view toggle ─────────────────────────────────────────────────── */
+var _outputIsRendered = false;
+window.toggleOutputView = function () {
+    var ta  = document.getElementById('outputTextarea');
+    var div = document.getElementById('outputRendered');
+    var btn = document.getElementById('outPrintVersionBtn');
+    if (!_outputIsRendered) {
+        div.innerHTML = (typeof marked !== 'undefined')
+            ? marked.parse(ta.value || '')
+            : (ta.value || '').replace(/\n/g, '<br>');
+        ta.style.display  = 'none';
+        div.style.display = 'block';
+        btn.classList.add('active');
+        btn.textContent = 'Edit Version';
+        _outputIsRendered = true;
+    } else {
+        ta.style.display  = 'block';
+        div.style.display = 'none';
+        btn.classList.remove('active');
+        btn.textContent = 'Print Version';
+        _outputIsRendered = false;
+    }
+};
+
+window.printOutput = function () {
+    var ta = document.getElementById('outputTextarea');
+    var content = ta ? ta.value : '';
+    if (!content.trim()) return;
+    var html = (typeof marked !== 'undefined')
+        ? marked.parse(content)
+        : content.replace(/\n/g, '<br>');
+    var win = window.open('', '_blank', 'width=820,height=700');
+    win.document.write(
+        '<!DOCTYPE html><html><head><title>Clinical Note</title>' +
+        '<style>body{font-family:sans-serif;font-size:13px;line-height:1.65;' +
+        'padding:2rem;max-width:780px;margin:0 auto;color:#000;}' +
+        'h1,h2,h3{margin:1rem 0 0.4rem;}p{margin:0.4rem 0;}' +
+        '@media print{body{padding:0;}}</style></head>' +
+        '<body>' + html + '</body></html>'
+    );
+    win.document.close();
+    win.focus();
+    win.print();
+    win.close();
+};
+
+window.copyOutput = function () {
+    var text = document.getElementById('outputTextarea').value;
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(function () {
+        var btn = document.getElementById('copyOutputBtn');
+        if (!btn) return;
+        var orig = btn.textContent;
+        btn.textContent = '✓ Copied';
+        btn.classList.remove('copied');
+        void btn.offsetWidth;
+        btn.classList.add('copied');
+        setTimeout(function () {
+            btn.textContent = orig;
+            btn.classList.remove('copied');
+        }, 1500);
+    });
+};
+
+window.exportOutputToBP = function () {
+    var content = document.getElementById('outputTextarea').value.trim();
+    if (!content) { alert('No output to export — run Recompose first.'); return; }
+
+    var root   = document.getElementById('scribe-root');
+    var pitUrl = root ? root.dataset.pitUrl : null;
+    if (!pitUrl) { alert('PIT export URL not configured.'); return; }
+
+    var csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    var btn  = document.querySelector('[onclick="exportOutputToBP()"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+
+    fetch(pitUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+        body: JSON.stringify({ content: content, run_id: window._scribeRunDbId || null }),
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+        if (data.ok) {
+            if (btn) { btn.textContent = '✓ Sent'; setTimeout(function () { btn.textContent = 'BP →'; btn.disabled = false; }, 2500); }
+        } else {
+            alert('Export failed: ' + (data.error || 'Unknown error'));
+            if (btn) { btn.textContent = 'BP →'; btn.disabled = false; }
+        }
+    })
+    .catch(function (e) {
+        alert('Export failed: ' + e);
+        if (btn) { btn.textContent = 'BP →'; btn.disabled = false; }
+    });
+};
+
+/* ── Debug tab ──────────────────────────────────────────────────────────── */
+window._debugRunId = null;
+
+window.debugLogRun = function (runId, pipelineName) {
+    window._debugRunId = runId;
+    var el = document.getElementById('debug-run-info');
+    if (!el) return;
+    el.style.color = ''; el.style.fontStyle = '';
+    el.innerHTML =
+        '<strong>' + runId.slice(0, 8) + '…</strong>' +
+        ' &nbsp;|&nbsp; ' + pipelineName +
+        ' &nbsp;|&nbsp; ' + new Date().toLocaleTimeString();
+    var fetchBtn = document.getElementById('debugFetchCtxBtn');
+    if (fetchBtn) fetchBtn.disabled = false;
+    ['debug-steps', 'debug-step-details', 'debug-privacy-badges'].forEach(function (id) {
+        var el = document.getElementById(id); if (el) el.innerHTML = '';
+    });
+    var err = document.getElementById('debug-error');
+    if (err) { err.textContent = ''; err.style.display = 'none'; }
+};
+
+window.debugLogStep = function (stepData) {
+    var el = document.getElementById('debug-steps');
+    if (!el) return;
+    var row = document.getElementById('debug-step-' + stepData.step);
+    if (!row) {
+        row = document.createElement('div');
+        row.id = 'debug-step-' + stepData.step;
+        row.style.cssText = 'padding:0.25rem 0.5rem;border-bottom:1px solid var(--border-color);display:flex;gap:0.5rem;align-items:center;';
+        el.appendChild(row);
+    }
+    var cls = stepData.status === 'ok' ? 'ok' : stepData.status === 'error' ? 'error' : 'run';
+    var icon = stepData.status === 'ok' ? '✓' : stepData.status === 'error' ? '✗' : '…';
+    var dur = stepData.duration_ms
+        ? ' <span style="color:var(--text-muted);margin-left:0.3rem;">' + stepData.duration_ms + 'ms</span>'
+        : '';
+    var errSpan = stepData.error
+        ? ' <span style="color:var(--danger);">⚠ ' + stepData.error.substring(0, 80) + '</span>' : '';
+    row.innerHTML =
+        '<span class="step-dot ' + cls + '" style="flex-shrink:0;">' + icon + '</span>' +
+        '<span style="flex:1;">' + (stepData.node || 'Step ' + stepData.step) + dur + errSpan + '</span>';
+};
+
+window.debugLogError = function (msg) {
+    var el = document.getElementById('debug-error');
+    if (!el) return;
+    el.textContent = msg;
+    el.style.display = '';
+};
+
+
+// ── Privacy-check highlighting (admins; ADR-049 hits) ─────────────────────────
+// The pre-send check's hits are offsets into the prompt as sent. That prompt is marked
+// exactly; anywhere else (the prompt before redaction, the reply, snapshot
+// JSON) each flagged string is marked wherever it appears.
+function _pvHits(pc, prompt) {
+    return ((pc && pc.hits) || []).filter(h => Number.isInteger(h.start) && Number.isInteger(h.end)
+        && h.start >= 0 && h.start < h.end && h.end <= (prompt || '').length)
+        .sort((a, b) => a.start - b.start);
+}
+function _pvWords(pc, prompt) {
+    var seen = new Set();
+    _pvHits(pc, prompt).forEach(h => { var w = prompt.slice(h.start, h.end).trim(); if (w.length > 1) seen.add(w); });
+    return [...seen].sort((a, b) => b.length - a.length);
+}
+function _pvEsc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+var _PV_MARK = 'background:#fde68a;color:#111;border-radius:2px;padding:0 1px;';
+function _pvMarkOffsets(text, hits) {
+    let out = '', pos = 0;
+    hits.forEach(h => {
+        if (h.start < pos) return;                       // overlapping hit: first one wins
+        out += _pvEsc(text.slice(pos, h.start)) +
+               `<mark style="${_PV_MARK}" title="${_pvEsc(h.type.replace(/_/g, ' '))} (tier ${h.tier})">` +
+               _pvEsc(text.slice(h.start, h.end)) + '</mark>';
+        pos = h.end;
+    });
+    return out + _pvEsc(text.slice(pos));
+}
+function _pvMarkWords(text, words) {
+    if (!words.length) return _pvEsc(text);
+    var re = new RegExp('(?<![A-Za-z0-9])(' + words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')(?![A-Za-z0-9])', 'g');
+    let out = '', pos = 0, m;
+    while ((m = re.exec(text)) !== null) {
+        out += _pvEsc(text.slice(pos, m.index)) + `<mark style="${_PV_MARK}">` + _pvEsc(m[0]) + '</mark>';
+        pos = m.index + m[0].length;
+    }
+    return out + _pvEsc(text.slice(pos));
+}
+
+window.debugLogComplete = function (data) {
+    window._debugPrivacy = data.privacy_check;
+    window._scribeRunDbId = data.run_db_id || null;   // sent with the BP export (provenance footer)
+    var el = document.getElementById('debug-run-info');
+    if (el) el.innerHTML += ' &nbsp;<span style="color:var(--success);font-weight:700;">✓</span>';
+
+    // Show privacy badges in debug panel too
+    var bar = document.getElementById('debug-privacy-badges');
+    if (!bar) return;
+    var badges = [];
+    if (data.model_is_local === true)  badges.push('<span class="pipeline-badge badge-local">💻 Local</span>');
+    if (data.model_is_local === false) badges.push('<span class="pipeline-badge badge-cloud">☁️ Cloud</span>');
+    if (data.is_redacted === true && data.is_hcp_redacted === true)
+        badges.push('<span class="pipeline-badge badge-redacted">🔒 Fully Redacted</span>');
+    else if (data.is_redacted === true)
+        badges.push('<span class="pipeline-badge badge-redacted">🔒 PII Redacted</span>');
+    else if (data.is_redacted === false)
+        badges.push('<span class="pipeline-badge badge-unredacted">⚠️ Not Redacted</span>');
+    bar.innerHTML = badges.join('');
+
+    // Privacy check (MedUI's pre-send check) on the recompose prompt as sent — what
+    // survived redaction. Absent means not obtained: "not checked", never
+    // clean. The verdict is withheld at source for non-admins.
+    var pc = data.privacy_check, text;
+    if (pc === undefined) return;
+    if (!pc) text = 'Not checked — the pre-send check didn\'t run or failed.';
+    else if (pc.skipped) text = 'Not needed — local model; nothing was sent outside the practice.';
+    else if (pc.top_tier === null || pc.top_tier === undefined)
+        text = 'Clear — nothing found in the prompt as sent.\n\nDetector ' + pc.detector_version + ' · ' + pc.scanned_ms + 'ms';
+    else {
+        var total = (pc.findings || []).reduce(function (n, f) { return n + f.count; }, 0);
+        text = (pc.top_tier <= 1 ? 'CONFIRMED identifier present (tier ' + pc.top_tier + ').'
+                                 : total + ' possible identifier(s) (tier ' + pc.top_tier + ').') + '\n' +
+               (pc.findings || []).map(function (f) {
+                   return '  tier ' + f.tier + '  ' + f.type.replace(/_/g, ' ') + ' ×' + f.count +
+                          (f.coverage === 'outside_rules' ? '  (rendering not covered by redaction rules)' : '');
+               }).join('\n') +
+               '\n\nDetector ' + pc.detector_version + ' · ' + pc.scanned_ms + 'ms';
+    }
+    var card = document.getElementById('debug-privacy-card');
+    if (!card) {
+        card = document.createElement('div');
+        card.id = 'debug-privacy-card';
+        card.style.cssText = 'margin-bottom:0.5rem;';
+        bar.parentNode.insertBefore(card, bar.nextSibling);
+    }
+    card.innerHTML = '';
+    var h = document.createElement('div');
+    h.style.cssText = 'font-weight:700;text-transform:uppercase;letter-spacing:0.03em;color:var(--text-muted);font-size:0.62rem;margin-bottom:0.15rem;';
+    h.textContent = 'Privacy check';
+    var pre = document.createElement('pre');
+    pre.style.cssText = 'white-space:pre-wrap;word-break:break-word;margin:0;padding:0.35rem 0.45rem;border:1px solid var(--border-color);border-radius:0.3rem;font-size:0.7rem;';
+    pre.textContent = text;
+    card.appendChild(h); card.appendChild(pre);
+    // Each hit can become a future redaction (ADR-049).
+    if (pc && (pc.hits || []).length && data.run_db_id) {
+        var a = document.createElement('a');
+        a.href = '/admin/privacy-hits/' + data.run_db_id;
+        a.target = '_blank'; a.rel = 'noopener';
+        a.textContent = 'Review ' + pc.hits.length + ' hit(s) — add to future redactions →';
+        a.style.cssText = 'display:inline-block;margin-top:0.25rem;font-size:0.72rem;';
+        card.appendChild(a);
+    }
+};
+
+window.debugFetchContext = function () {
+    if (!window._debugRunId) return;
+    var btn = document.getElementById('debugFetchCtxBtn');
+    if (btn) btn.disabled = true;
+    fetch('/pipeline/run/' + window._debugRunId + '/status')
+        .then(function (r) { return r.json(); })
+        .then(function (data) { _renderDebugStepDetails(data); })
+        .catch(function (e) {
+            var el = document.getElementById('debug-step-details');
+            if (el) el.textContent = 'Fetch failed: ' + e;
+        })
+        .finally(function () { if (btn) btn.disabled = false; });
+};
+
+function _renderDebugStepDetails(data) {
+    var el = document.getElementById('debug-step-details');
+    if (!el) return;
+
+    if (!data.found) {
+        el.innerHTML = '<div style="color:var(--text-muted);font-size:0.7rem;padding:0.4rem 0;">Run record not found (may have been too recent).</div>';
+        return;
+    }
+
+    var html = '';
+
+    var snapshots = data.step_snapshots || [];
+    if (!snapshots.length) {
+        el.innerHTML = '<div style="color:var(--text-muted);font-size:0.7rem;padding:0.4rem 0;">No step snapshots available.</div>';
+        return;
+    }
+
+    // The inference step is the first whose results hold a model reply; its
+    // prompt is the one the pre-send check's hit offsets point into.
+    var parsed = snapshots.map(function (s) { try { return JSON.parse(s); } catch (_) { return {}; } });
+    var infIdx = parsed.findIndex(function (s) { return ((s.results || {}).ai_responses || []).length > 0; });
+    var sentPrompt = infIdx >= 0 ? ((parsed[infIdx].ai_state || {}).current_prompt || '') : '';
+    var pvHits = _pvHits(window._debugPrivacy, sentPrompt), pvWords = _pvWords(window._debugPrivacy, sentPrompt);
+    var _mark = function (text, exact) {
+        if (exact && pvHits.length) return _pvMarkOffsets(text, pvHits);
+        return pvWords.length ? _pvMarkWords(text, pvWords) : _esc(text);
+    };
+    if (pvWords.length) {
+        html += '<div style="font-size:0.68rem;color:var(--text-muted);margin-bottom:0.3rem;">' +
+            '<mark style="' + _PV_MARK + '">Highlighted</mark>: strings the privacy check flagged in the prompt as sent.</div>';
+    }
+
+    snapshots.forEach(function (snapJson, i) {
+        var snap;
+        try { snap = JSON.parse(snapJson); } catch (_) { snap = {}; }
+
+        var ai = snap.ai_state || {};
+        var results = snap.results || {};
+        var responses = results.ai_responses || [];
+        var lastResp = responses[responses.length - 1] || {};
+
+        var nodeLabel = (function () {
+            var row = document.getElementById('debug-step-' + i);
+            if (!row) return 'Step ' + (i + 1);
+            var span = row.querySelector('span:nth-child(2)');
+            return span ? span.textContent.trim().split('\n')[0] : 'Step ' + (i + 1);
+        }());
+
+        html += '<details style="border:1px solid var(--border-color);border-radius:0.35rem;margin-bottom:0.4rem;">' +
+            '<summary style="padding:0.3rem 0.5rem;cursor:pointer;font-weight:600;font-size:0.72rem;">' +
+            'Step ' + (i + 1) + ': ' + nodeLabel + '</summary>' +
+            '<div style="padding:0.4rem 0.6rem;font-size:0.7rem;display:flex;flex-direction:column;gap:0.3rem;">';
+
+        // Redaction state
+        html += '<div><span style="color:var(--text-muted);">Redacted:</span> ' +
+            (snap.is_redacted ? '<span style="color:var(--success);">Yes</span>' : '<span style="color:var(--warning);">No</span>') +
+            ' &nbsp; <span style="color:var(--text-muted);">HCP:</span> ' +
+            (snap.is_hcp_redacted ? '<span style="color:var(--success);">Yes</span>' : 'No') + '</div>';
+
+        // Prompt assembled
+        if (ai.current_prompt) {
+            html += '<div><span style="color:var(--text-muted);">Model:</span> ' + (ai.model_id || '?') +
+                ' &nbsp; <span style="color:var(--text-muted);">Temp:</span> ' + (ai.temperature !== undefined ? ai.temperature : '—') + '</div>' +
+                '<details open style="margin-top:0.2rem;"><summary style="font-size:0.68rem;color:var(--text-muted);cursor:pointer;">Assembled prompt (' + ai.current_prompt.length + ' chars)</summary>' +
+                '<pre style="font-size:0.65rem;white-space:pre-wrap;word-break:break-all;background:var(--bg-secondary);padding:0.4rem;border-radius:0.25rem;max-height:20rem;overflow-y:auto;margin:0.2rem 0 0;">' + _mark(ai.current_prompt, i === infIdx) + '</pre></details>';
+        }
+
+        // AI response
+        if (lastResp.content !== undefined) {
+            html += '<div><span style="color:var(--text-muted);">Tokens:</span> ' +
+                (lastResp.tokens_input || 0) + ' in / ' + (lastResp.tokens_output || 0) + ' out' +
+                ' &nbsp; <span style="color:var(--text-muted);">Latency:</span> ' + (lastResp.latency_ms || '?') + 'ms</div>' +
+                '<details open style="margin-top:0.2rem;"><summary style="font-size:0.68rem;color:var(--text-muted);cursor:pointer;">AI response (' + (lastResp.content || '').length + ' chars)</summary>' +
+                '<pre style="font-size:0.65rem;white-space:pre-wrap;word-break:break-all;background:var(--bg-secondary);padding:0.4rem;border-radius:0.25rem;max-height:20rem;overflow-y:auto;margin:0.2rem 0 0;">' + _mark(lastResp.content || '', false) + '</pre></details>';
+        }
+
+        // Final output after this step
+        if (results.final_output) {
+            html += '<details style="margin-top:0.2rem;"><summary style="font-size:0.68rem;color:var(--text-muted);cursor:pointer;">Output after this step</summary>' +
+                '<pre style="font-size:0.65rem;white-space:pre-wrap;word-break:break-all;background:var(--bg-secondary);padding:0.4rem;border-radius:0.25rem;max-height:20rem;overflow-y:auto;margin:0.2rem 0 0;">' + _mark(results.final_output, false) + '</pre></details>';
+        }
+
+        // Raw JSON toggle
+        html += '<details style="margin-top:0.2rem;"><summary style="font-size:0.68rem;color:var(--text-muted);cursor:pointer;">Raw context JSON</summary>' +
+            '<pre style="font-size:0.6rem;white-space:pre-wrap;word-break:break-all;background:var(--bg-secondary);padding:0.4rem;border-radius:0.25rem;max-height:20rem;overflow-y:auto;margin:0.2rem 0 0;">' + _esc(JSON.stringify(snap, null, 2)) + '</pre></details>';
+
+        html += '</div></details>';
+    });
+
+    el.innerHTML = html;
+}
+
+function _esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+window.debugClearLog = function () {
+    var el = document.getElementById('debug-run-info');
+    if (el) { el.textContent = 'Log cleared.'; el.style.color = 'var(--text-muted)'; el.style.fontStyle = 'italic'; }
+    ['debug-steps', 'debug-step-details', 'debug-privacy-badges', 'debug-error'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        if (id === 'debug-error') { el.textContent = ''; el.style.display = 'none'; }
+        else el.innerHTML = '';
+    });
+    window._debugRunId = null;
+    var fetchBtn = document.getElementById('debugFetchCtxBtn');
+    if (fetchBtn) fetchBtn.disabled = true;
+};
+
+/* ── Right panel toggle ─────────────────────────────────────────────────── */
+window.toggleScribeRight = function () {
+    var panel = document.getElementById('scribeRight');
+    if (panel) panel.classList.toggle('collapsed');
+};
+
+/* ── Clear cache ─────────────────────────────────────────────────────────── */
+window.clearScribeCache = function () {
+    var root = document.getElementById('scribe-root');
+    if (!root) return;
+    var csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    fetch(root.dataset.clearUrl, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
+    }).then(function () {
+        var ta = document.getElementById('transcriptTextarea');
+        if (ta) { ta.value = ''; ta.dispatchEvent(new Event('input')); }
+        var btn = document.querySelector('[onclick="clearScribeCache()"]');
+        if (btn) btn.remove();
+    });
+};
+</script>
+<script>
+/* ── ASR model preference ────────────────────────────────────────────────── */
+(function () {
+    var sel  = document.getElementById('asrModelSelect');
+    if (!sel) return;
+
+    var prefUrl = sel.dataset.prefUrl;
+    var csrf    = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    sel.addEventListener('change', function () {
+        var modelId = sel.value ? parseInt(sel.value, 10) : null;
+        fetch(prefUrl, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+            body:    JSON.stringify({ model_id: modelId }),
+        }).catch(function (e) { console.error('ASR pref save failed:', e); });
+    });
+
+    /* Inject model_id into every chunk FormData before it is sent.
+       scribe.js calls window.getAsrModelId() if defined. */
+    function showSpeakers() {
+        var opt = sel.options[sel.selectedIndex];
+        var box = document.getElementById('speakerStatus');
+        if (!opt || !box) return;
+        box.textContent = opt.dataset.speakers || '';
+        box.style.color = opt.dataset.speakersKind === 'none'
+            ? 'var(--warning)' : 'var(--text-muted)';
+    }
+    sel.addEventListener('change', showSpeakers);
+    showSpeakers();
+    window.getAsrModelId = function () {
+        return sel.value ? parseInt(sel.value, 10) : null;
+    };
+}());
+</script>
+<script>
+/* ── Pipeline preference ─────────────────────────────────────────────────── */
+(function () {
+    var sel  = document.getElementById('pipelineSelect');
+    if (!sel) return;
+
+    var prefUrl = sel.dataset.prefUrl;
+    var csrf    = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    sel.addEventListener('change', function () {
+        var pipelineId = sel.value ? parseInt(sel.value, 10) : null;
+        fetch(prefUrl, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+            body:    JSON.stringify({ pipeline_id: pipelineId }),
+        }).catch(function (e) { console.error('Pipeline pref save failed:', e); });
+    });
+}());
+</script>
+<script>
+/* ── Chunk interval preference ───────────────────────────────────────────── */
+(function () {
+    var sel  = document.getElementById('chunkDurationSelector');
+    if (!sel) return;
+
+    var prefUrl = sel.dataset.prefUrl;
+    var csrf    = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    sel.addEventListener('change', function () {
+        fetch(prefUrl, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+            body:    JSON.stringify({ interval_ms: parseInt(sel.value, 10) }),
+        }).catch(function (e) { console.error('Chunk interval pref save failed:', e); });
+    });
+}());
+</script>
+<script src="{{ url_for('static', filename='js/presend_review.js') }}"></script>
+<script src="{{ url_for('static', filename='js/scribe.js') }}"></script>
+
+{# ── Scribe setup info modal ─────────────────────────────────────────────── #}
+<div id="scribe-instr-modal" role="dialog" aria-modal="true" aria-labelledby="scribe-instr-modal-title"
+     onclick="if(event.target===this)closeScribeInstructions()">
+    <div id="scribe-instr-modal-box">
+        <h4 id="scribe-instr-modal-title">Instructions given to the AI</h4>
+        <p class="instr-sub" id="scribe-instr-sub"></p>
+        <pre id="scribe-instr-text"></pre>
+        <div style="text-align:right; margin-top:0.75rem;">
+            <button type="button" class="btn btn-outline" style="font-size:0.75rem;"
+                    onclick="closeScribeInstructions()">Close</button>
+        </div>
+    </div>
+</div>
+<script>
+/* ── Instructions given to the AI (ADR-096) ──────────────────────────────────
+   The system prompt the selected write-up workflow sends, scope instruction
+   included — fetched when the Pipeline choice changes, shown read-only in a
+   pop-up so the transcript keeps its room. The Sent tab shows what actually went. */
+(function () {
+    var sel  = document.getElementById('pipelineSelect');
+    var line = document.getElementById('scribeInstrLine');
+    if (!sel || !line) return;
+    var current = null;
+
+    function load() {
+        current = null;
+        var id = sel.value;
+        if (!id) { line.style.display = 'none'; return; }
+        line.style.display = '';
+        line.textContent = 'Instructions: loading…';
+        fetch(line.dataset.url.replace('/pipeline/0/', '/pipeline/' + id + '/'))
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (sel.value !== id) return;           // changed again meanwhile
+                var sp = d.system_prompt;
+                if (sp && sp.text) {
+                    current = sp;
+                    var parts = [];
+                    if (sp.name) parts.push(sp.name + (sp.version ? ' v' + sp.version : ''));
+                    if (sp.scope) parts.push('scope: ' + sp.scope);
+                    line.textContent = 'Instructions: ' + (parts.join(' · ') || 'view');
+                } else {
+                    line.textContent = 'Instructions: none — this workflow sends none';
+                }
+            })
+            .catch(function () { line.textContent = 'Instructions: could not be loaded'; });
+    }
+
+    window.openScribeInstructions = function () {
+        if (!current) return;
+        var parts = [];
+        if (current.name) parts.push(current.name + (current.version ? ' v' + current.version : ''));
+        if (current.scope) parts.push('scope: ' + current.scope);
+        parts.push('read-only');
+        document.getElementById('scribe-instr-sub').textContent = parts.join(' · ');
+        document.getElementById('scribe-instr-text').textContent = current.text;
+        document.getElementById('scribe-instr-modal').classList.add('open');
+    };
+    window.closeScribeInstructions = function () {
+        document.getElementById('scribe-instr-modal').classList.remove('open');
+    };
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') window.closeScribeInstructions();
+    });
+
+    sel.addEventListener('change', load);
+    load();
+}());
+</script>
+<div id="scribe-info-modal" role="dialog" aria-modal="true" aria-labelledby="scribe-info-modal-title"
+     onclick="if(event.target===this)closeScribeInfo()">
+    <div id="scribe-info-modal-box">
+        <h4 id="scribe-info-modal-title">Scribe Setup</h4>
+
+        <div id="scribe-info-section-diarize">
+            <h5>Speaker diarization — "LLM Diarize transcript"</h5>
+            <p>Each audio chunk is transcribed by the ASR model, then passed to an LLM that
+               adds speaker labels (<strong>[Doctor]</strong> / <strong>[Patient]</strong>)
+               before the text reaches the Transcript tab.</p>
+            <p>The LLM step looks up a User Prompt with the <em>exact</em> name:</p>
+            <p><code>LLM Diarize transcript</code></p>
+            <ul>
+                <li>Create this prompt in <strong>Admin → Prompt Manager → User Prompts</strong>.</li>
+                <li>Bind a system prompt containing the full diarization instructions.</li>
+                <li>Use <code>{{ '{{input.raw_transcript}}' }}</code> in the prompt text to inject the chunk.</li>
+                <li>Assign a default inference model on the prompt.</li>
+            </ul>
+            <p>If the prompt is absent the raw ASR text is used without speaker labels.
+               The prompt's model must be <strong>local</strong>: this step sends the
+               transcript as it was heard, without redaction, so a cloud model is refused and
+               the chunk is used without labels.</p>
+            <p><strong>Deepgram speaker turns:</strong> on a Deepgram ASR model, set
+               <em>Speaker turns</em> in Setup → AI Providers. Deepgram then splits each chunk
+               into turns (<strong>[Speaker 1]</strong> / <strong>[Speaker 2]</strong>, numbered
+               afresh in every chunk) and the LLM step above is skipped, so no local model is
+               needed. The line under <em>ASR Model</em> shows which way the chosen model
+               works.</p>
+        </div>
+
+        <div id="scribe-info-section-pipeline">
+            <h5>Consultation note pipelines — [SCRIBE] naming</h5>
+            <p>Only active pipelines whose name contains <code>[SCRIBE]</code> appear in the
+               Pipeline selector here.</p>
+            <ul>
+                <li>In <strong>Admin → Pipeline Designer</strong>, include <code>[SCRIBE]</code>
+                    anywhere in the pipeline name, e.g.
+                    <code>Consultation Note [SCRIBE]</code>.</li>
+                <li>Set the pipeline status to <strong>Active</strong>.</li>
+                <li>The pipeline receives the full transcript via <code>{{ '{{input.raw_transcript}}' }}</code>.</li>
+            </ul>
+        </div>
+
+        <div style="margin-top:1.25rem; text-align:right;">
+            <button type="button" class="btn btn-outline" style="font-size:0.78rem;"
+                    onclick="closeScribeInfo()">Close</button>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    var sections = { diarize: 'scribe-info-section-diarize', pipeline: 'scribe-info-section-pipeline' };
+
+    window.openScribeInfo = function (section) {
+        Object.values(sections).forEach(function (id) {
+            document.getElementById(id).style.display = 'none';
+        });
+        var target = sections[section];
+        if (target) document.getElementById(target).style.display = 'block';
+        document.getElementById('scribe-info-modal').classList.add('open');
+    };
+
+    window.closeScribeInfo = function () {
+        document.getElementById('scribe-info-modal').classList.remove('open');
+    };
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeScribeInfo();
+    });
+}());
+</script>
+{% endblock %}

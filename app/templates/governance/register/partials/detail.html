@@ -1,0 +1,114 @@
+{% set sac_map = {
+    'sac1_catastrophic': ('SAC 1 — Catastrophic','badge-sac1'),
+    'sac2_major':        ('SAC 2 — Major','badge-sac2'),
+    'sac3_moderate':     ('SAC 3 — Moderate','badge-sac3'),
+    'sac4_minor':        ('SAC 4 — Minor','badge-sac4'),
+    'sac5_near_miss':    ('SAC 5 — Near Miss','badge-sac5'),
+} %}
+
+<div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">
+    <div>
+        <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+            <span style="font-family:monospace; font-size:1rem; font-weight:700; color:var(--accent-primary);">
+                {{ entry.reference_no }}
+            </span>
+            {% if entry.record_type == 'adverse_event' %}
+            <span class="badge-status badge-recordtype-ae">Adverse Event</span>
+            {% else %}
+            <span class="badge-status badge-recordtype-cmp">Complaint</span>
+            {% endif %}
+            {% if entry.severity %}
+            {% set sac_label, sac_cls = sac_map.get(entry.severity, ('?','')) %}
+            <span class="badge-status {{ sac_cls }}">{{ sac_label }}</span>
+            {% endif %}
+            <span class="badge-status badge-{{ entry.status }}">{{ entry.status_label }}</span>
+            {% if entry.patient_linked %}
+            <span class="badge-status badge-redacted">REDACTED</span>
+            {% endif %}
+        </div>
+        <div style="font-size:var(--text-sm); color:var(--text-muted); margin-top:0.2rem;">
+            {{ entry.date | short_date if entry.date else '—' }}
+            {% if entry.reported_by %}&middot; Reported by {{ entry.reported_by }}{% endif %}
+        </div>
+    </div>
+    <div>
+        {% if entry.record_type == 'adverse_event' %}
+        <a href="{{ url_for('governance.ae_index', selected=entry.id) }}" class="btn btn-sm btn-outline">Open full record &rarr;</a>
+        {% else %}
+        <a href="{{ url_for('governance.complaints_index', selected=entry.id) }}" class="btn btn-sm btn-outline">Open full record &rarr;</a>
+        {% endif %}
+    </div>
+</div>
+
+{% if entry.patient_linked %}
+<div class="gov-section">
+    <div class="gov-section-title">Involved Person</div>
+    <span class="gov-field-value" style="color:var(--text-muted);">
+        Patient (redacted) &mdash; ID {{ entry.patient_id }}
+    </span>
+</div>
+{% endif %}
+
+<div class="gov-section">
+    <div class="gov-section-title">{{ 'Event Details' if entry.record_type == 'adverse_event' else 'Complaint Details' }}</div>
+    <div class="gov-field">
+        <span class="gov-field-label">{{ 'Title' if entry.record_type == 'adverse_event' else 'Subject' }}</span>
+        <span class="gov-field-value" style="font-weight:600;">{{ texts.title }}</span>
+    </div>
+    <div class="gov-field">
+        <span class="gov-field-label">{{ 'Type' if entry.record_type == 'adverse_event' else 'Category' }}</span>
+        <span class="gov-field-value">{{ entry.category_label }}</span>
+    </div>
+    <div class="gov-field">
+        <span class="gov-field-label">Description</span>
+        <div class="gov-field-value" style="white-space:pre-wrap; max-height:160px; overflow-y:auto; background:var(--bg-secondary); padding:0.5rem; border-radius:0.3rem; font-size:0.8rem;">{{ texts.description }}</div>
+    </div>
+
+    {% if entry.record_type == 'adverse_event' %}
+        {% if texts.immediate_actions %}
+        <div class="gov-field">
+            <span class="gov-field-label">Immediate Actions Taken</span>
+            <div class="gov-field-value" style="white-space:pre-wrap; font-size:0.8rem; background:var(--bg-secondary); padding:0.5rem; border-radius:0.3rem;">{{ texts.immediate_actions }}</div>
+        </div>
+        {% endif %}
+        {% if texts.triage_notes %}
+        <div class="gov-field">
+            <span class="gov-field-label">Triage Notes</span>
+            <div class="gov-field-value" style="white-space:pre-wrap; font-size:0.8rem;">{{ texts.triage_notes }}</div>
+        </div>
+        {% endif %}
+        {% if texts.rca_summary %}
+        <div class="gov-field">
+            <span class="gov-field-label">RCA Summary</span>
+            <div class="gov-field-value" style="white-space:pre-wrap; font-size:0.8rem; background:var(--bg-secondary); padding:0.5rem; border-radius:0.3rem;">{{ texts.rca_summary }}</div>
+        </div>
+        {% endif %}
+    {% else %}
+        {% if texts.resolution_summary %}
+        <div class="gov-field">
+            <span class="gov-field-label">Resolution Summary</span>
+            <div class="gov-field-value" style="white-space:pre-wrap; font-size:0.8rem; background:var(--bg-secondary); padding:0.5rem; border-radius:0.3rem;">{{ texts.resolution_summary }}</div>
+        </div>
+        {% endif %}
+        {% if texts.corrective_action %}
+        <div class="gov-field">
+            <span class="gov-field-label">Corrective Action</span>
+            <div class="gov-field-value" style="white-space:pre-wrap; font-size:0.8rem;">{{ texts.corrective_action }}</div>
+        </div>
+        {% endif %}
+    {% endif %}
+</div>
+
+<div class="gov-section">
+    <div class="gov-section-title">Activity Log</div>
+    {% for action in actions %}
+    <div class="gov-log-entry">
+        <span class="gov-log-type">{{ action.action_type }}</span>
+        <span class="gov-log-time">&mdash; {{ action.timestamp | short_date if action.timestamp else '' }}</span>
+        {% if action.actor %}<span class="gov-log-actor">by {{ action.actor }}</span>{% endif %}
+        {% if action.notes %}<div class="gov-log-notes">{{ action.notes }}</div>{% endif %}
+    </div>
+    {% else %}
+    <span style="color:var(--text-muted); font-size:var(--text-sm);">No activity recorded.</span>
+    {% endfor %}
+</div>

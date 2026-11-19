@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}Criterion review — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+.cr-wrap   { max-width:1150px; margin:0 auto; padding:1rem 1.25rem; }
+.cr-wrap h1 { font-size:1.1rem; margin:0 0 0.25rem 0; }
+.cr-intro  { font-size:var(--text-sm); color:var(--text-muted); margin:0 0 0.75rem 0; max-width:860px; }
+.cr-counts { display:flex; flex-wrap:wrap; gap:0.5rem; margin:0 0 1rem 0; font-size:var(--text-sm); }
+.cr-chip   { border:1px solid var(--border-color); border-radius:999px; padding:0.15rem 0.6rem; }
+.cr-table  { width:100%; border-collapse:collapse; font-size:var(--text-sm); }
+.cr-table th, .cr-table td { text-align:left; vertical-align:top; padding:0.4rem 0.5rem;
+                             border-bottom:1px solid var(--border-color); }
+.cr-table th { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); }
+.cr-note   { font-size:0.75rem; color:var(--text-muted); }
+.cr-inf    { font-size:0.75rem; margin-top:0.2rem; }
+.cr-err    { color:var(--danger, #b91c1c); }
+.cr-link   { color:var(--accent-primary); text-decoration:none; }
+.cr-link:hover { text-decoration:underline; }
+.cr-h2     { font-size:1rem; margin:1.75rem 0 0.25rem 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cr-wrap">
+  <h1>Criterion review{{ help('criterion-review.overview') }}</h1>
+  <p class="cr-intro">
+    Patients whose results meet a diagnostic criterion where the diagnosis isn't recorded, for a
+    doctor to review. A criterion met is not a diagnosis: whether the patient has the condition,
+    and recording it in Best Practice, is the doctor's decision. Active patients seen in the last
+    24 months; the same rules and codes as the Disease Profile badges
+    (Admin → Mapping Tables → condition_codes, influences).
+    {% if is_admin %}Showing: <strong>{{ display_name }}</strong> (by the doctor of the last visit).
+    {% else %}Your patients: those whose last visit was with you.{% endif %}
+  </p>
+  {% if is_admin %}
+  <form method="get" action="{{ url_for('doctor.criterion_review') }}" style="margin:0 0 0.75rem 0;">
+    <select name="doctor_id" class="filter-select" onchange="this.form.submit()">
+      <option value="">All doctors</option>
+      {% for d in doctors %}
+      <option value="{{ d.bpsdb_userid }}" {{ 'selected' if selected_doctor_id|string == d.bpsdb_userid|string }}>{{ d.full_name }}</option>
+      {% endfor %}
+    </select>
+  </form>
+  {% endif %}
+  {% if error %}<p class="cr-err">Best Practice couldn't be read: {{ error }}</p>{% endif %}
+  <div class="cr-counts">
+    {% if is_admin %}<span class="cr-chip">{{ cohort }} patients checked</span>{% endif %}
+    <span class="cr-chip">HbA1c criterion, diabetes not recorded: {{ diabetes | length }}</span>
+    <span class="cr-chip">eGFR criterion, CKD not recorded: {{ ckd | length }}</span>
+    {% if is_admin and not selected_doctor_id %}<span class="cr-chip">Recorded (practice): diabetes {{ recorded.diabetes }}, CKD {{ recorded.ckd }}</span>{% endif %}
+  </div>
+
+  <h2 class="cr-h2">HbA1c ≥ 6.5% on 2 occasions, diabetes not recorded (adults)</h2>
+  <p class="cr-note">Two results at or above 6.5% (48 mmol/mol) on different days (RACGP; ADS 2015).</p>
+  {% if diabetes %}
+  <table class="cr-table">
+    <thead><tr><th>Patient</th><th>Age</th><th>Results meeting the criterion</th><th>Latest HbA1c</th><th>Last visit</th></tr></thead>
+    <tbody>
+    {% for r in diabetes %}
+      <tr>
+        <td><a class="cr-link" href="{{ url_for('clinical.patient', patient_id=r.patient_id) }}" target="_blank" rel="noopener">{{ r.patient }}</a></td>
+        <td>{{ r.age }}</td>
+        <td>{% for d in r.results %}{{ d.pct }}{% if d.unit == 'mmol/mol' %} ({{ d.value }} mmol/mol){% endif %} {{ d.date | clinical_date }}{{ ', ' if not loop.last }}{% endfor %}
+          {% for inf in r.influences %}
+          <div class="cr-inf">{{ inf.condition | replace('_', ' ') | capitalize }} recorded{% if inf.year %} ({{ inf.year }}){% endif %}{% if inf.effect %}: {{ {'either': 'may move'}.get(inf.effect, inf.effect) }} HbA1c{% endif %}.
+            {%- for name, res in inf.results %} {{ {'b12': 'B12', 'egfr': 'eGFR'}.get(name, name | capitalize) }}: {% if res %}{{ res.value }} {{ res.units }}{% if res.flag %} [{{ res.flag }}]{% endif %} {{ res.date | clinical_date }}{% else %}none{% endif %}{{ ';' if not loop.last }}{% endfor %}</div>
+          {% endfor %}
+        </td>
+        <td>{% if r.latest %}{{ r.latest.pct }} {{ r.latest.date | clinical_date }}{% endif %}</td>
+        <td>{{ r.last_visit | clinical_date }}<div class="cr-note">{{ r.last_doctor or '' }}</div></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p class="cr-note">None.</p>{% endif %}
+
+  <h2 class="cr-h2">eGFR &lt; 60 for 3+ months, CKD not recorded</h2>
+  <p class="cr-note">At least two eGFR results below 60, the first and last 90 days or more apart, none of 60 or more between (KDIGO).
+    "Previously": the latest eGFR is now 60 or more.</p>
+  {% if ckd %}
+  <table class="cr-table">
+    <thead><tr><th>Patient</th><th>Age</th><th>Results meeting the criterion</th><th>Latest eGFR</th><th>Last visit</th></tr></thead>
+    <tbody>
+    {% for r in ckd %}
+      <tr>
+        <td><a class="cr-link" href="{{ url_for('clinical.patient', patient_id=r.patient_id) }}" target="_blank" rel="noopener">{{ r.patient }}</a>{% if r.previously %}<div class="cr-note">previously</div>{% endif %}</td>
+        <td>{{ r.age }}</td>
+        <td>{{ r.results[0].date | clinical_date }} to {{ r.results[-1].date | clinical_date }} ({{ r.results | length }} results: {{ r.results | map(attribute='value') | join(', ') }})</td>
+        <td>{% if r.latest %}{{ r.latest.value }} {{ r.latest.date | clinical_date }}{% endif %}</td>
+        <td>{{ r.last_visit | clinical_date }}<div class="cr-note">{{ r.last_doctor or '' }}</div></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p class="cr-note">None.</p>{% endif %}
+</div>
+{% endblock %}

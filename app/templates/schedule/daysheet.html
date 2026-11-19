@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+{% block title %}Appointments — {{ target_date.strftime('%-d %B %Y') }} — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+/* ── Appointment status row tints ────────────────────────────────────────── */
+.appt-booked  td { background-color: rgba(139,  92, 246, 0.10); }
+.appt-active  td { background-color: rgba(245, 158,  11, 0.14); }
+.appt-done    td { background-color: rgba( 25, 135,  84, 0.10); }
+.appt-dna     td { background-color: rgba(220,  53,  69, 0.14); }
+.appt-unavail td { background-color: rgba(108, 117, 125, 0.10); }
+.own-provider td { outline: 1px solid var(--accent-primary); outline-offset: -1px; }
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────── */
+.schedule-toolbar {
+  display:         flex;
+  align-items:     center;
+  gap:             0.75rem;
+  flex-wrap:       wrap;
+  padding:         0.6rem 1rem;
+  background:      var(--bg-secondary);
+  border-bottom:   1px solid var(--border-color);
+  margin-bottom:   1rem;
+}
+
+/* ── Provider chips ──────────────────────────────────────────────────────── */
+.provider-chip {
+  display:          inline-flex;
+  align-items:      center;
+  padding:          0.2rem 0.55rem;
+  border-radius:    1rem;
+  border:           1px solid var(--border-color);
+  background:       var(--bg-primary);
+  font-size:        var(--text-sm);
+  cursor:           pointer;
+  user-select:      none;
+  transition:       background 0.15s, border-color 0.15s;
+}
+.provider-chip.active {
+  background:       var(--accent-primary);
+  border-color:     var(--accent-primary);
+  color:            white;
+}
+
+/* ── Schedule grid ───────────────────────────────────────────────────────── */
+.schedule-grid {
+  display:              grid;
+  grid-template-columns: 3fr 2fr;
+  gap:                  1rem;
+  padding:              0 1rem 1rem;
+  align-items:          start;
+}
+@media (max-width: 900px) { .schedule-grid { grid-template-columns: 1fr; } }
+
+/* ── Cards ───────────────────────────────────────────────────────────────── */
+.schedule-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 0.4rem; overflow: hidden; }
+.schedule-card-header {
+  display:          flex;
+  align-items:      baseline;
+  justify-content:  space-between;
+  padding:          0.35rem 0.75rem;
+  background:       #eaf0fb;
+  border-bottom:    1px solid #bfcce0;
+  border-left:      4px solid var(--accent-primary);
+  font-size:        0.78rem;
+  font-weight:      700;
+  text-transform:   uppercase;
+  letter-spacing:   0.05em;
+  color:            #3a4f72;
+}
+[data-theme="dark"] .schedule-card-header {
+  background:       var(--bg-tertiary);
+  border-bottom-color: var(--border-color);
+  color:            var(--text-muted);
+}
+.schedule-card-body {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  background: var(--bg-primary);
+}
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+.today-badge {
+  font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 0.25rem;
+  background: var(--success); color: white; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.refresh-indicator { font-size: 0.7rem; color: var(--text-muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div>
+
+  <!-- ── Toolbar ────────────────────────────────────────────────────────── -->
+  <div class="schedule-toolbar">
+    <strong style="font-size:var(--text-sm); white-space:nowrap;">Appointments &amp; Daysheet{{ help('daysheet.reading') }}</strong>
+
+    <form method="GET" action="{{ url_for('schedule.daysheet') }}"
+          style="display:flex; align-items:center; gap:0.5rem;">
+      <label for="datepicker" style="font-size:var(--text-sm); color:var(--text-muted);">Date:</label>
+      <input type="date" id="datepicker" name="date" value="{{ iso_date }}"
+             style="font-size:var(--text-sm); padding:0.2rem 0.4rem;
+                    border:1px solid var(--border-color); border-radius:0.25rem;
+                    background:var(--bg-primary); color:var(--text-primary);"
+             onchange="this.form.submit()">
+    </form>
+
+    <a href="{{ url_for('schedule.daysheet') }}" class="btn btn-outline"
+       style="padding:0.2rem 0.6rem; font-size:var(--text-sm);">Today</a>
+
+    {% if providers %}
+    <div id="providerFilter"
+         style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;"
+         data-current-user-id="{{ bpsdb_userid }}">
+      <span style="font-size:var(--text-sm); color:var(--text-muted);">Filter{{ help('daysheet.filter') }}:</span>
+      <span class="provider-chip active" id="chip-all">All</span>
+      {% for p in providers %}
+      <span class="provider-chip{% if p.id == bpsdb_userid %} active{% endif %}"
+            id="chip-{{ p.id }}"
+            data-provider-id="{{ p.id }}">
+        {{ p.initials }}
+      </span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if is_today %}
+      <span class="today-badge">Live</span>
+      <span class="refresh-indicator">Auto-refreshing every 2 min</span>
+    {% endif %}
+
+    <span style="font-size:var(--text-sm); color:var(--text-muted); margin-left:auto;">
+      {{ target_date.strftime('%A, %-d %B %Y') }}
+    </span>
+  </div>
+
+  <!-- ── Appointments + Daysheet grid ──────────────────────────────────── -->
+  <div class="schedule-grid">
+
+    <div class="schedule-card">
+      <div class="schedule-card-header">
+        <span>Appointments{{ help('daysheet.colours') }}</span>
+        <span style="font-weight:500; text-transform:none; letter-spacing:0;">{{ appointments | length }} booked</span>
+      </div>
+      <div class="schedule-card-body"
+           id="appointments-panel"
+           {% if is_today %}
+           hx-get="{{ url_for('schedule.api_appointments') }}?date={{ iso_date }}"
+           hx-trigger="every 120s"
+           hx-swap="innerHTML"
+           {% endif %}>
+        {% with rows = appointments %}
+          {% include 'schedule/partials/appointments_table.html' with context %}
+        {% endwith %}
+      </div>
+    </div>
+
+    <div class="schedule-card">
+      <div class="schedule-card-header">
+        Daysheet / Attendances
+        <span style="font-weight:500; text-transform:none; letter-spacing:0;">{{ daysheet | length }} billed</span>
+      </div>
+      <div class="schedule-card-body"
+           id="daysheet-panel"
+           {% if is_today %}
+           hx-get="{{ url_for('schedule.api_daysheet') }}?date={{ iso_date }}"
+           hx-trigger="every 120s"
+           hx-swap="innerHTML"
+           {% endif %}>
+        {% with rows = daysheet %}
+          {% include 'schedule/partials/daysheet_table.html' with context %}
+        {% endwith %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  const FILTER_KEY   = 'schedule_provider_filter';
+  const chipAll      = document.getElementById('chip-all');
+  const filterBox    = document.getElementById('providerFilter');
+  const currentUID   = filterBox ? filterBox.dataset.currentUserId : '';
+  const provChips    = Array.from(document.querySelectorAll('.provider-chip[data-provider-id]'));
+
+  if (!chipAll) return;  // no providers today
+
+  // ── State ────────────────────────────────────────────────────────────────
+  let activeIds = new Set();  // empty = show all
+
+  function ids() { return provChips.map(c => c.dataset.providerId); }
+
+  function applyFilter() {
+    const showAll = activeIds.size === 0 || activeIds.size === provChips.length;
+    document.querySelectorAll('tr[data-provider-id]').forEach(row => {
+      row.style.display = (showAll || activeIds.has(row.dataset.providerId)) ? '' : 'none';
+    });
+    chipAll.classList.toggle('active', showAll);
+    provChips.forEach(c => c.classList.toggle('active', activeIds.has(c.dataset.providerId)));
+  }
+
+  function saveFilter() {
+    const val = activeIds.size === 0 || activeIds.size === provChips.length
+      ? 'all'
+      : [...activeIds].join(',');
+    localStorage.setItem(FILTER_KEY, val);
+  }
+
+  function restoreFilter() {
+    const saved = localStorage.getItem(FILTER_KEY);
+    if (saved && saved !== 'all') {
+      const wantedIds = saved.split(',').filter(Boolean);
+      const available = wantedIds.filter(id => ids().includes(id));
+      if (available.length) {
+        activeIds = new Set(available);
+        applyFilter();
+        return;
+      }
+    }
+    // First visit or "all" saved: if user has a chip, default to own rows only
+    if (!saved && currentUID && ids().includes(currentUID)) {
+      activeIds = new Set([currentUID]);
+    }
+    applyFilter();
+  }
+
+  // ── Chip clicks ──────────────────────────────────────────────────────────
+  provChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      const pid = chip.dataset.providerId;
+      if (activeIds.has(pid)) activeIds.delete(pid);
+      else activeIds.add(pid);
+      if (activeIds.size === provChips.length) activeIds.clear();
+      applyFilter();
+      saveFilter();
+    });
+  });
+
+  chipAll.addEventListener('click', () => {
+    activeIds.clear();
+    applyFilter();
+    saveFilter();
+  });
+
+  // Re-apply filter after HTMX auto-refresh replaces table content
+  document.body.addEventListener('htmx:afterSwap', applyFilter);
+
+  restoreFilter();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,6 @@
+SELECT CONVERT(VARCHAR(10), CORRESPONDENCEDATE, 103) AS CORRESPONDENCEDATE,
+       TRIM(ContactName) AS Contact, TRIM(Detail) AS Detail, TRIM(Subject) AS Subject,
+       TRIM(Category) AS Category, Stored, DocumentId
+FROM CORRESPONDENCEIN
+WHERE (INTERNALID = ?)
+ORDER BY DocumentId DESC;

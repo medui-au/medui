@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}About — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+.about-body    { max-width:820px; margin:0 auto; padding:1.5rem; font-size:0.85rem; line-height:1.55; }
+.about-body h1 { font-size:1.2rem; } .about-body h2 { font-size:1rem; margin-top:1.6rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<article class="about-body">
+    <h1>About MedUI</h1>
+    <p>Version {{ app_version }}. This is MedUI's intended purpose.</p>
+    {{ body }}
+</article>
+{% endblock %}

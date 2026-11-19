@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+{% block title %}{{ query.name }} — Query Manager — {{ app_name }}{% endblock %}
+
+{% block content %}
+<div id="qm-editor-content"
+     style="height:100%; overflow-y:auto; padding:1rem 1.25rem; box-sizing:border-box;">
+
+    {# ── Header: name + save ──────────────────────────────────────────── #}
+    <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.75rem; flex-wrap:wrap;">
+        <input type="text" name="name" id="qm-name-field" value="{{ query.name }}"
+               style="flex:1; min-width:180px; font-size:0.85rem; font-weight:600;
+                      padding:0.3rem 0.5rem; border:1px solid var(--border-color);
+                      border-radius:var(--radius-sm); background:var(--bg-primary); color:var(--text-primary);">
+        <span id="qm-save-status" style="font-size:0.72rem; color:var(--text-muted); min-width:3rem;"></span>
+        <button type="button"
+                hx-post="{{ url_for('admin.query_save', query_id=query.id) }}"
+                hx-include="#qm-editor-form"
+                hx-target="#qm-save-status"
+                hx-swap="innerHTML"
+                class="btn btn-primary" style="padding:0.28rem 0.7rem; font-size:0.75rem;">Save</button>
+        <a href="{{ url_for('admin.query_manager') }}"
+           class="btn btn-outline" style="padding:0.28rem 0.6rem; font-size:0.75rem;">← List</a>
+    </div>
+
+    {# ── All serialisable fields wrapped for hx-include ─────────────────── #}
+    <div id="qm-editor-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {# Mirror the name field so hx-include picks it up #}
+        <input type="hidden" id="qm-name-mirror" name="name" value="{{ query.name }}">
+
+        {# Description #}
+        <div style="margin-bottom:0.6rem;">
+            <label style="font-size:0.7rem; font-weight:700; text-transform:uppercase;
+                          letter-spacing:0.04em; color:var(--text-muted); display:block; margin-bottom:0.2rem;">
+                Description
+            </label>
+            <input type="text" name="description" value="{{ query.description or '' }}"
+                   placeholder="Optional short description"
+                   style="width:100%; box-sizing:border-box; padding:0.3rem 0.5rem;
+                          font-size:var(--text-sm); border:1px solid var(--border-color);
+                          border-radius:var(--radius-sm); background:var(--bg-primary); color:var(--text-primary);">
+        </div>
+
+        {# Database target + row limit + app-enable ─────────────────────── #}
+        <div style="display:flex; align-items:flex-end; gap:1rem; margin-bottom:0.75rem; flex-wrap:wrap;">
+            <div>
+                <label style="font-size:0.7rem; font-weight:700; text-transform:uppercase;
+                              letter-spacing:0.04em; color:var(--text-muted); display:block; margin-bottom:0.2rem;">
+                    Database
+                </label>
+                <select name="database_target"
+                        style="padding:0.25rem 0.5rem; border:1px solid var(--border-color);
+                               border-radius:var(--radius-sm); background:var(--bg-primary);
+                               color:var(--text-primary); font-size:var(--text-sm);">
+                    <option value="bpsdb"    {{ 'selected' if query.database_target == 'bpsdb' }}>BPSDB (SQL Server)</option>
+                    <option value="postgres" {{ 'selected' if query.database_target == 'postgres' }}>PostgreSQL (Gen5)</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-size:0.7rem; font-weight:700; text-transform:uppercase;
+                              letter-spacing:0.04em; color:var(--text-muted); display:block; margin-bottom:0.2rem;">
+                    App Row Limit
+                </label>
+                <input type="number" name="app_row_limit" value="{{ query.app_row_limit }}"
+                       min="1" max="5000"
+                       style="width:80px; padding:0.25rem 0.4rem; border:1px solid var(--border-color);
+                              border-radius:var(--radius-sm); background:var(--bg-primary);
+                              color:var(--text-primary); font-size:var(--text-sm);">
+            </div>
+            <div style="margin-left:auto; display:flex; align-items:center; gap:0.6rem;">
+                <span id="qm-app-count" style="font-size:0.7rem; color:var(--text-muted);">
+                    {{ enabled_count }}/{{ app_limit }} app-enabled
+                </span>
+                <button type="button" id="qm-toggle-app-btn"
+                        onclick="qmToggleApp({{ query.id }})"
+                        style="padding:0.25rem 0.65rem; font-size:0.72rem; cursor:pointer;
+                               border-radius:var(--radius-sm); border:1px solid var(--border-color);
+                               background:{{ 'var(--success)' if query.is_app_enabled else 'var(--bg-primary)' }};
+                               color:{{ '#fff' if query.is_app_enabled else 'var(--text-primary)' }};">
+                    {{ '✓ App Enabled' if query.is_app_enabled else 'Enable for App' }}
+                </button>
+            </div>
+        </div>
+
+        {# ── SQL textarea ─────────────────────────────────────────────── #}
+        <div style="margin-bottom:0.6rem;">
+            <label style="font-size:0.7rem; font-weight:700; text-transform:uppercase;
+                          letter-spacing:0.04em; color:var(--text-muted); display:block; margin-bottom:0.2rem;">
+                SQL
+            </label>
+            <textarea name="sql_text" id="qm-sql-textarea" spellcheck="false"
+                      style="width:100%; box-sizing:border-box; min-height:200px; max-height:480px;
+                             font-family:monospace; font-size:0.78rem; line-height:1.55;
+                             padding:0.5rem 0.65rem; border:1px solid var(--border-color);
+                             border-radius:var(--radius-sm); background:var(--bg-primary);
+                             color:var(--text-primary); resize:vertical; tab-size:4;">{{ query.sql_text }}</textarea>
+        </div>
+
+        {# ── Toolbar ────────────────────────────────────────────────────── #}
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.6rem;">
+            <button type="button"
+                    hx-post="{{ url_for('admin.query_parse_params') }}"
+                    hx-include="#qm-editor-form"
+                    hx-target="#qm-params-area"
+                    hx-swap="innerHTML"
+                    class="btn btn-outline" style="padding:0.22rem 0.6rem; font-size:0.72rem;">
+                Parse Params
+            </button>
+            <button type="button"
+                    hx-post="{{ url_for('admin.query_execute', query_id=query.id) }}"
+                    hx-include="#qm-editor-form"
+                    hx-target="#qm-results-area"
+                    hx-swap="innerHTML"
+                    hx-indicator="#qm-exec-spinner"
+                    class="btn btn-primary" style="padding:0.22rem 0.6rem; font-size:0.72rem;">
+                ▶ Execute
+            </button>
+            <span id="qm-exec-spinner" style="font-size:0.72rem; color:var(--text-muted); display:none;">
+                Running…
+            </span>
+        </div>
+
+        {# ── Params area ────────────────────────────────────────────────── #}
+        <div id="qm-params-area"
+             style="margin-bottom:0.75rem; padding:0.5rem 0.75rem;
+                    background:var(--bg-secondary); border-radius:var(--radius-sm);
+                    border:1px solid var(--border-color);">
+            {% include 'admin/partials/query_params.html' %}
+        </div>
+
+    </div>{# /qm-editor-form #}
+
+    {# ── Results (outside form so HTMX doesn't disturb input values) ──── #}
+    <div id="qm-results-area" style="margin-bottom:1.5rem;"></div>
+
+    {# ── Danger zone ────────────────────────────────────────────────────── #}
+    <div style="border-top:1px solid var(--border-color); padding-top:0.7rem; margin-top:0.25rem;">
+        <form method="post" action="{{ url_for('admin.query_delete', query_id=query.id) }}"
+              onsubmit="return confirm('Delete “{{ query.name | e }}”? This cannot be undone.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit"
+                    style="padding:0.22rem 0.6rem; font-size:0.72rem; cursor:pointer;
+                           border-radius:var(--radius-sm); border:1px solid var(--danger);
+                           background:none; color:var(--danger);">
+                Delete Query
+            </button>
+        </form>
+    </div>
+
+</div>{# /qm-editor-content #}
+
+<script>
+(function () {
+    // Keep name mirror in sync with visible name field (mirror lives inside hx-include div)
+    var nameField  = document.getElementById('qm-name-field');
+    var nameMirror = document.getElementById('qm-name-mirror');
+    if (nameField && nameMirror) {
+        nameField.addEventListener('input', function () {
+            nameMirror.value = nameField.value;
+        });
+    }
+
+    // Exec spinner: show/hide around HTMX request on the execute button
+    document.body.addEventListener('htmx:beforeRequest', function (e) {
+        if (e.detail.target && e.detail.target.id === 'qm-results-area') {
+            var sp = document.getElementById('qm-exec-spinner');
+            if (sp) sp.style.display = 'inline';
+        }
+    });
+    document.body.addEventListener('htmx:afterRequest', function (e) {
+        if (e.detail.target && e.detail.target.id === 'qm-results-area') {
+            var sp = document.getElementById('qm-exec-spinner');
+            if (sp) sp.style.display = 'none';
+        }
+    });
+
+    // Tab key → insert spaces in SQL textarea
+    var ta = document.getElementById('qm-sql-textarea');
+    if (ta) {
+        ta.addEventListener('keydown', function (e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                var s = ta.selectionStart, end = ta.selectionEnd;
+                ta.value = ta.value.substring(0, s) + '    ' + ta.value.substring(end);
+                ta.selectionStart = ta.selectionEnd = s + 4;
+            }
+        });
+    }
+})();
+
+window.qmToggleApp = function (queryId) {
+    var btn      = document.getElementById('qm-toggle-app-btn');
+    var countEl  = document.getElementById('qm-app-count');
+    var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    var csrf     = csrfMeta ? csrfMeta.content : '';
+
+    fetch('{{ url_for("admin.query_toggle_app", query_id=0) }}'.replace('/0', '/' + queryId), {
+        method:  'POST',
+        headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:    'csrf_token=' + encodeURIComponent(csrf),
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+        if (data.error) { alert(data.error); return; }
+
+        var on = data.enabled;
+        btn.textContent    = on ? '✓ App Enabled' : 'Enable for App';
+        btn.style.background = on ? 'var(--success)' : 'var(--bg-primary)';
+        btn.style.color    = on ? '#fff' : 'var(--text-primary)';
+
+        var label = data.enabled_count + '/' + data.app_limit + ' app-enabled';
+        if (countEl) countEl.textContent = label;
+
+        // Sidebar badge (present when editor is inline inside query_manager)
+        var sidebarBadge = document.getElementById('app-enabled-badge');
+        if (sidebarBadge) sidebarBadge.textContent = label;
+
+        // Sidebar list item APP badge
+        var li = document.getElementById('qli-' + queryId);
+        if (li) {
+            if (on) {
+                li.classList.add('qm-app-enabled');
+                if (!li.querySelector('[data-app-badge]')) {
+                    var row = li.querySelector('div');
+                    if (row) {
+                        var sp = document.createElement('span');
+                        sp.setAttribute('data-app-badge', '1');
+                        sp.style.cssText = 'font-size:0.6rem;padding:0.05rem 0.3rem;' +
+                            'border-radius:0.2rem;background:var(--success);color:#fff;font-weight:700;flex-shrink:0;';
+                        sp.textContent = 'APP';
+                        row.appendChild(sp);
+                    }
+                }
+            } else {
+                li.classList.remove('qm-app-enabled');
+                var badge = li.querySelector('[data-app-badge]');
+                if (badge) badge.remove();
+            }
+        }
+    })
+    .catch(function (err) { console.error('toggle-app error', err); });
+};
+</script>
+{% endblock %}

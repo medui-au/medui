@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+.venv
+venv
+env/
+
+# Environment / secrets
+.env
+.env.bak
+.env.new
+*.env.local
+
+# TLS certificates (never commit private key)
+certs/
+
+# Database
+*.db
+*.sqlite3
+
+# Alembic (keep migrations, exclude cache)
+migrations/__pycache__/
+migrations/versions/__pycache__/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Seed data (may contain patient PII from live system)
+seed_data/
+
+# Claude memory / plans (local only)
+.claude/
+
+# Legacy app reference (local only)
+/.legacy_app/
+
+# Distribution workspace
+/.legacy/
+.env.*
+!.env.example
+/backups/
+/https/
+/instance/
+
+# Demo data (install.sh --demo downloads medui_demodata here)
+demodata/

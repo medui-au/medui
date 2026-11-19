@@ -1,0 +1,24 @@
+{# The filed care plan document. Stored verbatim at filing (careplans.filed_document). #}
+<div class="cp-doc">
+  <h2 style="margin:0 0 0.25rem 0;">GP Chronic Condition Management Plan</h2>
+  <p style="margin:0 0 0.6rem 0; font-size:0.85rem;">
+    {{ (patient.get('FIRSTNAME') or '') }} {{ (patient.get('SURNAME') or '') }}
+    {% if patient.get('DOB') %} · DOB {{ patient.get('DOB') | clinical_date }}{% endif %}
+    · Prepared by {{ author_name }}{% if filed_at %} · {{ filed_at | localdt }}{% endif %}
+    {% if review_due_on %} · Review by {{ review_due_on.strftime('%d/%m/%Y') }}{% endif %}
+  </p>
+  {% if header %}
+  <h3 style="font-size:0.95rem; margin:0.6rem 0 0.25rem 0;">Medical history</h3>
+  <div style="white-space:pre-wrap; font-size:0.85rem;">{{ header }}</div>
+  {% endif %}
+  <h3 style="font-size:0.95rem; margin:0.8rem 0 0.25rem 0;">Plan</h3>
+  <table>
+    <thead><tr><th style="width:36%">Goals</th><th style="width:44%">Management</th><th style="width:20%">Providers</th></tr></thead>
+    {% for r in rows %}
+    <tbody style="break-inside:avoid; page-break-inside:avoid;">
+      <tr><td class="cp-issue" colspan="3" style="font-weight:bold; font-size:1.1em;">{{ r.issue_label }}</td></tr>
+      <tr><td>{{ r.goals }}</td><td>{{ r.management }}</td><td>{{ r.providers }}</td></tr>
+    </tbody>
+    {% endfor %}
+  </table>
+</div>

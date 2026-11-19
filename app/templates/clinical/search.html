@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}Patients — {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="patient-search-wrap">
+  <div class="patient-search-card">
+    <h2 class="search-heading">{{ search_heading or 'Patient Search' }}{{ help('patient-search.searching') }}</h2>
+    {% if search_note %}<p class="search-hint" style="margin-top:-0.25rem;">{{ search_note }}</p>{% endif %}
+
+    <input
+      type="text"
+      id="patient-search-input"
+      name="q"
+      class="search-input"
+      placeholder="Surname, Firstname…"
+      hx-get="{{ url_for('clinical.search_results', then=search_then) if search_then else url_for('clinical.search_results') }}"
+      hx-trigger="keyup changed delay:200ms"
+      hx-target="#search-results-body"
+      hx-swap="innerHTML"
+      autofocus
+      autocomplete="off"
+    >
+    <p class="search-hint">Type a surname, or <strong>Surname, Firstname</strong> for precision &nbsp;·&nbsp; ↑ ↓ Enter to navigate</p>
+
+    <table class="search-table">
+      <thead>
+        <tr>
+          <th>Patient</th>
+          <th>Age / Sex</th>
+          <th>Address</th>
+          <th class="text-right">Status</th>
+        </tr>
+      </thead>
+      <tbody id="search-results-body">
+        <tr>
+          <td colspan="4" class="search-empty">Start typing to search…</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const input = document.getElementById('patient-search-input');
+  const body  = document.getElementById('search-results-body');
+
+  input.addEventListener('keydown', function (e) {
+    const rows = Array.from(body.querySelectorAll('.search-row'));
+    const idx  = rows.findIndex(r => r.classList.contains('selected'));
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (idx < rows.length - 1) {
+        if (idx >= 0) rows[idx].classList.remove('selected');
+        rows[idx + 1].classList.add('selected');
+        rows[idx + 1].scrollIntoView({ block: 'nearest' });
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (idx > 0) {
+        rows[idx].classList.remove('selected');
+        rows[idx - 1].classList.add('selected');
+        rows[idx - 1].scrollIntoView({ block: 'nearest' });
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const target = idx >= 0 ? rows[idx] : rows[0];
+      if (target) window.location.href = target.dataset.url;
+    }
+  });
+})();
+</script>
+{% endblock %}

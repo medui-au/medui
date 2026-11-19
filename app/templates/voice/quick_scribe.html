@@ -1,0 +1,270 @@
+{% extends 'doctor/base.html' %}
+
+{% block title %}Quick Scribe — {{ app_name }}{% endblock %}
+
+{% block doctor_styles %}
+#qsRecordBtn {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: #fff;
+}
+#qsRecordBtn.recording {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #fff;
+    animation: qs-record-pulse 1.6s ease-out infinite;
+}
+@keyframes qs-record-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(220,38,38,0.55); }
+    60%  { box-shadow: 0 0 0 8px rgba(220,38,38,0); }
+    100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
+}
+.qs-select {
+    width: 100%;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+}
+.qs-controls {
+    width: 165px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.65rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background: var(--bg-primary);
+}
+.qs-ctrl-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+.qs-ctrl-sep {
+    border: none;
+    border-top: 1px dashed var(--border-color);
+    margin: 0.25rem 0;
+}
+.qs-controls .btn { font-size: var(--text-sm); width: 100%; }
+#qsStatusLabel {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    font-style: italic;
+    word-break: break-word;
+    min-height: 1.2rem;
+    margin-top: auto;
+}
+.qs-transcript {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background: var(--bg-primary);
+    overflow: hidden;
+}
+.qs-transcript-header {
+    padding: 0.4rem 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+}
+#qsTranscriptTextarea {
+    flex: 1;
+    resize: none;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.75rem;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    line-height: 1.65;
+    font-family: inherit;
+    outline: none;
+    min-height: 0;
+}
+.qs-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.35rem 0.75rem;
+    border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+#qsCharCount { font-size: 0.68rem; color: var(--text-muted); flex: 1; }
+.qs-copy-btn {
+    padding: 0.3rem 0.85rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: 1px solid var(--accent-primary);
+    border-radius: 0.35rem;
+    background: var(--accent-primary);
+    color: #fff;
+    cursor: pointer;
+    transition: opacity 0.1s;
+}
+.qs-copy-btn:hover { opacity: 0.88; }
+@keyframes qs-copy-flash {
+    0%   { background: var(--success); border-color: var(--success); transform: scale(1.06); }
+    100% { background: var(--accent-primary); border-color: var(--accent-primary); transform: scale(1); }
+}
+.qs-copy-btn.copied { animation: qs-copy-flash 0.6s ease-out forwards; }
+.qs-clear-btn {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.35rem;
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    cursor: pointer;
+}
+.qs-clear-btn:hover { background: var(--border-color); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+    display: inline-block;
+    width: 0.7rem; height: 0.7rem;
+    border: 2px solid var(--border-color);
+    border-top-color: var(--accent-primary);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+}
+{% endblock %}
+
+{% block doctor_content %}
+<div class="doctor-content-header">
+    <h2>Quick Scribe</h2>
+    <p>Record without searching for a patient first — useful for phone calls. Copy the transcript, then paste into the patient's Scribe page for recomposition.</p>
+</div>
+
+<div id="quick-scribe-root" style="display:flex; gap:0.75rem; flex:1; min-height:0;"
+     data-chunk-url="{{ url_for('voice.quick_scribe_chunk') }}"
+     data-worklet-url="{{ url_for('static', filename='js/audio-processor.js') }}">
+
+    <!-- Controls -->
+    <div class="qs-controls">
+        <button id="qsRecordBtn" class="btn">● Record</button>
+
+        <hr class="qs-ctrl-sep">
+        <span class="qs-ctrl-label">ASR Model</span>
+        {% if not asr_models %}
+        <div style="font-size:0.7rem; color:var(--danger); line-height:1.4;">
+            No ASR model configured.<br>
+            <a href="{{ url_for('setup.index') }}#ai-providers" style="color:var(--accent-primary);">Setup →</a>
+        </div>
+        {% else %}
+        <select id="qsAsrModelSelect" class="qs-select"
+                data-pref-url="{{ url_for('voice.scribe_set_asr_model') }}">
+            {% for m in asr_models %}
+            <option value="{{ m.id }}"
+                data-speakers="{{ speaker_status[m.id].text }}"
+                data-speakers-kind="{{ speaker_status[m.id].kind }}"
+                {% if selected_asr_model_id == m.id %}selected{% endif %}>
+                {{ m.provider.name }} — {{ m.display_name or m.model_id }}
+            </option>
+            {% endfor %}
+        </select>
+        {# How this model's chunks get their speakers (ADR-151); set from the option chosen. #}
+        <div id="speakerStatus" style="font-size:0.65rem; line-height:1.35; margin-top:0.2rem;
+                                       color:var(--text-muted);"></div>
+        {% endif %}
+
+        <hr class="qs-ctrl-sep">
+        <span class="qs-ctrl-label">Chunk interval</span>
+        <select id="qsChunkDurationSelector" class="qs-select" autocomplete="off"
+                data-pref-url="{{ url_for('voice.scribe_set_chunk_interval') }}">
+            {% for ms in chunk_intervals_ms %}
+            <option value="{{ ms }}"
+                {% if selected_chunk_interval_ms == ms %}selected{% endif %}>{{ ms // 1000 }} s</option>
+            {% endfor %}
+        </select>
+
+        <div id="qsStatusLabel"></div>
+    </div>
+
+    <!-- Transcript -->
+    <div class="qs-transcript">
+        <div class="qs-transcript-header">Transcript</div>
+        <textarea id="qsTranscriptTextarea"
+                  placeholder="Transcript will appear here as each chunk is processed.&#10;&#10;You may also type or paste directly."
+                  spellcheck="true"></textarea>
+        <div class="qs-footer">
+            <span id="qsCharCount">0 words · 0 chars</span>
+            <button class="qs-clear-btn" id="qsClearBtn">Clear</button>
+            <button class="qs-copy-btn" id="qsCopyBtn">Copy to Clipboard</button>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block doctor_filters %}
+<span class="filter-label">Chunks</span>
+<ul id="qsChunkList"
+    style="list-style:none; padding:0; margin:0; font-size:0.72rem; font-family:monospace; overflow-y:auto; flex:1;">
+    <li style="color:var(--text-muted); font-family:inherit; font-size:0.7rem; padding:0.2rem 0;">
+        Press Record to begin.
+    </li>
+</ul>
+{% endblock %}
+
+{% block doctor_scripts %}
+<script>
+(function () {
+    var sel = document.getElementById('qsAsrModelSelect');
+    if (!sel) return;
+    var prefUrl = sel.dataset.prefUrl;
+    var csrf    = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    sel.addEventListener('change', function () {
+        var modelId = sel.value ? parseInt(sel.value, 10) : null;
+        fetch(prefUrl, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+            body:    JSON.stringify({ model_id: modelId }),
+        }).catch(function (e) { console.error('ASR pref save failed:', e); });
+    });
+    function showSpeakers() {
+        var opt = sel.options[sel.selectedIndex];
+        var box = document.getElementById('speakerStatus');
+        if (!opt || !box) return;
+        box.textContent = opt.dataset.speakers || '';
+        box.style.color = opt.dataset.speakersKind === 'none'
+            ? 'var(--warning)' : 'var(--text-muted)';
+    }
+    sel.addEventListener('change', showSpeakers);
+    showSpeakers();
+    window.getAsrModelId = function () {
+        return sel.value ? parseInt(sel.value, 10) : null;
+    };
+}());
+</script>
+<script>
+(function () {
+    var sel = document.getElementById('qsChunkDurationSelector');
+    if (!sel) return;
+    var prefUrl = sel.dataset.prefUrl;
+    var csrf    = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    sel.addEventListener('change', function () {
+        fetch(prefUrl, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+            body:    JSON.stringify({ interval_ms: parseInt(sel.value, 10) }),
+        }).catch(function (e) { console.error('Chunk interval pref save failed:', e); });
+    });
+}());
+</script>
+<script src="{{ url_for('static', filename='js/quick_scribe.js') }}"></script>
+{% endblock %}

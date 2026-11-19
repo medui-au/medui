@@ -1,0 +1,552 @@
+{#
+  Variables: mt (MappingTable), schema (list of col dicts), rows (list of dicts),
+             page, per_page, total, total_pages, pages, sort_col, sort_dir
+#}
+<style>
+.mg-wrap    { height:100%; overflow:hidden; display:flex; flex-direction:column; padding:0.75rem 1rem; box-sizing:border-box; }
+.mg-hdr     { display:flex; align-items:center; gap:0.6rem; flex-shrink:0; margin-bottom:0.5rem; flex-wrap:wrap; }
+.mg-title   { font-size:0.95rem; font-weight:700; margin:0; }
+.mg-phys    { font-family:var(--font-mono,monospace); font-size:0.68rem; color:var(--text-muted);
+              background:var(--bg-secondary); padding:0.1rem 0.35rem; border-radius:0.2rem; }
+.mg-fresh   { font-size:0.68rem; color:var(--success); font-weight:600; }
+.mg-stale   { font-size:0.68rem; color:var(--warning,#d97706); font-weight:600; }
+.mg-btn     { font-size:0.72rem; padding:0.2rem 0.55rem; border:1px solid var(--border-color);
+              border-radius:var(--radius-sm); background:var(--bg-primary); color:var(--text-primary);
+              cursor:pointer; white-space:nowrap; }
+.mg-btn:hover { border-color:var(--accent); color:var(--accent); }
+.mg-btn.danger:hover { border-color:var(--danger); color:var(--danger); }
+.mg-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+/* Settings panel */
+.mg-settings { flex-shrink:0; background:var(--bg-secondary); border:1px solid var(--border-color);
+               border-radius:var(--radius-sm); padding:0.65rem 0.75rem; margin-bottom:0.5rem; }
+.mg-settings label { font-size:0.68rem; font-weight:700; text-transform:uppercase;
+                     letter-spacing:0.04em; color:var(--text-muted); display:block; margin-bottom:0.15rem; }
+.mg-settings input, .mg-settings textarea {
+  width:100%; box-sizing:border-box; padding:0.25rem 0.45rem; font-size:var(--text-sm);
+  border:1px solid var(--border-color); border-radius:var(--radius-sm);
+  background:var(--bg-primary); color:var(--text-primary); margin-bottom:0.35rem; }
+.mg-settings input:focus, .mg-settings textarea:focus { outline:none; border-color:var(--accent); }
+
+/* Grid */
+.mg-table-wrap { flex:1; overflow:auto; border:1px solid var(--border-color);
+                 border-radius:var(--radius-sm); min-height:0; }
+.mg-table  { width:100%; border-collapse:collapse; font-size:var(--text-sm); }
+.mg-table thead { position:sticky; top:0; z-index:2; background:var(--bg-secondary); }
+.mg-table th    { padding:0.35rem 0.5rem; border-bottom:2px solid var(--border-color);
+                  text-align:left; white-space:nowrap; cursor:pointer; user-select:none; }
+.mg-table th:hover { color:var(--accent); }
+.mg-table th .mg-type { font-size:0.6rem; color:var(--text-muted); font-weight:400;
+                        text-transform:uppercase; display:block; cursor:pointer; }
+.mg-table th .mg-type:hover { color:var(--accent); text-decoration:underline dotted; }
+.mg-type-select { font-size:0.6rem; padding:0.05rem 0.15rem; border:1px solid var(--accent);
+                  border-radius:0.2rem; background:var(--bg-primary); color:var(--accent);
+                  font-weight:600; text-transform:uppercase; cursor:pointer; }
+.mg-type-err { font-size:0.6rem; color:var(--danger); display:block; max-width:12rem;
+               white-space:normal; font-weight:400; text-transform:none; margin-top:0.1rem; }
+.mg-table td { padding:0.28rem 0.5rem; border-bottom:1px solid var(--border-color); }
+.mg-table tr:hover td { background:var(--accent-light,rgba(59,130,246,.04)); }
+.mg-cell-span { display:inline-block; min-width:4rem; cursor:text; color:var(--text-primary); }
+.mg-cell-span:empty::before { content:'—'; color:var(--text-muted); font-style:italic; }
+.mg-cell-input { width:100%; padding:0.15rem 0.3rem; border:1px solid var(--accent);
+                 border-radius:var(--radius-sm); background:var(--bg-primary);
+                 color:var(--text-primary); font-size:var(--text-sm); box-sizing:border-box; }
+.mg-del-btn { font-size:0.65rem; padding:0.05rem 0.3rem; border:1px solid transparent;
+              background:none; color:var(--text-muted); cursor:pointer; border-radius:0.2rem; }
+.mg-del-btn:hover { border-color:var(--danger); color:var(--danger); }
+
+/* Pagination */
+.mg-pagination { flex-shrink:0; display:flex; align-items:center; gap:0.3rem;
+                 padding:0.4rem 0; flex-wrap:wrap; }
+.mg-page-btn { font-size:0.72rem; padding:0.18rem 0.5rem; border:1px solid var(--border-color);
+               border-radius:var(--radius-sm); background:var(--bg-primary); color:var(--text-primary);
+               cursor:pointer; }
+.mg-page-btn:hover { border-color:var(--accent); color:var(--accent); }
+.mg-page-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); cursor:default; }
+.mg-page-btn:disabled { opacity:0.4; cursor:default; }
+.mg-page-info { font-size:0.68rem; color:var(--text-muted); margin-left:0.5rem; }
+.mg-per-page { font-size:0.72rem; padding:0.18rem 0.3rem; border:1px solid var(--border-color);
+               border-radius:var(--radius-sm); background:var(--bg-primary); color:var(--text-primary); }
+
+/* Panels */
+.mg-panels  { flex-shrink:0; display:flex; gap:0.5rem; flex-wrap:wrap; padding-top:0.45rem;
+              border-top:1px solid var(--border-color); margin-top:0.35rem; align-items:flex-start; }
+.mg-panel   { background:var(--bg-secondary); border:1px solid var(--border-color);
+              border-radius:var(--radius-sm); padding:0.55rem 0.7rem; flex:1; min-width:220px; }
+.mg-panel h4 { font-size:0.72rem; font-weight:700; text-transform:uppercase;
+               letter-spacing:0.04em; color:var(--text-muted); margin:0 0 0.4rem 0; }
+.mg-panel input, .mg-panel select {
+  width:100%; box-sizing:border-box; padding:0.25rem 0.4rem; font-size:var(--text-sm);
+  border:1px solid var(--border-color); border-radius:var(--radius-sm);
+  background:var(--bg-primary); color:var(--text-primary); margin-bottom:0.3rem; }
+.mg-panel input:focus, .mg-panel select:focus { outline:none; border-color:var(--accent); }
+</style>
+
+<div class="mg-wrap" id="mg-wrap-{{ mt.name }}">
+
+  {# ── Header ── #}
+  <div class="mg-hdr">
+    <h3 class="mg-title">{{ mt.label }}</h3>
+    <span class="mg-phys">{{ mt.physical_table }}</span>
+
+    {# Staleness badge #}
+    {% if mt.cache_ttl_seconds %}
+      {% if mt.is_stale %}
+        <span class="mg-stale" id="mg-fresh-badge-{{ mt.name }}">⚠ Stale
+          {% if mt.freshness_label %}— {{ mt.freshness_label }}{% endif %}
+        </span>
+      {% else %}
+        <span class="mg-fresh" id="mg-fresh-badge-{{ mt.name }}">● Fresh
+          {% if mt.freshness_label %}— {{ mt.freshness_label }}{% endif %}
+        </span>
+      {% endif %}
+    {% else %}
+      <span id="mg-fresh-badge-{{ mt.name }}"></span>
+    {% endif %}
+
+    {% if mt.refresh_url %}
+    <button class="mg-btn" id="mg-refresh-btn-{{ mt.name }}"
+            onclick="mgRefresh('{{ mt.name }}')">↻ Refresh</button>
+    {% endif %}
+
+    <span id="mg-refresh-status-{{ mt.name }}" style="font-size:0.7rem; color:var(--text-muted);"></span>
+
+    <button class="mg-btn" onclick="mgToggleSettings('{{ mt.name }}')"
+            id="mg-settings-btn-{{ mt.name }}">⚙ Settings</button>
+
+    <span style="margin-left:auto; font-size:0.7rem; color:var(--text-muted);"
+          id="mg-row-count-{{ mt.name }}">
+      {{ mt.row_count }} row{{ 's' if mt.row_count != 1 else '' }}
+    </span>
+  </div>
+
+  {# ── Settings panel ── #}
+  <div class="mg-settings" id="mg-settings-{{ mt.name }}" style="display:none;">
+    <div id="mg-settings-status-{{ mt.name }}" style="margin-bottom:0.3rem;"></div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+      <div>
+        <label>Label</label>
+        <input id="mg-s-label-{{ mt.name }}" value="{{ mt.label | e }}">
+        <label>Description</label>
+        <input id="mg-s-desc-{{ mt.name }}" value="{{ mt.description or '' | e }}">
+      </div>
+      <div>
+        <label>Refresh URL (GET)</label>
+        <input id="mg-s-url-{{ mt.name }}" value="{{ mt.refresh_url or '' | e }}"
+               placeholder="https://other-server/api/data">
+        <label>Cache TTL (seconds; blank = off)</label>
+        <input type="number" id="mg-s-ttl-{{ mt.name }}"
+               value="{{ mt.cache_ttl_seconds or '' }}" placeholder="e.g. 3600">
+      </div>
+    </div>
+    <div style="display:flex; gap:0.5rem; margin-top:0.2rem;">
+      <button class="mg-btn active" onclick="mgSaveSettings('{{ mt.name }}')">Save Settings</button>
+      <button class="mg-btn danger"
+              onclick="if(confirm('Drop table {{ mt.name }} and ALL its data? This cannot be undone.')) mgDropTable('{{ mt.name }}')">
+        Drop Table
+      </button>
+    </div>
+  </div>
+
+  {# ── Grid ── #}
+  {% if schema %}
+  <div class="mg-table-wrap">
+    <table class="mg-table">
+      <thead>
+        <tr>
+          <th style="width:2.5rem;">id</th>
+          {% for col in schema %}
+          {% set new_dir = 'desc' if (sort_col == col.column_name and sort_dir == 'asc') else 'asc' %}
+          <th onclick="mgLoadGrid('{{ mt.name }}', 1, {{ per_page }}, '{{ col.column_name }}', '{{ new_dir }}')"
+              title="Sort by {{ col.column_name }}">
+            {{ col.column_name }}
+            {% if sort_col == col.column_name %}{{ '▲' if sort_dir == 'asc' else '▼' }}{% endif %}
+            <span class="mg-type" id="mg-type-{{ mt.name }}-{{ col.column_name }}"
+                  onclick="event.stopPropagation(); mgRetypeCol('{{ mt.name }}', '{{ col.column_name }}', this)"
+                  title="Click to change type">{{ col.data_type }}</span>
+          </th>
+          {% endfor %}
+          <th style="width:1.5rem;"></th>
+        </tr>
+      </thead>
+      <tbody id="mg-tbody-{{ mt.name }}">
+        {% for row in rows %}
+        <tr id="mg-row-{{ row.id }}">
+          <td style="color:var(--text-muted); font-size:0.68rem;">{{ row.id }}</td>
+          {% for col in schema %}
+          <td>
+            <span class="mg-cell-span"
+                  onclick="mgEditCell(this, '{{ mt.name }}', {{ row.id }}, '{{ col.column_name }}')"
+                  data-val="{{ row[col.column_name] if row[col.column_name] is not none else '' }}">
+              {{ row[col.column_name] if row[col.column_name] is not none else '' }}
+            </span>
+          </td>
+          {% endfor %}
+          <td>
+            <button class="mg-del-btn"
+                    onclick="mgDeleteRow('{{ mt.name }}', {{ row.id }}, this)"
+                    title="Delete row">×</button>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="{{ schema|length + 2 }}"
+                style="text-align:center; color:var(--text-muted); padding:1rem; font-style:italic;">
+          No rows yet. Add one below.
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# Pagination #}
+  <div class="mg-pagination">
+    <button class="mg-page-btn" {% if page <= 1 %}disabled{% endif %}
+            onclick="mgLoadGrid('{{ mt.name }}', 1, {{ per_page }}, '{{ sort_col or '' }}', '{{ sort_dir }}')">«</button>
+    <button class="mg-page-btn" {% if page <= 1 %}disabled{% endif %}
+            onclick="mgLoadGrid('{{ mt.name }}', {{ page - 1 }}, {{ per_page }}, '{{ sort_col or '' }}', '{{ sort_dir }}')">‹</button>
+    {% for p in pages %}
+      {% if p is none %}
+        <span style="color:var(--text-muted); padding:0 0.2rem;">…</span>
+      {% else %}
+        <button class="mg-page-btn{% if p == page %} active{% endif %}"
+                onclick="mgLoadGrid('{{ mt.name }}', {{ p }}, {{ per_page }}, '{{ sort_col or '' }}', '{{ sort_dir }}')">{{ p }}</button>
+      {% endif %}
+    {% endfor %}
+    <button class="mg-page-btn" {% if page >= total_pages %}disabled{% endif %}
+            onclick="mgLoadGrid('{{ mt.name }}', {{ page + 1 }}, {{ per_page }}, '{{ sort_col or '' }}', '{{ sort_dir }}')">›</button>
+    <button class="mg-page-btn" {% if page >= total_pages %}disabled{% endif %}
+            onclick="mgLoadGrid('{{ mt.name }}', {{ total_pages }}, {{ per_page }}, '{{ sort_col or '' }}', '{{ sort_dir }}')">»</button>
+    <span class="mg-page-info">
+      {{ (page-1)*per_page + 1 }}–{{ [(page*per_page), total]|min }} of {{ total }}
+    </span>
+    <select class="mg-per-page" onchange="mgLoadGrid('{{ mt.name }}', 1, parseInt(this.value), '{{ sort_col or '' }}', '{{ sort_dir }}')">
+      {% for n in [25, 50, 100, 250] %}
+      <option value="{{ n }}" {% if n == per_page %}selected{% endif %}>{{ n }}/page</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  {% else %}
+  <div style="flex:1; display:flex; align-items:center; justify-content:center;
+              color:var(--text-muted); font-size:var(--text-sm); font-style:italic;">
+    No columns yet. Add a column below.
+  </div>
+  {% endif %}
+
+  {# ── Panels ── #}
+  <div class="mg-panels">
+
+    {# Add Row #}
+    {% if schema %}
+    <div class="mg-panel">
+      <h4>Add Row</h4>
+      <form id="mg-add-row-form-{{ mt.name }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="sort_col" value="{{ sort_col or '' }}">
+        <input type="hidden" name="sort_dir" value="{{ sort_dir }}">
+        <input type="hidden" name="per_page" value="{{ per_page }}">
+        {% for col in schema %}
+        <input type="text" name="{{ col.column_name }}" placeholder="{{ col.column_name }}">
+        {% endfor %}
+        <button type="button" class="mg-btn active" style="width:100%;"
+                onclick="mgAddRow('{{ mt.name }}')">+ Add Row</button>
+      </form>
+    </div>
+    {% endif %}
+
+    {# Add Column #}
+    <div class="mg-panel">
+      <h4>Add Column</h4>
+      <form id="mg-add-col-form-{{ mt.name }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="sort_col" value="{{ sort_col or '' }}">
+        <input type="hidden" name="sort_dir" value="{{ sort_dir }}">
+        <input type="hidden" name="per_page" value="{{ per_page }}">
+        <input type="text" name="column_name" placeholder="column_name (lowercase)"
+               pattern="[a-z][a-z0-9_]*" title="Lowercase letters, digits, underscores">
+        <select name="column_type">
+          {% for t in ['TEXT','INTEGER','NUMERIC','BOOLEAN','DATE','TIMESTAMP'] %}
+          <option value="{{ t }}">{{ t }}</option>
+          {% endfor %}
+        </select>
+        <button type="button" class="mg-btn active" style="width:100%;"
+                onclick="mgAddColumn('{{ mt.name }}')">+ Add Column</button>
+      </form>
+    </div>
+
+    {# CSV import/export #}
+    <div class="mg-panel">
+      <h4>Bulk Data</h4>
+      <form method="post"
+            action="{{ url_for('admin.mapping_import_csv', name=mt.name) }}"
+            enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="file" name="csv_file" accept=".csv" style="margin-bottom:0.3rem;">
+        <label style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem;
+                      font-size:var(--text-sm); font-weight:400; text-transform:none; letter-spacing:0;">
+          <input type="checkbox" name="replace" value="1" checked style="width:auto; margin:0;">
+          Replace existing rows
+        </label>
+        <button type="submit" class="mg-btn" style="width:100%; margin-bottom:0.4rem;">↑ Import CSV</button>
+      </form>
+      <a href="{{ url_for('admin.mapping_export_csv', name=mt.name) }}"
+         class="mg-btn" style="display:block; text-align:center; text-decoration:none;">↓ Export CSV</a>
+    </div>
+
+  </div>{# /mg-panels #}
+
+</div>{# /mg-wrap #}
+
+<script>
+(function () {
+  var _tname = '{{ mt.name }}';
+  var _csrf  = window._csrf || function () {
+    var el = document.querySelector('meta[name="csrf-token"]'); return el ? el.content : '';
+  };
+  var _baseUrl = '{{ url_for("admin.mappings") }}';
+
+  // ── Grid reload ────────────────────────────────────────────────────────────
+  window.mgLoadGrid = function (name, page, perPage, sortCol, sortDir) {
+    var area = document.getElementById('mp-grid-area');
+    if (!area) return;
+    var url  = _baseUrl + '/' + name + '/grid?page=' + page +
+               '&per_page=' + perPage +
+               (sortCol ? '&sort_col=' + encodeURIComponent(sortCol) : '') +
+               '&sort_dir=' + (sortDir || 'asc');
+    area.innerHTML = '<div style="padding:1rem;color:var(--text-muted);font-size:var(--text-sm);">Loading…</div>';
+    fetch(url, { headers: { 'X-CSRFToken': _csrf() } })
+      .then(function (r) { return r.text(); })
+      .then(function (html) {
+        area.innerHTML = html;
+        area.querySelectorAll('script').forEach(function (s) {
+          var ns = document.createElement('script'); ns.text = s.text;
+          document.body.appendChild(ns);
+        });
+        if (window.htmx) htmx.process(area);
+      });
+  };
+
+  // ── Settings panel toggle ──────────────────────────────────────────────────
+  window.mgToggleSettings = function (name) {
+    var panel = document.getElementById('mg-settings-' + name);
+    var btn   = document.getElementById('mg-settings-btn-' + name);
+    var show  = panel.style.display === 'none';
+    panel.style.display = show ? '' : 'none';
+    btn.classList.toggle('active', show);
+  };
+
+  // ── Save settings ──────────────────────────────────────────────────────────
+  window.mgSaveSettings = function (name) {
+    var payload = new FormData();
+    payload.append('csrf_token', _csrf());
+    payload.append('label',             document.getElementById('mg-s-label-' + name).value);
+    payload.append('description',       document.getElementById('mg-s-desc-'  + name).value);
+    payload.append('refresh_url',       document.getElementById('mg-s-url-'   + name).value);
+    payload.append('cache_ttl_seconds', document.getElementById('mg-s-ttl-'   + name).value);
+    fetch(_baseUrl + '/' + name + '/settings', { method: 'POST', body: payload })
+      .then(function (r) { return r.text(); })
+      .then(function (html) {
+        document.getElementById('mg-settings-status-' + name).innerHTML = html;
+      });
+  };
+
+  // ── Drop table ─────────────────────────────────────────────────────────────
+  window.mgDropTable = function (name) {
+    var f = document.createElement('form');
+    f.method = 'POST';
+    f.action = _baseUrl + '/' + name + '/drop';
+    var c = document.createElement('input');
+    c.type = 'hidden'; c.name = 'csrf_token'; c.value = _csrf();
+    f.appendChild(c);
+    document.body.appendChild(f);
+    f.submit();
+  };
+
+  // ── Inline cell editing ────────────────────────────────────────────────────
+  window.mgEditCell = function (span, tname, rowId, col) {
+    if (span.querySelector('input')) return;
+    var val   = span.dataset.val || '';
+    var input = document.createElement('input');
+    input.className = 'mg-cell-input';
+    input.value     = val;
+    span.textContent = '';
+    span.appendChild(input);
+    input.focus();
+    input.select();
+
+    function _save() {
+      var newVal = input.value;
+      var payload = new FormData();
+      payload.append('csrf_token', _csrf());
+      payload.append('value', newVal);
+      fetch(_baseUrl + '/' + tname + '/cell/' + rowId + '/' + col,
+            { method: 'POST', body: payload })
+        .then(function (r) {
+          span.removeChild(input);
+          span.textContent = newVal;
+          span.dataset.val = newVal;
+          span.style.background = r.ok ? 'rgba(34,197,94,.15)' : 'rgba(239,68,68,.15)';
+          setTimeout(function () { span.style.background = ''; }, 800);
+        });
+    }
+    input.addEventListener('blur', _save);
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+      if (e.key === 'Escape') {
+        span.removeChild(input);
+        span.textContent = val;
+        span.dataset.val = val;
+      }
+    });
+  };
+
+  // ── Delete row ─────────────────────────────────────────────────────────────
+  window.mgDeleteRow = function (tname, rowId, btn) {
+    if (!confirm('Delete row ' + rowId + '?')) return;
+    var payload = new FormData();
+    payload.append('csrf_token', _csrf());
+    fetch(_baseUrl + '/' + tname + '/row/' + rowId + '/delete',
+          { method: 'POST', body: payload })
+      .then(function (r) {
+        if (r.ok) {
+          var row = document.getElementById('mg-row-' + rowId);
+          if (row) row.remove();
+          var el = document.getElementById('mg-row-count-' + tname);
+          if (el) {
+            var n = parseInt(el.textContent) - 1;
+            el.textContent = n + (n === 1 ? ' row' : ' rows');
+          }
+        }
+      });
+  };
+
+  // ── Add row ────────────────────────────────────────────────────────────────
+  window.mgAddRow = function (tname) {
+    var form = document.getElementById('mg-add-row-form-' + tname);
+    if (!form) return;
+    var payload = new FormData(form);
+    payload.append('csrf_token', _csrf());
+    var area = document.getElementById('mp-grid-area');
+    fetch(_baseUrl + '/' + tname + '/row/add', { method: 'POST', body: payload })
+      .then(function (r) { return r.text(); })
+      .then(function (html) {
+        area.innerHTML = html;
+        area.querySelectorAll('script').forEach(function (s) {
+          var ns = document.createElement('script'); ns.text = s.text;
+          document.body.appendChild(ns);
+        });
+        if (window.htmx) htmx.process(area);
+      });
+  };
+
+  // ── Add column ─────────────────────────────────────────────────────────────
+  window.mgAddColumn = function (tname) {
+    var form = document.getElementById('mg-add-col-form-' + tname);
+    if (!form) return;
+    var payload = new FormData(form);
+    payload.append('csrf_token', _csrf());
+    var area = document.getElementById('mp-grid-area');
+    fetch(_baseUrl + '/' + tname + '/column/add', { method: 'POST', body: payload })
+      .then(function (r) { return r.text(); })
+      .then(function (html) {
+        area.innerHTML = html;
+        area.querySelectorAll('script').forEach(function (s) {
+          var ns = document.createElement('script'); ns.text = s.text;
+          document.body.appendChild(ns);
+        });
+        if (window.htmx) htmx.process(area);
+      });
+  };
+
+  // ── Retype column ──────────────────────────────────────────────────────────
+  window.mgRetypeCol = function (tname, col, span) {
+    if (span.querySelector('select')) return;
+    var current = span.textContent.trim().toUpperCase()
+      .replace('CHARACTER VARYING', 'TEXT')
+      .replace('TIMESTAMP WITHOUT TIME ZONE', 'TIMESTAMP')
+      .replace('DOUBLE PRECISION', 'NUMERIC');
+    var types = ['TEXT', 'INTEGER', 'NUMERIC', 'BOOLEAN', 'DATE', 'TIMESTAMP'];
+    var sel = document.createElement('select');
+    sel.className = 'mg-type-select';
+    types.forEach(function (t) {
+      var o = document.createElement('option');
+      o.value = t; o.textContent = t;
+      if (t === current) o.selected = true;
+      sel.appendChild(o);
+    });
+    span.textContent = '';
+    span.appendChild(sel);
+    sel.focus();
+
+    function _cancel() { span.textContent = current.toLowerCase(); }
+
+    sel.addEventListener('blur', _cancel);
+    sel.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); _cancel(); }
+    });
+    sel.addEventListener('change', function () {
+      var newType = sel.value;
+      if (newType === current) { _cancel(); return; }
+      sel.removeEventListener('blur', _cancel);
+      sel.disabled = true;
+      var errEl = span.parentElement.querySelector('.mg-type-err');
+      if (errEl) errEl.remove();
+      var payload = new FormData();
+      payload.append('csrf_token', _csrf());
+      payload.append('new_type', newType);
+      fetch(_baseUrl + '/' + tname + '/column/' + col + '/retype',
+            { method: 'POST', body: payload })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d.ok) {
+            span.textContent = newType.toLowerCase();
+          } else {
+            span.textContent = current.toLowerCase();
+            var e2 = document.createElement('span');
+            e2.className = 'mg-type-err';
+            e2.textContent = d.error || 'Retype failed';
+            span.parentElement.appendChild(e2);
+            setTimeout(function () { if (e2.parentElement) e2.remove(); }, 5000);
+          }
+        })
+        .catch(function () {
+          span.textContent = current.toLowerCase();
+        });
+    });
+  };
+
+  // ── API refresh ────────────────────────────────────────────────────────────
+  window.mgRefresh = function (tname) {
+    var btn    = document.getElementById('mg-refresh-btn-' + tname);
+    var status = document.getElementById('mg-refresh-status-' + tname);
+    var badge  = document.getElementById('mg-fresh-badge-' + tname);
+    var countEl = document.getElementById('mg-row-count-' + tname);
+    if (btn) { btn.disabled = true; btn.textContent = '↻ Refreshing…'; }
+    if (status) status.textContent = '';
+    var payload = new FormData();
+    payload.append('csrf_token', _csrf());
+    fetch(_baseUrl + '/' + tname + '/refresh', { method: 'POST', body: payload })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (btn) { btn.disabled = false; btn.textContent = '↻ Refresh'; }
+        if (d.ok) {
+          if (status) status.textContent = d.count + ' rows loaded';
+          if (badge)  {
+            badge.className  = d.is_stale ? 'mg-stale' : 'mg-fresh';
+            badge.textContent = (d.is_stale ? '⚠ Stale' : '● Fresh') +
+                                (d.freshness_label ? ' — ' + d.freshness_label : '');
+          }
+          if (countEl) countEl.textContent = d.row_count + (d.row_count === 1 ? ' row' : ' rows');
+          // Reload grid to show new data
+          mgLoadGrid(tname, 1, {{ per_page }}, '{{ sort_col or '' }}', '{{ sort_dir }}');
+        } else {
+          if (status) { status.textContent = 'Error: ' + (d.error || 'Unknown'); status.style.color = 'var(--danger)'; }
+        }
+      })
+      .catch(function () {
+        if (btn)    { btn.disabled = false; btn.textContent = '↻ Refresh'; }
+        if (status) { status.textContent = 'Network error'; status.style.color = 'var(--danger)'; }
+      });
+  };
+})();
+</script>

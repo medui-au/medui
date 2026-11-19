@@ -1,0 +1,846 @@
+{% extends 'base.html' %}
+{% block title %}{{ pipeline.name }} — Pipeline Designer{% endblock %}
+
+{% block head %}
+<style>
+.pe-layout     { display:flex; height:calc(100vh - var(--nav-height)); overflow:hidden; }
+.pe-steps      { width:240px; flex-shrink:0; border-right:1px solid var(--border-color);
+                 display:flex; flex-direction:column; background:var(--bg-secondary); }
+.pe-steps-hdr  { padding:0.55rem 0.75rem; border-bottom:1px solid var(--border-color);
+                 flex-shrink:0; font-size:0.72rem; font-weight:700; text-transform:uppercase;
+                 letter-spacing:0.05em; color:var(--text-muted);
+                 display:flex; align-items:center; }
+.pe-step-item  { padding:0.45rem 0.75rem; border-bottom:1px solid var(--border-color);
+                 cursor:pointer; user-select:none; }
+.pe-step-item:hover  { background:var(--bg-primary); }
+.pe-step-item.active { background:var(--accent-light); border-left:3px solid var(--accent); }
+.pe-config     { width:340px; flex-shrink:0; border-right:1px solid var(--border-color);
+                 overflow-y:auto; padding:1rem; background:var(--bg-primary); }
+.pe-run-panel  { flex:1; overflow-y:auto; padding:1.25rem 1.5rem; }
+.pe-field-lbl  { font-size:0.7rem; font-weight:600; color:var(--text-muted);
+                 display:block; margin-bottom:0.2rem; }
+.pe-input      { width:100%; box-sizing:border-box; padding:0.3rem 0.5rem; font-size:var(--text-sm);
+                 border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                 background:var(--bg-primary); color:var(--text-primary); }
+.pe-textarea   { width:100%; box-sizing:border-box; padding:0.35rem 0.5rem; font-size:0.75rem;
+                 border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                 background:var(--bg-primary); color:var(--text-primary);
+                 font-family:var(--font-mono, monospace); resize:vertical; }
+.node-badge    { display:inline-block; font-size:0.6rem; font-weight:700; padding:0.05rem 0.35rem;
+                 border-radius:0.2rem; color:#fff; }
+.nb-data_assembly   { background:#6366f1; }
+.nb-prompt_assembly { background:#0891b2; }
+.nb-inference       { background:#16a34a; }
+.nb-deredaction     { background:#d97706; }
+.sse-log      { background:var(--bg-secondary); border:1px solid var(--border-color);
+                border-radius:var(--radius-sm); padding:0.5rem 0.75rem;
+                font-family:var(--font-mono,monospace); font-size:0.72rem;
+                min-height:120px; max-height:320px; overflow-y:auto; }
+.sse-step-done  { color:var(--success); }
+.sse-step-start { color:var(--text-secondary); }
+.sse-error      { color:var(--danger); font-weight:600; }
+.sse-complete   { color:var(--accent); font-weight:600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pe-layout">
+
+    {# ── Column 1: Step list ── #}
+    <aside class="pe-steps">
+        <div class="pe-steps-hdr">
+            Steps
+            <span style="margin-left:auto; display:flex; gap:0.3rem;">
+                <button type="button" onclick="openAddStep()"
+                        class="btn btn-primary" style="padding:0.1rem 0.35rem; font-size:0.65rem;">+ Add</button>
+            </span>
+        </div>
+        <div id="pe-step-list" style="flex:1; overflow-y:auto;">
+            {% for step in steps %}
+            <div class="pe-step-item" id="step-item-{{ step.id }}"
+                 onclick="loadStepConfig({{ step.id }}, '{{ step.node_type }}')">
+                <div style="display:flex; align-items:center; gap:0.4rem;">
+                    <span style="font-size:0.65rem; color:var(--text-muted); min-width:1rem;">{{ loop.index }}.</span>
+                    <span class="node-badge nb-{{ step.node_type }}" style="font-size:0.55rem;">
+                        {{ step.node_type.replace('_', ' ').upper()[:6] }}
+                    </span>
+                    <span style="font-size:0.75rem; font-weight:500; flex:1; white-space:nowrap;
+                                 overflow:hidden; text-overflow:ellipsis;">
+                        {{ step.label or step.node_type.replace('_', ' ').title() }}
+                    </span>
+                    <span onclick="event.stopPropagation()" style="display:flex; gap:0.1rem; flex-shrink:0;">
+                        <button onclick="moveStep({{ step.id }}, 'up')"
+                                style="background:none; border:none; cursor:pointer; padding:0 0.15rem;
+                                       font-size:0.65rem; color:var(--text-muted); line-height:1;"
+                                title="Move up">▲</button>
+                        <button onclick="moveStep({{ step.id }}, 'down')"
+                                style="background:none; border:none; cursor:pointer; padding:0 0.15rem;
+                                       font-size:0.65rem; color:var(--text-muted); line-height:1;"
+                                title="Move down">▼</button>
+                    </span>
+                </div>
+            </div>
+            {% else %}
+            <p style="padding:0.75rem; color:var(--text-muted); font-size:var(--text-sm);" id="pe-no-steps">
+                No steps yet.
+            </p>
+            {% endfor %}
+        </div>
+
+        {# Add step form ─ hidden by default #}
+        <div id="add-step-form" style="display:none; border-top:1px solid var(--border-color); padding:0.6rem 0.75rem; flex-shrink:0;">
+            <div style="font-size:0.7rem; font-weight:600; margin-bottom:0.4rem;">Add step</div>
+            <select id="new-node-type" class="pe-input" style="margin-bottom:0.4rem; font-size:0.72rem;">
+                <option value="data_assembly">Data Assembly</option>
+                <option value="prompt_assembly">Prompt Assembly</option>
+                <option value="inference">Inference</option>
+                <option value="deredaction">DeRedaction</option>
+            </select>
+            <input type="text" id="new-step-label" class="pe-input"
+                   placeholder="Label (optional)" style="margin-bottom:0.4rem; font-size:0.72rem;">
+            <div style="display:flex; gap:0.3rem;">
+                <button type="button" onclick="addStep()" class="btn btn-primary"
+                        style="font-size:0.7rem; padding:0.2rem 0.45rem;">Add</button>
+                <button type="button" onclick="document.getElementById('add-step-form').style.display='none'"
+                        class="btn btn-outline" style="font-size:0.7rem; padding:0.2rem 0.4rem;">Cancel</button>
+            </div>
+        </div>
+
+        {# Pipeline meta at bottom ─ status + policy #}
+        <div style="border-top:2px solid var(--border-color); padding:0.6rem 0.75rem;
+                    font-size:0.68rem; color:var(--text-muted); flex-shrink:0;">
+            <div style="margin-bottom:0.3rem; display:flex; align-items:center; gap:0.3rem;">
+                <input type="text" id="name-input" value="{{ pipeline.name }}"
+                       style="font-size:0.68rem; font-weight:600; border:1px solid var(--border-color);
+                              border-radius:var(--radius-sm); padding:0.1rem 0.25rem;
+                              background:var(--bg-primary); color:var(--text-primary); flex:1; min-width:0;">
+                <button type="button" onclick="updateName()"
+                        style="font-size:0.62rem; padding:0.1rem 0.3rem;
+                               background:var(--bg-tertiary); border:1px solid var(--border-color);
+                               border-radius:var(--radius-sm); cursor:pointer; color:var(--text-primary); flex-shrink:0;">Save</button>
+                <span id="name-saved" style="color:var(--success); display:none; font-size:0.65rem;"> ✓</span>
+            </div>
+            <div style="margin-bottom:0.25rem;">
+                Classifier:
+                <input type="text" id="classifier-input"
+                       value="{{ pipeline.classifier or '' }}"
+                       placeholder="e.g. ai_panel"
+                       style="font-size:0.68rem; border:1px solid var(--border-color);
+                              border-radius:var(--radius-sm); padding:0.1rem 0.25rem;
+                              background:var(--bg-primary); color:var(--text-primary);
+                              width:7rem;">
+                <button type="button" onclick="updateClassifier()"
+                        style="font-size:0.62rem; padding:0.1rem 0.3rem; margin-left:0.15rem;
+                               background:var(--bg-tertiary); border:1px solid var(--border-color);
+                               border-radius:var(--radius-sm); cursor:pointer; color:var(--text-primary);">Save</button>
+                <span id="classifier-saved" style="color:var(--success); display:none; font-size:0.65rem;"> ✓</span>
+            </div>
+            <div style="margin-bottom:0.25rem;">
+                Policy:
+                <select id="policy-select" onchange="updatePolicy(this.value)"
+                        style="font-size:0.68rem; border:1px solid var(--border-color);
+                               border-radius:var(--radius-sm); padding:0.1rem 0.25rem;
+                               background:var(--bg-primary); color:var(--text-primary); cursor:pointer;">
+                    <option value="redact_all"     {% if pipeline.redaction_policy.value == 'redact_all' %}selected{% endif %}>redact_all</option>
+                    <option value="redact_pii_only"{% if pipeline.redaction_policy.value == 'redact_pii_only' %}selected{% endif %}>redact_pii_only</option>
+                    <option value="redact_none"    {% if pipeline.redaction_policy.value == 'redact_none' %}selected{% endif %}>redact_none</option>
+                </select>
+                <span id="policy-saved" style="color:var(--success); display:none; font-size:0.65rem;"> ✓</span>
+            </div>
+            <div style="margin-bottom:0.25rem;">
+                <label style="display:flex; align-items:center; gap:0.35rem; cursor:pointer;">
+                    <input type="checkbox" id="is-default-chk"
+                           {% if pipeline.is_default %}checked{% endif %}
+                           onchange="toggleDefault(this.checked)">
+                    <span>Default for classifier</span>
+                </label>
+                <span id="default-saved" style="color:var(--success); display:none; font-size:0.65rem; margin-left:1.4rem;"> ✓ saved</span>
+            </div>
+            <div style="margin-bottom:0.25rem;">
+                <label style="display:flex; align-items:center; gap:0.35rem; cursor:pointer;">
+                    <input type="checkbox" id="show-in-topnav-chk"
+                           {% if pipeline.show_in_topnav %}checked{% endif %}
+                           onchange="toggleTopnav(this.checked)">
+                    <span>Show in topnav</span>
+                </label>
+                <span id="topnav-saved" style="color:var(--success); display:none; font-size:0.65rem; margin-left:1.4rem;"> ✓ saved</span>
+            </div>
+            <div>Status: <strong>{{ pipeline.status.value }}</strong></div>
+            {% if pipeline.status.value == 'archived' %}
+            <button type="button" onclick="setArchived(false)"
+                    class="btn btn-outline" style="margin-top:0.4rem; font-size:0.68rem; padding:0.15rem 0.4rem;">
+                Unarchive
+            </button>
+            {% else %}
+            {% if pipeline.status.value != 'active' %}
+            <button type="button" onclick="activatePipeline()"
+                    class="btn btn-outline" style="margin-top:0.4rem; font-size:0.68rem; padding:0.15rem 0.4rem;">
+                Activate
+            </button>
+            {% else %}
+            <button type="button" onclick="deactivatePipeline()"
+                    class="btn btn-outline" style="margin-top:0.4rem; font-size:0.68rem; padding:0.15rem 0.4rem;">
+                Deactivate
+            </button>
+            {% endif %}
+            <button type="button" onclick="setArchived(true)"
+                    class="btn btn-outline" style="margin-top:0.4rem; font-size:0.68rem; padding:0.15rem 0.4rem;">
+                Archive
+            </button>
+            {% endif %}
+            <div style="margin-top:0.35rem;">
+                <a href="{{ url_for('pipeline_run.designer') }}" class="btn btn-outline"
+                   style="font-size:0.68rem; padding:0.15rem 0.4rem;">← All Pipelines</a>
+            </div>
+        </div>
+    </aside>
+
+    {# ── Column 2: Step config panel ── #}
+    <div class="pe-config" id="pe-config-panel">
+        <div style="color:var(--text-muted); font-size:var(--text-sm); padding-top:2rem; text-align:center;">
+            Select a step to configure.
+        </div>
+    </div>
+
+    {# ── Column 3: Run panel ── #}
+    <div class="pe-run-panel">
+        <h3 style="font-size:0.85rem; font-weight:700; margin:0 0 1rem;
+                   padding-bottom:0.4rem; border-bottom:1px solid var(--border-color);">
+            Test Run
+        </h3>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem; max-width:480px;">
+            <div>
+                <label class="pe-field-lbl">Patient ID (BPSDB InternalId)</label>
+                <input type="number" id="run-patient-id" class="pe-input" placeholder="e.g. 12345">
+            </div>
+            <div style="display:flex; flex-direction:column; justify-content:flex-end;">
+                <label style="font-size:0.72rem; display:flex; align-items:center; gap:0.35rem; cursor:pointer; padding-bottom:0.25rem;">
+                    <input type="checkbox" id="run-model-local">
+                    Force local provider
+                </label>
+            </div>
+        </div>
+        <div style="margin-bottom:0.75rem;">
+            <label class="pe-field-lbl">Input JSON (optional — available as <code>{{ '{{input.*}}' }}</code>)</label>
+            <textarea id="run-input-json" class="pe-textarea" rows="3" placeholder="{}"></textarea>
+        </div>
+        <div style="display:flex; gap:0.5rem; align-items:center; margin-bottom:1rem;">
+            <button type="button" onclick="startRun()" class="btn btn-primary"
+                    style="font-size:0.8rem; padding:0.35rem 0.9rem;">▶ Run Pipeline</button>
+            <span id="run-status-badge" style="font-size:0.75rem;"></span>
+        </div>
+
+        <div style="font-size:0.72rem; font-weight:600; color:var(--text-muted);
+                    text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.4rem;">
+            Progress
+        </div>
+        <div class="sse-log" id="sse-log">
+            <span style="color:var(--text-muted);">Waiting for run…</span>
+        </div>
+
+        <div id="run-output-section" style="display:none; margin-top:1.25rem;">
+            <div style="font-size:0.72rem; font-weight:600; color:var(--text-muted);
+                        text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.4rem;">
+                Output
+            </div>
+            <pre id="run-output" style="background:var(--bg-secondary); border:1px solid var(--border-color);
+                 border-radius:var(--radius-sm); padding:0.75rem; font-size:0.75rem;
+                 white-space:pre-wrap; max-height:400px; overflow-y:auto;"></pre>
+        </div>
+    </div>
+
+</div>
+
+{# ── Config templates by node type ── #}
+<template id="tpl-data_assembly">
+<div>
+    <h4 style="font-size:0.8rem; font-weight:700; margin:0 0 0.75rem;">Data Assembly Config</h4>
+    <p style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.75rem;">
+        Fetches patient data blocks from BPSDB and applies redaction policy.
+        Named bundle or explicit block list — bundle takes precedence unless blocks are specified.
+    </p>
+    <div style="margin-bottom:0.75rem;">
+        <label class="pe-field-lbl">Bundle name</label>
+        <input type="text" id="cfg-bundle_name" class="pe-input" placeholder="deid_context">
+        <div style="font-size:0.65rem; color:var(--text-muted); margin-top:0.15rem;">
+            Leave blank to use <em>deid_context</em> default.
+        </div>
+    </div>
+    <div style="margin-bottom:0.75rem;">
+        <label class="pe-field-lbl">Block list override (JSON array, optional)</label>
+        <textarea id="cfg-blocks" class="pe-textarea" rows="3"
+                  placeholder='["demographics","medications","allergies"]'></textarea>
+        <div style="font-size:0.65rem; color:var(--text-muted); margin-top:0.15rem;">
+            Available: demographics, history, medications, allergies, fh, immunizations,
+            social_history, pathology, progress_notes, scans, referrals, actions, recalls, nok
+        </div>
+    </div>
+</div>
+</template>
+
+<template id="tpl-prompt_assembly">
+<div>
+    <h4 style="font-size:0.8rem; font-weight:700; margin:0 0 0.75rem;">Prompt Assembly Config</h4>
+    <div style="margin-bottom:0.75rem;">
+        <label class="pe-field-lbl">User Prompt <span style="color:var(--danger)">*</span></label>
+        <select id="cfg-user_prompt_id" class="pe-input">
+            <option value="">— select —</option>
+            {% for up in user_prompts %}
+            <option value="{{ up.id }}">{{ up.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div style="margin-bottom:0.75rem;">
+        <label class="pe-field-lbl">System prompt override (name, optional)</label>
+        <input type="text" id="cfg-system_prompt_name" class="pe-input"
+               placeholder="(uses prompt default or global default)">
+    </div>
+    <div style="margin-bottom:0.75rem;">
+        <label class="pe-field-lbl">Scope instruction override</label>
+        <select id="cfg-scope_key" class="pe-input">
+            <option value="">(uses the system prompt's scope)</option>
+            {% for k, lbl in scope_choices %}
+            <option value="{{ k }}">{{ lbl }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div style="margin-bottom:0.75rem;">
+        <label class="pe-field-lbl">Request check (stricter than practice only)</label>
+        <select id="cfg-scope_check_mode" class="pe-input">
+            <option value="">(practice setting)</option>
+            <option value="record">Record</option>
+            <option value="warn">Warn (with the pre-send review — recorded until then)</option>
+            <option value="block">Block (with the pre-send review — recorded until then)</option>
+        </select>
+    </div>
+    <div style="margin-bottom:0.75rem;">
+        <label class="pe-field-lbl">Temperature override</label>
+        <input type="number" id="cfg-temperature" class="pe-input" step="0.1" min="0" max="2"
+               placeholder="(uses prompt setting)">
+    </div>
+    <div style="margin-bottom:0.75rem;">
+        <label class="pe-field-lbl">Max tokens override</label>
+        <input type="number" id="cfg-max_tokens" class="pe-input" step="1" min="1"
+               placeholder="(uses prompt setting)">
+    </div>
+</div>
+</template>
+
+<template id="tpl-inference">
+<div>
+    <h4 style="font-size:0.8rem; font-weight:700; margin:0 0 0.75rem;">Inference Config</h4>
+    <div style="margin-bottom:0.75rem; padding:0.5rem 0.65rem; background:var(--warning-light);
+                border:1px solid var(--warning); border-radius:var(--radius-sm); font-size:0.7rem; color:var(--warning);">
+        ⚠ Security wall: if redaction policy ≠ redact_all, only local providers are permitted.
+    </div>
+    <div style="margin-bottom:0.75rem;">
+        <label class="pe-field-lbl">Model <span style="color:var(--danger)">*</span></label>
+        <select id="cfg-model_id" class="pe-input">
+            <option value="">— select —</option>
+            {% for m in models %}
+            <option value="{{ m.id }}">{{ m.display_name or m.model_id }}
+                ({{ m.provider.name if m.provider else '?' }})
+            </option>
+            {% endfor %}
+        </select>
+        <div style="font-size:0.65rem; color:var(--text-muted); margin-top:0.15rem;">
+            Only enabled models shown. ASR models excluded from inference steps.
+        </div>
+    </div>
+    <div style="margin-bottom:0.75rem;">
+        <label style="font-size:0.75rem; display:flex; gap:0.4rem; align-items:flex-start;">
+            <input type="checkbox" id="cfg-screening">
+            <span><strong>Screening pipeline</strong> — the model's answer is a list of
+            suspected identifiers: shown, located in the prompt, on the privacy card
+            (for PII screening pipelines only).</span>
+        </label>
+    </div>
+    <div style="margin-bottom:0.75rem;">
+        <label class="pe-field-lbl">Notice above the output</label>
+        <select id="cfg-ai_notice" class="pe-input">
+            <option value="">(the page's usual notice)</option>
+            {% for k, lbl in notice_choices %}
+            <option value="{{ k }}">{{ lbl }}</option>
+            {% endfor %}
+        </select>
+        <div style="font-size:0.65rem; color:var(--text-muted); margin-top:0.15rem;">
+            One line shown on screen above this workflow's AI output (Setup → AI scope).
+        </div>
+    </div>
+    <div style="margin-bottom:0.75rem;">
+        <label class="pe-field-lbl">Extra request parameters</label>
+        <textarea id="cfg-request_params" class="pe-input" rows="3" maxlength="2000"
+                  style="font-family:monospace;" placeholder='{"reasoning_effort": "low"}'></textarea>
+        <div style="font-size:0.68rem; color:var(--text-muted); margin-top:0.2rem;">
+            A JSON object. Its keys replace the model's own (Setup → Models) for this step only;
+            a key set to <code>null</code> removes the model's value. Blank = the model's own.
+        </div>
+    </div>
+</div>
+</template>
+
+<template id="tpl-deredaction">
+<div>
+    <h4 style="font-size:0.8rem; font-weight:700; margin:0 0 0.75rem;">DeRedaction Config</h4>
+    <p style="font-size:0.7rem; color:var(--text-muted);">
+        No configuration required. Reverses all PII tokens in <code>final_output</code>
+        using the run's token map. Add this step after Inference when using
+        <em>redact_all</em> or <em>redact_pii_only</em> policy.
+    </p>
+    <div style="margin-top:0.75rem; padding:0.5rem 0.65rem; background:var(--info-light);
+                border:1px solid var(--info); border-radius:var(--radius-sm); font-size:0.7rem; color:var(--info);">
+        ℹ Three-pass restoration: exact match → fuzzy warn → placeholder sweep.
+    </div>
+</div>
+</template>
+
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+<script>
+const PIPELINE_ID = {{ pipeline.id }};
+const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
+const CLOUD_MODEL_IDS = new Set({{ cloud_model_ids | tojson }});
+const INFERENCE_MODEL_IDS = {{ inference_model_ids | tojson }};
+
+let activeStepId   = null;
+let activeNodeType = null;
+
+// ── Step list ──────────────────────────────────────────────────────────────
+
+function openAddStep() {
+    document.getElementById('add-step-form').style.display = 'block';
+    document.getElementById('new-node-type').focus();
+}
+
+function addStep() {
+    const nodeType = document.getElementById('new-node-type').value;
+    const label    = document.getElementById('new-step-label').value.trim();
+
+    const fd = new FormData();
+    fd.append('csrf_token', CSRF);
+    fd.append('node_type', nodeType);
+    fd.append('label', label);
+
+    fetch(`/pipeline/designer/${PIPELINE_ID}/step/add`, { method:'POST', body:fd })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { alert(data.error); return; }
+        // Reload page to refresh step list
+        location.reload();
+    });
+}
+
+function updateName() {
+    const value = document.getElementById('name-input').value.trim();
+    if (!value) { alert('Name cannot be empty.'); return; }
+    const fd = new FormData();
+    fd.append('csrf_token', CSRF);
+    fd.append('name', value);
+    fetch(`/pipeline/designer/${PIPELINE_ID}/update`, { method:'POST', body:fd })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { alert(data.error); return; }
+        const badge = document.getElementById('name-saved');
+        if (badge) { badge.style.display = ''; setTimeout(() => badge.style.display = 'none', 1500); }
+    });
+}
+
+function updateClassifier() {
+    const value = document.getElementById('classifier-input').value.trim();
+    const fd = new FormData();
+    fd.append('csrf_token', CSRF);
+    fd.append('classifier', value);
+    fetch(`/pipeline/designer/${PIPELINE_ID}/update`, { method:'POST', body:fd })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { alert(data.error); return; }
+        const badge = document.getElementById('classifier-saved');
+        if (badge) { badge.style.display = ''; setTimeout(() => badge.style.display = 'none', 1500); }
+    });
+}
+
+function toggleTopnav(checked) {
+    const fd = new FormData();
+    fd.append('csrf_token', CSRF);
+    fd.append('show_in_topnav', checked ? '1' : '0');
+    fetch(`/pipeline/designer/${PIPELINE_ID}/update`, { method:'POST', body:fd })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { alert(data.error); document.getElementById('show-in-topnav-chk').checked = !checked; return; }
+        const badge = document.getElementById('topnav-saved');
+        if (badge) { badge.style.display = ''; setTimeout(() => badge.style.display = 'none', 1800); }
+    });
+}
+
+function toggleDefault(checked) {
+    if (checked) {
+        const classifier = document.getElementById('classifier-input').value.trim();
+        const msg = classifier
+            ? `Set this pipeline as the default for classifier "${classifier}"?\n\nAny other pipeline with the same classifier will lose its default status.`
+            : 'Set this pipeline as the default (no classifier set)?\n\nThis will clear default on other unclassified pipelines.';
+        if (!confirm(msg)) {
+            document.getElementById('is-default-chk').checked = false;
+            return;
+        }
+        const fd = new FormData();
+        fd.append('csrf_token', CSRF);
+        fetch(`/pipeline/designer/${PIPELINE_ID}/set-default`, { method:'POST', body:fd })
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) { alert(data.error); document.getElementById('is-default-chk').checked = false; return; }
+            const badge = document.getElementById('default-saved');
+            if (badge) { badge.style.display = ''; setTimeout(() => badge.style.display = 'none', 1800); }
+        });
+    }
+}
+
+function updatePolicy(value) {
+    if (value !== 'redact_all') {
+        const usesCloud = INFERENCE_MODEL_IDS.some(mid => CLOUD_MODEL_IDS.has(mid));
+        if (usesCloud) {
+            const msg = `Warning: one or more inference steps use a cloud provider.\n\n` +
+                        `Policy "${value}" will cause the security wall to block every run ` +
+                        `(cloud inference is only permitted with redact_all).\n\n` +
+                        `Set the policy anyway?`;
+            if (!confirm(msg)) {
+                document.getElementById('policy-select').value = 'redact_all';
+                return;
+            }
+        }
+    }
+    const fd = new FormData();
+    fd.append('csrf_token', CSRF);
+    fd.append('redaction_policy', value);
+    fetch(`/pipeline/designer/${PIPELINE_ID}/update`, { method:'POST', body:fd })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { alert(data.error); return; }
+        const badge = document.getElementById('policy-saved');
+        if (badge) { badge.style.display = ''; setTimeout(() => badge.style.display = 'none', 1500); }
+    });
+}
+
+function moveStep(stepId, direction) {
+    const fd = new FormData();
+    fd.append('csrf_token', CSRF);
+    fd.append('direction', direction);
+    fetch(`/pipeline/designer/${PIPELINE_ID}/step/${stepId}/move`, { method:'POST', body:fd })
+    .then(r => r.json())
+    .then(data => { if (!data.error) location.reload(); else alert(data.error); });
+}
+
+function deleteStep(stepId) {
+    if (!confirm('Delete this step?')) return;
+    const fd = new FormData();
+    fd.append('csrf_token', CSRF);
+    fetch(`/pipeline/designer/${PIPELINE_ID}/step/${stepId}/delete`, { method:'POST', body:fd })
+    .then(r => r.json())
+    .then(() => location.reload());
+}
+
+// ── Step config ────────────────────────────────────────────────────────────
+
+function loadStepConfig(stepId, nodeType) {
+    document.querySelectorAll('.pe-step-item').forEach(el => el.classList.remove('active'));
+    const item = document.getElementById('step-item-' + stepId);
+    if (item) item.classList.add('active');
+
+    activeStepId   = stepId;
+    activeNodeType = nodeType;
+
+    const panel = document.getElementById('pe-config-panel');
+    const tpl   = document.getElementById('tpl-' + nodeType);
+    if (!tpl) {
+        panel.innerHTML = `<p style="color:var(--text-muted);font-size:var(--text-sm);">No config UI for node type: ${nodeType}</p>`;
+        return;
+    }
+
+    panel.innerHTML = '';
+    panel.appendChild(tpl.content.cloneNode(true));
+
+    // Append step label + save/delete controls
+    const controls = document.createElement('div');
+    controls.style.cssText = 'margin-top:1rem; padding-top:0.75rem; border-top:1px solid var(--border-color);';
+    controls.innerHTML = `
+        <div style="margin-bottom:0.5rem;">
+            <label class="pe-field-lbl">Step label</label>
+            <input type="text" id="cfg-label" class="pe-input" placeholder="(optional)">
+        </div>
+        <div style="display:flex; gap:0.4rem; align-items:center;">
+            <button type="button" onclick="saveStepConfig()" class="btn btn-primary"
+                    style="font-size:0.75rem; padding:0.25rem 0.6rem;">Save</button>
+            <span id="cfg-save-status" style="font-size:0.72rem;"></span>
+            <span style="flex:1;"></span>
+            <button type="button" onclick="deleteStep(${stepId})"
+                    class="btn btn-outline" style="font-size:0.68rem; padding:0.15rem 0.4rem;
+                           border-color:var(--danger); color:var(--danger);">Delete step</button>
+        </div>
+    `;
+    panel.appendChild(controls);
+
+    // Load existing config for this step
+    fetchStepConfig(stepId);
+}
+
+function fetchStepConfig(stepId) {
+    fetch(`/pipeline/designer/${PIPELINE_ID}/step/${stepId}/get`)
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) return;
+        const cfg   = data.config || {};
+        const label = data.label  || '';
+
+        // Populate generic label field
+        const lbl = document.getElementById('cfg-label');
+        if (lbl) lbl.value = label;
+
+        // Populate node-specific fields
+        Object.keys(cfg).forEach(key => {
+            const el = document.getElementById('cfg-' + key);
+            if (!el) return;
+            if (el.type === 'checkbox') {
+                el.checked = !!cfg[key];
+            } else if (el.tagName === 'TEXTAREA') {
+                el.value = typeof cfg[key] === 'object' ? JSON.stringify(cfg[key], null, 2) : (cfg[key] || '');
+            } else {
+                el.value = cfg[key] !== null && cfg[key] !== undefined ? String(cfg[key]) : '';
+            }
+        });
+    })
+    .catch(() => {});
+}
+
+function saveStepConfig() {
+    if (!activeStepId) return;
+
+    const config = buildConfig(activeNodeType);
+    const label  = (document.getElementById('cfg-label') || {}).value || '';
+
+    const fd = new FormData();
+    fd.append('csrf_token', CSRF);
+    fd.append('config_json', JSON.stringify(config));
+    fd.append('label', label);
+
+    const status = document.getElementById('cfg-save-status');
+    status.textContent = 'Saving…';
+
+    fetch(`/pipeline/designer/${PIPELINE_ID}/step/${activeStepId}/config`, { method:'POST', body:fd })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) {
+            status.textContent = '✗ ' + data.error;
+            status.style.color = 'var(--danger)';
+        } else {
+            status.textContent = '✓ Saved';
+            status.style.color = 'var(--success)';
+            setTimeout(() => { status.textContent = ''; }, 2000);
+        }
+    })
+    .catch(() => { status.textContent = '✗ Network error'; });
+}
+
+function buildConfig(nodeType) {
+    const get = id => {
+        const el = document.getElementById('cfg-' + id);
+        return el ? el.value.trim() : undefined;
+    };
+
+    if (nodeType === 'data_assembly') {
+        const bundleName = get('bundle_name');
+        const blocksRaw  = get('blocks');
+        const cfg = {};
+        if (bundleName) cfg.bundle_name = bundleName;
+        if (blocksRaw) {
+            try { cfg.blocks = JSON.parse(blocksRaw); } catch(e) {}
+        }
+        return cfg;
+    }
+
+    if (nodeType === 'prompt_assembly') {
+        const cfg = {};
+        const promptId  = get('user_prompt_id');
+        const sysPName  = get('system_prompt_name');
+        const scopeKey  = get('scope_key');
+        const temp      = get('temperature');
+        const maxTok    = get('max_tokens');
+        if (promptId) cfg.user_prompt_id = parseInt(promptId);
+        if (sysPName) cfg.system_prompt_name = sysPName;
+        if (scopeKey) cfg.scope_key = scopeKey;
+        const checkMode = get('scope_check_mode');
+        if (checkMode) cfg.scope_check_mode = checkMode;
+        if (temp)     cfg.temperature = parseFloat(temp);
+        if (maxTok)   cfg.max_tokens  = parseInt(maxTok);
+        return cfg;
+    }
+
+    if (nodeType === 'inference') {
+        const cfg = {};
+        const modelId = get('model_id');
+        if (modelId) cfg.model_id = parseInt(modelId);
+        const screening = document.getElementById('cfg-screening');
+        if (screening && screening.checked) cfg.screening = true;
+        const notice = get('ai_notice');
+        if (notice) cfg.ai_notice = notice;
+        const params = get('request_params');
+        if (params) {
+            // Sent as text when it does not read as JSON, so the save reports why.
+            try { cfg.request_params = JSON.parse(params); } catch(e) { cfg.request_params = params; }
+        }
+        return cfg;
+    }
+
+    return {};
+}
+
+// ── Pipeline activation ────────────────────────────────────────────────────
+
+function activatePipeline() {
+    if (!confirm('Activate pipeline "{{ pipeline.name | e }}"?')) return;
+    const fd = new FormData();
+    fd.append('csrf_token', CSRF);
+    fetch(`/pipeline/designer/${PIPELINE_ID}/activate`, { method:'POST', body:fd })
+    .then(r => r.json())
+    .then(() => location.reload());
+}
+
+// Back to draft (ADR-099): features that find a pipeline by its classifier stop using it.
+function deactivatePipeline() {
+    if (!confirm('Deactivate pipeline "{{ pipeline.name | e }}"?\n\nIt goes back to draft. '
+               + {{ ('Anything that uses the classifier "' ~ pipeline.classifier ~ '" stops finding it.' if pipeline.classifier else 'It has no classifier.') | tojson }})) return;
+    const fd = new FormData();
+    fd.append('csrf_token', CSRF);
+    fetch(`/pipeline/designer/${PIPELINE_ID}/deactivate`, { method:'POST', body:fd })
+    .then(r => r.json())
+    .then(() => location.reload());
+}
+
+// Archive hides it from All Pipelines and stops it running; Unarchive brings it back as a draft.
+function setArchived(archive) {
+    const msg = archive
+        ? 'Archive pipeline "{{ pipeline.name | e }}"?\n\nIt is hidden from All Pipelines (View archived shows it) and can\'t be run.'
+        : 'Unarchive pipeline "{{ pipeline.name | e }}"?\n\nIt comes back as a draft; activate it separately.';
+    if (!confirm(msg)) return;
+    const fd = new FormData();
+    fd.append('csrf_token', CSRF);
+    fetch(`/pipeline/designer/${PIPELINE_ID}/${archive ? 'archive' : 'unarchive'}`, { method:'POST', body:fd })
+    .then(r => r.json())
+    .then(() => location.reload());
+}
+
+// ── Run panel ──────────────────────────────────────────────────────────────
+
+let activeEventSource = null;
+
+function startRun() {
+    if (activeEventSource) {
+        activeEventSource.close();
+        activeEventSource = null;
+    }
+
+    const patientId   = document.getElementById('run-patient-id').value.trim();
+    const modelLocal  = document.getElementById('run-model-local').checked;
+    const inputRaw    = document.getElementById('run-input-json').value.trim();
+    let   inputJson   = {};
+    try { if (inputRaw) inputJson = JSON.parse(inputRaw); } catch(e) {
+        alert('Input JSON is invalid: ' + e.message);
+        return;
+    }
+
+    const log    = document.getElementById('sse-log');
+    const status = document.getElementById('run-status-badge');
+    log.innerHTML = '<span style="color:var(--text-muted);">Starting…</span>';
+    status.textContent = '';
+    document.getElementById('run-output-section').style.display = 'none';
+
+    fetch('/pipeline/run/start', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': CSRF,
+        },
+        body: JSON.stringify({
+            pipeline_id:   PIPELINE_ID,
+            patient_id:    patientId ? parseInt(patientId) : null,
+            model_is_local: modelLocal,
+            input:          inputJson,
+        }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) {
+            log.innerHTML = `<span class="sse-error">✗ ${data.error}</span>`;
+            return;
+        }
+        subscribeSSE(data.run_id);
+    })
+    .catch(err => {
+        log.innerHTML = `<span class="sse-error">✗ ${err}</span>`;
+    });
+}
+
+function subscribeSSE(runId) {
+    const log    = document.getElementById('sse-log');
+    const status = document.getElementById('run-status-badge');
+    log.innerHTML = '';
+
+    const es = new EventSource(`/pipeline/run/${runId}/stream`);
+    activeEventSource = es;
+
+    function _logLine(text, cls) {
+        const line = document.createElement('div');
+        line.className = cls || '';
+        line.textContent = text;
+        log.appendChild(line);
+        log.scrollTop = log.scrollHeight;
+    }
+
+    es.addEventListener('start', (ev) => {
+        const d = JSON.parse(ev.data);
+        _logLine('▶ ' + d.message, 'sse-step-start');
+        status.textContent = 'Running…';
+        status.style.color = 'var(--text-muted)';
+    });
+    es.addEventListener('step_start', (ev) => {
+        const d = JSON.parse(ev.data);
+        _logLine(`  → ${d.node || ('Step ' + (d.step + 1))}: ${d.message}`, 'sse-step-start');
+    });
+    es.addEventListener('step_done', (ev) => {
+        const d = JSON.parse(ev.data);
+        const dur = d.duration_ms ? ` (${d.duration_ms}ms)` : '';
+        _logLine(`  ✓ ${d.node || d.message}${dur}`, 'sse-step-done');
+    });
+    es.addEventListener('step_error', (ev) => {
+        const d = JSON.parse(ev.data);
+        _logLine(`  ✗ ${d.node || ('Step ' + (d.step + 1))}: ${d.message}`, 'sse-error');
+    });
+    es.addEventListener('error', (ev) => {
+        let d = {};
+        try { d = JSON.parse(ev.data); } catch (_) {}
+        _logLine('✗ ' + (d.message || 'Pipeline error'), 'sse-error');
+        status.textContent = '✗ Failed';
+        status.style.color = 'var(--danger)';
+        es.close();
+    });
+    es.addEventListener('complete', (ev) => {
+        const d = JSON.parse(ev.data);
+        _logLine('✓ ' + d.message, 'sse-complete');
+        status.textContent = '✓ Completed';
+        status.style.color = 'var(--success)';
+        if (d.output) {
+            document.getElementById('run-output').textContent = d.output;
+            document.getElementById('run-output-section').style.display = 'block';
+        }
+    });
+    es.addEventListener('done', () => { es.close(); });
+
+    es.onerror = function() {
+        if (es.readyState === EventSource.CLOSED) return;
+        _logLine('✗ Connection lost', 'sse-error');
+        status.textContent = '✗ Disconnected';
+        status.style.color = 'var(--danger)';
+        es.close();
+    };
+}
+</script>
+{% endblock %}

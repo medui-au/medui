@@ -1,0 +1,23 @@
+{% for s in sessions %}
+<div class="chat-session-row" id="chat-session-row-{{ s.id }}">
+    <a href="{{ url_for('chatbot.resume_session', session_id=s.id) }}"
+       class="chat-session-item {{ 'active' if s.id == current_session_id else '' }}">
+        <div class="chat-session-title">{{ s.title or ('Chat — ' + s.created_at.strftime('%d %b %Y')) }}</div>
+        <div class="chat-session-date">{{ s.last_activity_at.strftime('%d %b, %H:%M') if s.last_activity_at else '' }}</div>
+    </a>
+    <button type="button" class="chat-session-delete-btn" title="Delete this chat"
+            onclick="toggleDeleteConfirm({{ s.id }})">🗑</button>
+    <div class="chat-session-confirm" id="chat-session-confirm-{{ s.id }}" style="display:none;">
+        <span>Delete this chat?</span>
+        <button type="button" class="chat-session-confirm-yes"
+                hx-post="{{ url_for('chatbot.delete_session', session_id=s.id) }}"
+                hx-target="#chat-session-list" hx-swap="innerHTML"
+                hx-include="[name='q']">Yes</button>
+        <button type="button" class="chat-session-confirm-no" onclick="toggleDeleteConfirm({{ s.id }})">Cancel</button>
+    </div>
+</div>
+{% else %}
+<div class="chat-session-empty">
+    {% if q %}No previous chats matching "{{ q }}".{% else %}No previous chats yet.{% endif %}
+</div>
+{% endfor %}

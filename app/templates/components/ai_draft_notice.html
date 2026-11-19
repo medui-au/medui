@@ -1,0 +1,13 @@
+{# Shown above AI output, never inside it: the notice stays on screen and is not copied,
+   printed or filed with the draft. Set ai_notice before including to choose the wording
+   (a 'notice' wording, editable in Setup → AI scope; a workflow may choose its own on its
+   inference step — ADR-088). Set ai_notice_id when a page swaps the text per workflow.
+   Nothing is shown when the practice has turned notices off. #}
+{% set _notice = ai_notice_text(ai_notice | default('draft')) %}
+{% if _notice %}
+<div class="ai-draft-notice" role="note" {% if ai_notice_id %}id="{{ ai_notice_id }}"{% endif %}
+     style="font-size:0.75rem; line-height:1.35; color:var(--text-muted); background:var(--bg-subtle, rgba(0,0,0,0.04));
+            border-left:3px solid var(--accent-primary, #64748b); padding:0.3rem 0.6rem; margin:0 0 0.4rem 0; border-radius:3px;">
+  {{ _notice }}{{ help('ai-drafts.drafts') }}
+</div>
+{% endif %}

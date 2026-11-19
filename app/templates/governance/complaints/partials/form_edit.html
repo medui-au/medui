@@ -1,0 +1,52 @@
+<form method="post" action="{{ url_for('governance.complaints_save', complaint_id=complaint.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h3 style="font-size:0.95rem; font-weight:700; margin:0 0 1rem;">
+        Edit {{ complaint.reference_no }}
+    </h3>
+
+    <div class="gov-field">
+        <label class="gov-field-label" for="ce-subject">Subject</label>
+        <input id="ce-subject" name="subject" type="text" class="filter-input"
+               value="{{ complaint.subject }}" required maxlength="500">
+    </div>
+
+    <div class="gov-field">
+        <label class="gov-field-label" for="ce-category">Category</label>
+        <select id="ce-category" name="category" class="filter-select">
+            {% for c in categories %}
+            <option value="{{ c.value }}" {{ 'selected' if complaint.category == c }}>
+                {{ c.value.replace('_',' ').title() }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="gov-field">
+        <label class="gov-field-label" for="ce-description">Description</label>
+        <textarea id="ce-description" name="description" rows="5" class="filter-input" required>{{ complaint.description }}</textarea>
+    </div>
+
+    <div class="gov-field">
+        <label class="gov-field-label" for="ce-resolution">Resolution Summary</label>
+        <textarea id="ce-resolution" name="resolution_summary" rows="3" class="filter-input">{{ complaint.resolution_summary or '' }}</textarea>
+    </div>
+
+    <div class="gov-field">
+        <label class="gov-field-label" for="ce-corrective">Corrective Action</label>
+        <textarea id="ce-corrective" name="corrective_action" rows="3" class="filter-input">{{ complaint.corrective_action or '' }}</textarea>
+    </div>
+
+    <div class="gov-field" style="display:flex; align-items:center; gap:0.5rem;">
+        <input id="ce-disclosure" name="open_disclosure_required" type="checkbox" value="1"
+               {{ 'checked' if complaint.open_disclosure_required }}>
+        <label for="ce-disclosure" style="font-size:var(--text-sm); margin:0;">Open disclosure required</label>
+    </div>
+
+    <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a href="{{ url_for('governance.complaints_detail', complaint_id=complaint.id) }}"
+           hx-get="{{ url_for('governance.complaints_detail', complaint_id=complaint.id) }}"
+           hx-target="#complaints-detail-panel" hx-swap="innerHTML"
+           class="btn btn-outline">Cancel</a>
+    </div>
+</form>

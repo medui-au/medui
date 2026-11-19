@@ -1,0 +1,212 @@
+<div class="setup-section">
+
+    {# ── Practice Identity ───────────────────────────────────────────────── #}
+    <div class="provider-card" style="margin-bottom:1rem;">
+        <div class="provider-card-header">
+            <span style="font-weight:600;">Practice Identity{{ help('setup.general') }}</span>
+        </div>
+        <div style="padding:0.75rem;">
+            <p style="font-size:var(--text-sm); color:var(--text-muted); margin:0 0 1rem;">
+                Practice name appears in the navigation bar and on generated documents.
+            </p>
+
+            {% if flash_msg %}
+            <div style="margin-bottom:0.75rem; padding:0.5rem 0.75rem; border-radius:var(--radius-sm);
+                        font-size:var(--text-sm);
+                        {% if flash_error %}background:rgba(220,53,69,0.08); border:1px solid var(--danger); color:var(--danger);
+                        {% else %}background:rgba(25,135,84,0.08); border:1px solid var(--success); color:var(--success);{% endif %}">
+                {{ flash_msg }}
+            </div>
+            {% endif %}
+
+            <form hx-post="{{ url_for('setup.general_save') }}"
+                  hx-target="#setup-content" hx-swap="innerHTML"
+                  style="max-width:480px;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div style="margin-bottom:0.9rem;">
+                    <label class="form-label-xs" style="font-size:var(--text-sm); font-weight:600;">Practice Name</label>
+                    <input type="text" name="general.practice_name"
+                           value="{{ practice_name }}"
+                           placeholder="e.g. Sunrise Medical Centre"
+                           style="width:100%; padding:0.45rem 0.6rem; border:1px solid var(--border-color);
+                                  border-radius:var(--radius-sm); font-size:var(--text-sm);
+                                  background:var(--bg-primary); color:var(--text-primary);">
+                    <p style="margin:0.2rem 0 0; font-size:0.7rem; color:var(--text-muted);">Displayed in the navigation bar.</p>
+                </div>
+
+                <div style="margin-bottom:1rem;">
+                    <label class="form-label-xs" style="font-size:var(--text-sm); font-weight:600;">Practice Phone</label>
+                    <input type="text" name="general.practice_phone"
+                           value="{{ practice_phone }}"
+                           placeholder="e.g. (07) 3000 1234"
+                           style="width:100%; padding:0.45rem 0.6rem; border:1px solid var(--border-color);
+                                  border-radius:var(--radius-sm); font-size:var(--text-sm);
+                                  background:var(--bg-primary); color:var(--text-primary);">
+                </div>
+
+                {# Practice timezone (ADR-101): MedUI's local time, e.g. "today" on the day sheet. #}
+                {% set tz_listed = tz_choices | map('first') | list %}
+                {% set tz_other = tz_set and tz_set not in tz_listed %}
+                <div style="margin-bottom:1rem;">
+                    <label class="form-label-xs" style="font-size:var(--text-sm); font-weight:600;">Practice Timezone</label>
+                    <select name="tz_choice" id="tz-choice"
+                            onchange="document.getElementById('tz-other-row').style.display = this.value === 'other' ? 'block' : 'none';"
+                            style="width:100%; padding:0.45rem 0.6rem; border:1px solid var(--border-color);
+                                   border-radius:var(--radius-sm); font-size:var(--text-sm);
+                                   background:var(--bg-primary); color:var(--text-primary);">
+                        <option value="" {% if not tz_set %}selected{% endif %}>The installation's: {{ tz_installation }}</option>
+                        {% for z, label in tz_choices %}
+                        <option value="{{ z }}" {% if tz_set == z %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                        <option value="other" {% if tz_other %}selected{% endif %}>Other…</option>
+                    </select>
+                    <div id="tz-other-row" style="margin-top:0.4rem; display:{{ 'block' if tz_other else 'none' }};">
+                        <input type="text" name="tz_other" value="{{ tz_set if tz_other else '' }}"
+                               placeholder="e.g. Australia/Lord_Howe"
+                               style="width:100%; padding:0.45rem 0.6rem; border:1px solid var(--border-color);
+                                      border-radius:var(--radius-sm); font-size:var(--text-sm);
+                                      background:var(--bg-primary); color:var(--text-primary);">
+                    </div>
+                    <p style="margin:0.2rem 0 0; font-size:0.7rem; color:var(--text-muted);">
+                        MedUI's local time: "today" on the day sheet, and the dates in reports. A place, so
+                        daylight saving changes by itself. Now: <strong>{{ tz_current }}</strong>, {{ tz_now }}.
+                    </p>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="font-size:var(--text-sm);">Save Settings</button>
+            </form>
+        </div>
+    </div>
+
+    {# ── Patient record (ADR-104) ────────────────────────────────────────── #}
+    <div class="provider-card" style="margin-bottom:1rem;">
+        <div class="provider-card-header">
+            <span style="font-weight:600;">Patient Record{{ help('setup.patient-record') }}</span>
+        </div>
+        <div style="padding:0.75rem;">
+            {% if record_msg %}
+            <div style="margin-bottom:0.75rem; padding:0.5rem 0.75rem; border-radius:var(--radius-sm);
+                        font-size:var(--text-sm); background:rgba(25,135,84,0.08);
+                        border:1px solid var(--success); color:var(--success);">{{ record_msg }}</div>
+            {% endif %}
+            <form hx-post="{{ url_for('setup.general_patient_record_save') }}"
+                  hx-target="#setup-content" hx-swap="innerHTML" style="max-width:560px;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label style="display:flex; gap:0.5rem; align-items:flex-start; font-size:var(--text-sm); margin-bottom:0.3rem;">
+                    <input type="checkbox" name="egfr_criterion_badge" {{ 'checked' if egfr_criterion_badge }} style="margin-top:0.2rem;">
+                    <span><strong>Disease Profile: show "eGFR &lt; 60 for 3+ months"</strong> where CKD isn't recorded</span>
+                </label>
+                <p style="margin:0 0 0.75rem 1.5rem; font-size:0.7rem; color:var(--text-muted);">
+                    Shown when at least two eGFR results below 60, at least 90 days apart, have no result of 60 or
+                    more between them. It describes the results; whether the patient has CKD is the doctor's decision.
+                    Off: the Disease Profile shows recorded CKD only.
+                </p>
+                <label style="display:flex; gap:0.5rem; align-items:flex-start; font-size:var(--text-sm); margin-bottom:0.3rem;">
+                    <input type="checkbox" name="hba1c_criterion_badge" {{ 'checked' if hba1c_criterion_badge }} style="margin-top:0.2rem;">
+                    <span><strong>Disease Profile: show "HbA1c ≥ 6.5% on 2 occasions"</strong> where diabetes isn't recorded</span>
+                </label>
+                <p style="margin:0 0 0.75rem 1.5rem; font-size:0.7rem; color:var(--text-muted);">
+                    Adults only. Shown when HbA1c is 6.5% (48 mmol/mol) or more on two different days. Recorded
+                    conditions that affect how HbA1c reads are explained in its tooltip (Admin → Mapping Tables →
+                    influences). It describes the results; whether the
+                    patient has diabetes is the doctor's decision. Off: recorded diabetes only.
+                </p>
+                <label style="display:flex; gap:0.5rem; align-items:flex-start; font-size:var(--text-sm); margin-bottom:0.3rem;">
+                    <input type="checkbox" name="criterion_review" {{ 'checked' if criterion_review }} style="margin-top:0.2rem;">
+                    <span><strong>Doctor Data: Criterion Review</strong></span>
+                </label>
+                <p style="margin:0 0 0.75rem 1.5rem; font-size:0.7rem; color:var(--text-muted);">
+                    A list of patients whose results meet the HbA1c or eGFR criterion where the diagnosis isn't
+                    recorded, for doctors to review (each doctor sees the patients whose last visit was with them).
+                    Off: the page and its menu item are removed.
+                </p>
+                <button type="submit" class="btn btn-primary" style="font-size:var(--text-sm);">Save</button>
+            </form>
+        </div>
+    </div>
+
+    {# ── Encryption Key ──────────────────────────────────────────────────── #}
+    <div class="provider-card">
+        <div class="provider-card-header">
+            <span style="font-weight:600;">Encryption Key</span>
+            {% if scribe_key_set %}
+            <span style="font-size:0.65rem; padding:0.1rem 0.4rem; border-radius:0.2rem;
+                         background:rgba(25,135,84,0.12); border:1px solid var(--success);
+                         color:var(--success);">Configured</span>
+            {% else %}
+            <span style="font-size:0.65rem; padding:0.1rem 0.4rem; border-radius:0.2rem;
+                         background:rgba(220,53,69,0.1); border:1px solid var(--danger);
+                         color:var(--danger);">Not set</span>
+            {% endif %}
+        </div>
+        <div style="padding:0.75rem;">
+            <p style="font-size:var(--text-sm); color:var(--text-muted); margin:0 0 0.75rem;">
+                <code>MEDUI_ENCRYPTION_KEY</code> in <code>the project .env</code> protects all
+                secrets stored in the database — API keys, SMTP passwords, and external service
+                credentials. Back up this installation's encryption key securely
+                alongside database backups. The key is never written to the database.
+            </p>
+
+            {% if not scribe_key_set %}
+            <div style="margin-bottom:0.75rem; padding:0.5rem 0.75rem; border-radius:var(--radius-sm);
+                        font-size:0.8rem; background:rgba(220,53,69,0.06);
+                        border:1px solid var(--danger); color:var(--danger);">
+                Key not found in environment. Encrypted fields cannot be read or written until
+                <code>MEDUI_ENCRYPTION_KEY</code> is set in the installation's <code>.env</code> and MedUI recreated (<code>./medui.sh reload</code>).
+            </div>
+            {% endif %}
+
+            <button type="button" class="btn btn-outline"
+                    onclick="generateScribeKey()"
+                    style="font-size:var(--text-sm);">Generate New Key</button>
+
+            <div id="scribe-key-output" style="display:none; margin-top:0.75rem;">
+                <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem;">
+                    <code id="scribe-key-value"
+                          style="flex:1; padding:0.4rem 0.6rem; font-size:0.72rem; word-break:break-all;
+                                 background:var(--bg-secondary); border:1px solid var(--border-color);
+                                 border-radius:var(--radius-sm);"></code>
+                    <button type="button" class="btn btn-outline"
+                            onclick="copyScribeKey()"
+                            style="font-size:0.72rem; padding:0.25rem 0.55rem; white-space:nowrap;">Copy</button>
+                </div>
+                <p style="margin:0 0 0.5rem; font-size:0.7rem; color:var(--text-muted);">
+                    Paste into <code>the project .env</code> as
+                    <code>MEDUI_ENCRYPTION_KEY=&lt;value&gt;</code>, then restart the server.
+                </p>
+                <div style="padding:0.45rem 0.65rem; border-radius:var(--radius-sm); font-size:0.72rem;
+                            background:rgba(255,193,7,0.08); border:1px solid var(--warning);">
+                    <strong>Warning:</strong> replacing the key makes all currently encrypted database
+                    values (API keys, SMTP passwords, service credentials) permanently unreadable.
+                    Only generate a new key on a fresh installation or after deliberately clearing
+                    all encrypted fields.
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+window.generateScribeKey = function () {
+    var csrf = document.querySelector('meta[name="csrf-token"]');
+    fetch('{{ url_for("setup.general_generate_scribe_key") }}', {
+        method: 'POST',
+        headers: {'X-CSRFToken': csrf ? csrf.content : ''},
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+        document.getElementById('scribe-key-value').textContent = d.key;
+        document.getElementById('scribe-key-output').style.display = '';
+    })
+    .catch(function () { alert('Failed to generate key.'); });
+};
+
+window.copyScribeKey = function () {
+    var val = document.getElementById('scribe-key-value').textContent;
+    navigator.clipboard.writeText(val).then(function () {
+        alert('Key copied to clipboard.');
+    });
+};
+</script>

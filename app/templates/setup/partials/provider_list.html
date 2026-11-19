@@ -1,0 +1,436 @@
+{# Hidden CSRF token — included by HTMX non-form requests via hx-include #}
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}" id="global-csrf">
+
+{# ── Default model settings ────────────────────────────────────────────── #}
+{# Both cards below share ONE form/submit — _save_model_pref() treats a field
+   absent from the POST the same as an emptied one, so splitting these into
+   separate <form> elements posting to the same endpoint would silently blank
+   out whichever card wasn't submitted. #}
+<div class="setup-section" style="margin-bottom:1rem;">
+    {% if flash_defaults %}
+    <div style="margin-bottom:0.6rem; padding:0.4rem 0.65rem; border-radius:var(--radius-sm);
+                font-size:var(--text-sm); background:rgba(25,135,84,0.08);
+                border:1px solid var(--success); color:var(--success);">
+        {{ flash_defaults }}
+    </div>
+    {% endif %}
+
+    <form hx-post="{{ url_for('setup.ai_save_defaults') }}"
+          hx-target="#setup-content" hx-swap="innerHTML">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="provider-card" style="margin-bottom:0.75rem;">
+            <div class="provider-card-header">
+                <span style="font-weight:600;">Default Models</span>
+                <span style="font-size:0.68rem; color:var(--text-muted);">Fallback when no pipeline step or prompt override is set</span>
+            </div>
+            <div style="padding:0.75rem;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; max-width:680px;">
+                    <div>
+                        <label class="form-label-xs">Default model</label>
+                        <select name="default_model_id" class="form-control-xs" style="width:100%;">
+                            <option value="">— none (pipelines must specify a model) —</option>
+                            {% for m in inference_models %}
+                            <option value="{{ m.id }}"
+                                    {{ 'selected' if default_model_id == m.id }}>
+                                {{ m.provider.name }} — {{ m.display_name or m.model_id }}
+                                {% if not m.provider.is_local %} ☁{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <p style="margin:0.2rem 0 0; font-size:0.68rem; color:var(--text-muted);">
+                            Used when no step or prompt override is set. Can be cloud or local.
+                        </p>
+                    </div>
+                    <div>
+                        <label class="form-label-xs">Default local model</label>
+                        <select name="default_local_model_id" class="form-control-xs" style="width:100%;">
+                            <option value="">— none —</option>
+                            {% for m in local_models %}
+                            <option value="{{ m.id }}"
+                                    {{ 'selected' if default_local_model_id == m.id }}>
+                                {{ m.provider.name }} — {{ m.display_name or m.model_id }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <p style="margin:0.2rem 0 0; font-size:0.68rem; color:var(--text-muted);">
+                            Used by a workflow step set to fall back to a local model. Must be a local provider.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="provider-card" style="margin-bottom:0.75rem;">
+            <div class="provider-card-header">
+                <span style="font-weight:600;">Default Chatbot Models</span>
+                <span style="font-size:0.68rem; color:var(--text-muted);">Used by the patient chatbot; independent of the defaults above</span>
+            </div>
+            <div style="padding:0.75rem;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; max-width:680px;">
+                    <div>
+                        <label class="form-label-xs">Default chatbot model</label>
+                        <select name="default_chatbot_model_id" class="form-control-xs" style="width:100%;">
+                            <option value="">— none (chatbot pipeline must specify a model) —</option>
+                            {% for m in inference_models %}
+                            <option value="{{ m.id }}"
+                                    {{ 'selected' if default_chatbot_model_id == m.id }}>
+                                {{ m.provider.name }} — {{ m.display_name or m.model_id }}
+                                {% if not m.provider.is_local %} ☁{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <p style="margin:0.2rem 0 0; font-size:0.68rem; color:var(--text-muted);">
+                            Used when a chat session has no user-selected model override. Can be cloud or local.
+                        </p>
+                    </div>
+                    <div>
+                        <label class="form-label-xs">Default chatbot local model</label>
+                        <select name="default_chatbot_local_model_id" class="form-control-xs" style="width:100%;">
+                            <option value="">— none —</option>
+                            {% for m in local_models %}
+                            <option value="{{ m.id }}"
+                                    {{ 'selected' if default_chatbot_local_model_id == m.id }}>
+                                {{ m.provider.name }} — {{ m.display_name or m.model_id }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <p style="margin:0.2rem 0 0; font-size:0.68rem; color:var(--text-muted);">
+                            Used for chatbot pipelines with a local-only redaction policy.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="font-size:var(--text-sm);">Save Default Models</button>
+    </form>
+</div>
+
+<div class="setup-section">
+    <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.75rem;">
+        <h2 class="setup-h2" style="margin:0; flex:1;">AI Providers{{ help('setup.providers') }}</h2>
+        <button type="button" class="btn btn-primary"
+                onclick="toggleForm('add-preset-form', this)"
+                style="padding:0.25rem 0.6rem; font-size:0.72rem;">+ From Preset</button>
+        <button type="button" class="btn btn-outline"
+                onclick="toggleForm('add-custom-form', this)"
+                style="padding:0.25rem 0.6rem; font-size:0.72rem;">+ Custom</button>
+    </div>
+
+    {# ── Add from preset ── #}
+    <div id="add-preset-form" style="display:none;"
+         class="provider-edit-form">
+        <div style="font-size:0.75rem; font-weight:600; margin-bottom:0.5rem;">Add from preset</div>
+        <form hx-post="{{ url_for('setup.provider_add_preset') }}"
+              hx-target="#setup-content" hx-swap="innerHTML">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end;">
+                <div>
+                    <label class="form-label-xs">Preset</label>
+                    <select name="preset_key" id="preset-select" onchange="prefillPreset(this)"
+                            class="form-control-xs">
+                        <option value="">— select —</option>
+                        {% for p in presets %}
+                        <option value="{{ p.provider_key }}"
+                                data-url="{{ p.base_url_default or '' }}"
+                                data-local="{{ '1' if p.is_local_default else '0' }}">
+                            {{ p.display_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label-xs">Display name</label>
+                    <input type="text" name="name" id="preset-name"
+                           placeholder="(uses preset name)" class="form-control-xs" style="width:150px;">
+                </div>
+                <div>
+                    <label class="form-label-xs">Base URL</label>
+                    <input type="text" name="base_url" id="preset-url"
+                           placeholder="(uses preset default)" class="form-control-xs" style="width:230px;">
+                </div>
+                <div>
+                    <label class="form-label-xs">API key</label>
+                    <input type="password" name="api_key"
+                           placeholder="(none for local)" class="form-control-xs" style="width:170px;">
+                </div>
+                <input type="hidden" name="is_local" id="preset-is-local" value="0">
+                <button type="submit" class="btn btn-primary" style="padding:0.25rem 0.6rem; font-size:0.72rem;">Add</button>
+                <button type="button" class="btn btn-outline"
+                        onclick="toggleForm('add-preset-form')"
+                        style="padding:0.25rem 0.5rem; font-size:0.72rem;">Cancel</button>
+            </div>
+        </form>
+    </div>
+
+    {# ── Add custom ── #}
+    <div id="add-custom-form" style="display:none;"
+         class="provider-edit-form">
+        <div style="font-size:0.75rem; font-weight:600; margin-bottom:0.5rem;">Add custom provider</div>
+        <form hx-post="{{ url_for('setup.provider_add_custom') }}"
+              hx-target="#setup-content" hx-swap="innerHTML">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end;">
+                <div>
+                    <label class="form-label-xs">Name</label>
+                    <input type="text" name="name" required placeholder="My Provider"
+                           class="form-control-xs" style="width:130px;">
+                </div>
+                <div>
+                    <label class="form-label-xs">Key (unique)</label>
+                    <input type="text" name="provider_key" required placeholder="my_provider"
+                           class="form-control-xs" style="width:115px;">
+                </div>
+                <div>
+                    <label class="form-label-xs">Type</label>
+                    <select name="provider_type" class="form-control-xs">
+                        <option value="openai_compatible">OpenAI-compatible</option>
+                        <option value="anthropic">Anthropic</option>
+                        <option value="asr_whisper">Whisper ASR</option>
+                        <option value="asr_deepgram">Deepgram ASR</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label-xs">Base URL</label>
+                    <input type="text" name="base_url" required placeholder="https://…"
+                           class="form-control-xs" style="width:210px;">
+                </div>
+                <div>
+                    <label class="form-label-xs">API key</label>
+                    <input type="password" name="api_key"
+                           class="form-control-xs" style="width:150px;">
+                </div>
+                <label style="font-size:0.72rem; display:flex; align-items:center; gap:0.3rem; cursor:pointer;">
+                    <input type="checkbox" name="is_local" value="1"> Local
+                </label>
+                <label style="font-size:0.72rem; display:flex; align-items:center; gap:0.3rem; cursor:pointer;">
+                    <input type="checkbox" name="supports_model_fetching" value="1"> Can fetch models
+                </label>
+                <button type="submit" class="btn btn-primary" style="padding:0.25rem 0.6rem; font-size:0.72rem;">Add</button>
+                <button type="button" class="btn btn-outline"
+                        onclick="toggleForm('add-custom-form')"
+                        style="padding:0.25rem 0.5rem; font-size:0.72rem;">Cancel</button>
+            </div>
+        </form>
+    </div>
+
+    {# ── Provider list ── #}
+    {% if providers %}
+    {% for p in providers %}
+    <div class="provider-card" id="pcard-{{ p.id }}">
+
+        {# ── Card header ── #}
+        <div class="provider-card-header">
+            <span style="font-size:0.82rem; font-weight:600; flex:1;">{{ p.name }}</span>
+
+            {# Last test badge (from DB) #}
+            {% if p.last_test_status %}
+            <span style="font-size:0.68rem; color:{{ 'var(--success)' if p.last_test_status == 'ok' else 'var(--danger)' }};">
+                {{ '✓' if p.last_test_status == 'ok' else '✗' }}
+                {{ p.last_tested_at.strftime('%d %b %H:%M') if p.last_tested_at }}
+            </span>
+            {% endif %}
+
+            <span class="badge {{ 'badge-local' if p.is_local else 'badge-cloud' }}"
+                  style="font-size:0.65rem;">
+                {{ 'LOCAL' if p.is_local else 'CLOUD' }}
+            </span>
+            <span class="badge {{ 'badge-local' if p.is_enabled else 'badge-off' }}"
+                  style="font-size:0.65rem;">
+                {{ 'ON' if p.is_enabled else 'OFF' }}
+            </span>
+
+            {# Test #}
+            <button type="button"
+                    hx-post="{{ url_for('setup.provider_test', provider_id=p.id) }}"
+                    hx-target="#test-result-{{ p.id }}"
+                    hx-swap="innerHTML"
+                    hx-include="#global-csrf"
+                    class="btn-xs">Test</button>
+
+            {# Fetch Models #}
+            {% if p.supports_model_fetching %}
+            <button type="button"
+                    hx-post="{{ url_for('setup.provider_fetch_models', provider_id=p.id) }}"
+                    hx-target="#fetch-result-{{ p.id }}"
+                    hx-swap="innerHTML"
+                    hx-include="#global-csrf"
+                    class="btn-xs">Fetch Models</button>
+            {% endif %}
+
+            {# Edit toggle #}
+            <button type="button" class="btn-xs"
+                    onclick="toggleProviderEdit({{ p.id }})">Edit</button>
+
+            {# Enable/Disable #}
+            <button type="button" class="btn-xs"
+                    hx-post="{{ url_for('setup.provider_toggle', provider_id=p.id) }}"
+                    hx-include="#global-csrf"
+                    hx-swap="none"
+                    onclick="this.closest('.provider-card').querySelectorAll('.on-off-badge').forEach(b => b.textContent = b.textContent.trim() === 'ON' ? 'OFF' : 'ON')">
+                {{ 'Disable' if p.is_enabled else 'Enable' }}</button>
+
+            {# Delete #}
+            <form hx-post="{{ url_for('setup.provider_delete', provider_id=p.id) }}"
+                  hx-target="#setup-content" hx-swap="innerHTML"
+                  hx-include="#global-csrf"
+                  onsubmit="return confirm('Delete {{ p.name | e }}? This also removes all its models.')"
+                  style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-xs btn-xs-danger">Delete</button>
+            </form>
+        </div>
+
+        {# ── Card meta ── #}
+        <div class="provider-card-meta">
+            <span style="font-family:monospace; font-size:0.7rem;">{{ p.provider_type }}</span> ·
+            <span>{{ p.base_url }}</span> ·
+            <span>{{ p.models.count() }} model(s)</span>
+        </div>
+
+        {# ── Live test / fetch result ── #}
+        <div id="test-result-{{ p.id }}" style="margin-top:0.25rem; font-size:0.75rem;"></div>
+        <div id="fetch-result-{{ p.id }}" style="margin-top:0.25rem; font-size:0.75rem;"></div>
+
+        {# ── Edit form (hidden by default) ── #}
+        <div id="edit-form-{{ p.id }}" style="display:none; margin-top:0.75rem;"
+             class="provider-edit-form">
+            <form hx-post="{{ url_for('setup.provider_update', provider_id=p.id) }}"
+                  hx-target="#setup-content" hx-swap="innerHTML">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem 1rem; margin-bottom:0.5rem;">
+                    <div>
+                        <label class="form-label-xs">Display Name</label>
+                        <input type="text" name="name" value="{{ p.name }}"
+                               class="form-control-xs" style="width:100%;" required>
+                    </div>
+                    <div>
+                        <label class="form-label-xs">Provider Type</label>
+                        <select name="provider_type" class="form-control-xs" style="width:100%;">
+                            {% for t in [('openai_compatible','OpenAI-compatible'),
+                                         ('anthropic','Anthropic'),
+                                         ('asr_whisper','Whisper ASR'),
+                                         ('asr_deepgram','Deepgram ASR')] %}
+                            <option value="{{ t[0] }}" {{ 'selected' if p.provider_type == t[0] }}>{{ t[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div style="grid-column:1/-1;">
+                        <label class="form-label-xs">Base URL</label>
+                        <input type="text" name="base_url" value="{{ p.base_url }}"
+                               class="form-control-xs" style="width:100%;">
+                    </div>
+                    <div style="grid-column:1/-1;">
+                        <label class="form-label-xs">
+                            Models URL
+                            <span style="color:var(--text-muted); font-weight:400;">— override for fetching model list (e.g. OpenRouter ZDR). Leave blank to use default.</span>
+                        </label>
+                        <input type="text" name="models_endpoint" value="{{ p.models_endpoint or '' }}"
+                               placeholder="https://openrouter.ai/api/v1/models  (blank = default)"
+                               class="form-control-xs" style="width:100%;">
+                    </div>
+                    <div style="grid-column:1/-1;">
+                        <label class="form-label-xs">
+                            API Key
+                            {% if p.api_key_token_ref %}
+                            <span style="color:var(--text-muted); font-weight:400;">— leave blank to keep existing</span>
+                            {% endif %}
+                        </label>
+                        <input type="password" name="api_key"
+                               placeholder="{{ '(set — leave blank to keep)' if p.api_key_token_ref else '(not set)' }}"
+                               class="form-control-xs" style="width:100%;">
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:1rem; align-items:flex-start; margin-bottom:0.6rem; font-size:0.72rem;">
+                    <label style="display:flex; align-items:center; gap:0.3rem; cursor:pointer;">
+                        <input type="checkbox" name="is_local" value="1" {{ 'checked' if p.is_local }}>
+                        On-premises / local network
+                    </label>
+                    <label style="display:flex; align-items:center; gap:0.3rem; cursor:pointer;">
+                        <input type="checkbox" name="supports_model_fetching" value="1"
+                               {{ 'checked' if p.supports_model_fetching }}>
+                        Can fetch model list
+                    </label>
+                </div>
+                {% if not p.is_local %}
+                <p style="font-size:0.7rem; color:var(--warning,#f59e0b); margin:0 0 0.5rem;">
+                    ⚠ Cloud provider — redaction is enforced for all pipeline runs using this provider.
+                </p>
+                {% endif %}
+
+                <div style="display:flex; gap:0.4rem;">
+                    <button type="submit" class="btn btn-primary"
+                            style="padding:0.25rem 0.6rem; font-size:0.72rem;">Save</button>
+                    <button type="button" class="btn btn-outline"
+                            onclick="toggleProviderEdit({{ p.id }})"
+                            style="padding:0.25rem 0.5rem; font-size:0.72rem;">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+    {% endfor %}
+
+    {% else %}
+    <p style="color:var(--text-muted); font-size:var(--text-sm);">
+        No providers configured. Add one above.
+    </p>
+    {% endif %}
+</div>
+
+<style>
+.provider-edit-form {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem;
+    margin-bottom: 0.6rem;
+}
+.form-label-xs {
+    display: block;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 0.15rem;
+}
+.form-control-xs {
+    padding: 0.25rem 0.4rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+}
+.btn-xs {
+    padding: 0.15rem 0.45rem;
+    font-size: 0.68rem;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--text-muted);
+}
+.btn-xs:hover { background: var(--bg-secondary); color: var(--text-primary); }
+.btn-xs-danger { border-color: var(--danger); color: var(--danger); }
+.btn-xs-danger:hover { background: var(--danger); color: #fff; }
+</style>
+
+<script>
+function toggleForm(id, btn) {
+    var el = document.getElementById(id);
+    var visible = el.style.display !== 'none';
+    el.style.display = visible ? 'none' : 'block';
+}
+function toggleProviderEdit(id) {
+    var el = document.getElementById('edit-form-' + id);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+function prefillPreset(sel) {
+    var opt = sel.options[sel.selectedIndex];
+    document.getElementById('preset-url').value = opt.dataset.url || '';
+    document.getElementById('preset-is-local').value = opt.dataset.local || '0';
+}
+</script>

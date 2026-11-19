@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Care Plan — {{ patient.get('SURNAME','') | upper }}, {{ patient.get('FIRSTNAME','') }} — {{ app_name }}{% endblock %}
+{% block head %}{% include 'careplan/_styles.html' %}{% endblock %}
+{% block content %}
+<div class="workspace">
+  {% include 'careplan/_sidebar.html' %}
+  <section class="workspace-main">
+    <div class="cp-head">
+      <h2>Care Plan{{ help('care-plans.patient') }}</h2>
+      {% if draft %}
+        <a class="btn btn-primary btn-sm" href="{{ url_for('careplan.edit', plan_id=draft.id) }}">Continue draft</a>
+        <span class="cp-muted">started by {{ draft.author.display_name or draft.author.username }}, saved {{ draft.draft_saved_at | localdt }}</span>
+      {% else %}
+        <form method="post" action="{{ url_for('careplan.start', patient_id=patient.patient_id) }}" style="margin:0;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-primary btn-sm">{{ 'New plan from the current one' if current else 'New plan' }}</button>
+        </form>
+      {% endif %}
+    </div>
+
+    {% if current %}
+    <div class="card" style="padding:0.75rem;">
+      <div class="cp-head" style="margin-bottom:0.4rem;">
+        <strong>Current plan</strong>
+        <span class="cp-muted">filed {{ current.filed_at | localdt }} by {{ current.filed_by.display_name or current.filed_by.username }}</span>
+        <a class="btn btn-outline btn-sm" href="{{ url_for('careplan.view', plan_id=current.id) }}">Open</a>
+        <a class="btn btn-outline btn-sm" href="{{ url_for('careplan.print_plan', plan_id=current.id) }}" target="_blank">Print</a>
+      </div>
+      {{ current.filed_document | safe }}
+    </div>
+    {% else %}
+    <p class="cp-muted">No care plan filed for this patient in MedUI.</p>
+    {% endif %}
+
+    {% if history %}
+    <h3 style="font-size:0.95rem; margin-top:1rem;">All plans</h3>
+    <table class="cp-list">
+      <thead><tr><th>Filed</th><th>By</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for p in history %}
+        <tr><td>{{ p.filed_at | localdt }}</td><td>{{ p.filed_by.display_name if p.filed_by else '' }}</td>
+            <td><span class="cp-status">{{ p.status.value }}</span></td>
+            <td><a href="{{ url_for('careplan.view', plan_id=p.id) }}">Open</a></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

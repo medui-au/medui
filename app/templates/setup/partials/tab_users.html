@@ -1,0 +1,146 @@
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}" id="global-csrf">
+
+<div class="setup-section">
+    <div class="setup-h2">User Accounts{{ help('setup.users') }}</div>
+
+    {% if users %}
+    <table style="width:100%; border-collapse:collapse; font-size:0.8rem;">
+        <thead>
+            <tr style="border-bottom:2px solid var(--border-color); text-align:left;">
+                <th style="padding:0.35rem 0.5rem; color:var(--text-muted); font-weight:600;">Username</th>
+                <th style="padding:0.35rem 0.5rem; color:var(--text-muted); font-weight:600;">Display Name</th>
+                <th style="padding:0.35rem 0.5rem; color:var(--text-muted); font-weight:600;">Type</th>
+                <th style="padding:0.35rem 0.5rem; color:var(--text-muted); font-weight:600; text-align:center;">Level</th>
+                <th style="padding:0.35rem 0.5rem; color:var(--text-muted); font-weight:600; text-align:center;">Active</th>
+                <th style="padding:0.35rem 0.5rem; color:var(--text-muted); font-weight:600; text-align:center;">Admin</th>
+                <th style="padding:0.35rem 0.5rem; color:var(--text-muted); font-weight:600; text-align:center;">BPS Patient ID</th>
+                <th style="padding:0.35rem 0.5rem; color:var(--text-muted); font-weight:600; width:40px;"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            {# ── Data row ── #}
+            <tr id="user-row-{{ u.id }}"
+                style="border-bottom:1px solid var(--border-color);
+                       {% if not u.is_active %}opacity:0.45;{% endif %}">
+                <td style="padding:0.4rem 0.5rem; font-weight:600;">{{ u.username }}</td>
+                <td style="padding:0.4rem 0.5rem; color:var(--text-secondary);">
+                    {% if u is doctor %}
+                    {# A doctor's details from BP, on hover or focus (ADR-128). #}
+                    <div class="user-info-wrap details-card-lookup"
+                          hx-get="{{ url_for('setup.user_details_card', user_id=u.id) }}"
+                          hx-trigger="mouseenter once, focusin once"
+                          hx-target="find .details-card" hx-swap="innerHTML">
+                        <span class="details-card-name-link" tabindex="0"
+                              aria-describedby="details-card-{{ u.id }}"
+                              onkeydown="if (event.key === 'Escape') this.blur();">{{ u.display_name or '—' }} ⓘ</span>
+                        <div class="details-card" id="details-card-{{ u.id }}" role="tooltip">
+                            <div class="details-card-note">Loading details…</div>
+                        </div>
+                    </div>
+                    {% else %}
+                    {{ u.display_name or '—' }}
+                    {% endif %}
+                </td>
+                <td style="padding:0.4rem 0.5rem;">
+                    {% if u.is_local_admin %}
+                        <span class="badge badge-local" style="font-size:0.68rem;">Local Admin</span>
+                    {% elif u.bpsdb_user_id %}
+                        <span class="badge badge-off" style="font-size:0.68rem;">BPSDB Shadow</span>
+                    {% else %}
+                        <span class="badge badge-off" style="font-size:0.68rem;">Standard</span>
+                    {% endif %}
+                </td>
+                <td style="padding:0.4rem 0.5rem; text-align:center; color:var(--text-secondary);">
+                    {{ u.security_level if u.security_level else '—' }}
+                </td>
+                <td style="padding:0.4rem 0.5rem; text-align:center;">
+                    {% if u.is_active %}<span style="color:var(--success);">✓</span>
+                    {% else %}<span style="color:var(--text-muted);">✗</span>{% endif %}
+                </td>
+                <td style="padding:0.4rem 0.5rem; text-align:center;">
+                    {% if u.is_local_admin %}<span style="color:var(--success);">✓</span>
+                    {% else %}<span style="color:var(--text-muted);">—</span>{% endif %}
+                </td>
+                <td style="padding:0.4rem 0.5rem; text-align:center; font-family:monospace; font-size:0.75rem; color:var(--text-secondary);">
+                    {{ u.bpsdb_internal_id or '—' }}
+                </td>
+                <td style="padding:0.4rem 0.5rem; text-align:center;">
+                    <button type="button" class="btn-xs"
+                            onclick="toggleUserEdit({{ u.id }})">Edit</button>
+                </td>
+            </tr>
+
+            {# ── Inline edit row ── #}
+            <tr id="user-edit-{{ u.id }}" style="display:none; background:var(--bg-secondary);">
+                <td colspan="8" style="padding:0.6rem 0.75rem;">
+                    <form hx-post="{{ url_for('setup.user_update', user_id=u.id) }}"
+                          hx-target="#setup-content" hx-swap="innerHTML"
+                          hx-include="#global-csrf"
+                          style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div>
+                            <label class="form-label-xs">Title <span style="font-weight:400; color:var(--text-muted);">(e.g. Dr.)</span></label>
+                            <input type="text" name="title"
+                                   value="{{ u.title or '' }}"
+                                   placeholder="Dr."
+                                   class="form-control-xs" style="width:70px;" maxlength="20">
+                        </div>
+
+                        {% if u.bpsdb_user_id %}
+                        <div>
+                            <label class="form-label-xs">Name in MedUI <span style="font-weight:400; color:var(--text-muted);">(blank = BP name)</span></label>
+                            <input type="text" name="preferred_name"
+                                   value="{{ u.preferred_name or '' }}"
+                                   placeholder="{{ u.bp_display_name or '' }}"
+                                   class="form-control-xs" style="width:200px;" maxlength="120">
+                        </div>
+                        {% endif %}
+
+                        <div>
+                            <label class="form-label-xs">BPS Patient ID <span style="font-weight:400; color:var(--text-muted);">(staff's own record)</span></label>
+                            <input type="number" name="bpsdb_internal_id"
+                                   value="{{ u.bpsdb_internal_id or '' }}"
+                                   placeholder="patient_id"
+                                   class="form-control-xs" style="width:110px;">
+                        </div>
+
+                        <label style="font-size:0.75rem; cursor:pointer; display:flex; align-items:center; gap:0.35rem; margin-top:1rem;">
+                            <input type="checkbox" name="is_local_admin" value="1"
+                                   {{ 'checked' if u.is_local_admin }}>
+                            App Admin
+                            <span style="font-size:0.65rem; color:var(--text-muted); font-weight:400;">
+                                (sets level&nbsp;→&nbsp;9 if currently below&nbsp;4)
+                            </span>
+                        </label>
+
+                        <div style="display:flex; gap:0.4rem; margin-top:1rem;">
+                            <button type="submit" class="btn btn-primary"
+                                    style="padding:0.2rem 0.55rem; font-size:0.72rem;">Save</button>
+                            <button type="button" class="btn btn-outline"
+                                    onclick="toggleUserEdit({{ u.id }})"
+                                    style="padding:0.2rem 0.45rem; font-size:0.72rem;">Cancel</button>
+                        </div>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="setup-stub-msg">No user accounts found.</p>
+    {% endif %}
+</div>
+
+<p style="font-size:0.75rem; color:var(--text-muted); margin-top:1rem;">
+    Full user management (create, password reset) is available under
+    <strong>Admin → User Management</strong>.
+</p>
+
+<script>
+function toggleUserEdit(id) {
+    var row = document.getElementById('user-edit-' + id);
+    if (row) row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+}
+</script>

@@ -1,0 +1,87 @@
+{% extends 'governance/base.html' %}
+
+{% block title %}Complaints Register{% endblock %}
+
+{% block gov_main %}
+
+<div class="gov-list" id="complaints-list-panel">
+    <div class="gov-list-header">
+        <h3>Complaints{{ help('governance.complaints') }}</h3>
+        {% if has_gov_level(1) %}
+        <a href="{{ url_for('governance.complaints_new') }}"
+           hx-get="{{ url_for('governance.complaints_new') }}"
+           hx-target="#complaints-detail-panel"
+           hx-swap="innerHTML"
+           class="btn btn-sm btn-primary">+ New</a>
+        {% endif %}
+    </div>
+
+    <form class="gov-list-filters" style="padding:0.5rem 0.75rem;border-bottom:1px solid var(--border-color);"
+          hx-get="{{ url_for('governance.complaints_list') }}"
+          hx-trigger="change, input delay:400ms"
+          hx-target="#complaints-rows"
+          hx-swap="innerHTML">
+        <input class="filter-input" name="search" placeholder="Search ref / subject…"
+               value="{{ filters.get('search','') }}" style="margin-bottom:0.35rem;">
+        <select class="filter-select" name="status" style="margin-bottom:0.35rem;">
+            <option value="">All statuses</option>
+            {% for s in statuses %}
+            <option value="{{ s.value }}" {{ 'selected' if filters.get('status') == s.value }}>
+                {{ s.value.replace('_',' ').title() }}
+            </option>
+            {% endfor %}
+        </select>
+        <select class="filter-select" name="category">
+            <option value="">All categories</option>
+            {% for c in categories %}
+            <option value="{{ c.value }}" {{ 'selected' if filters.get('category') == c.value }}>
+                {{ c.value.replace('_',' ').title() }}
+            </option>
+            {% endfor %}
+        </select>
+        {% if has_gov_level(9) %}
+        <label style="display:flex; align-items:center; gap:0.4rem; font-size:var(--text-sm); margin-top:0.2rem;">
+            <input type="checkbox" name="show_voided" value="1" {{ 'checked' if filters.get('show_voided') }}>
+            Show voided entries
+        </label>
+        {% endif %}
+    </form>
+
+    <div class="gov-list-body" id="complaints-rows">
+        {% include 'governance/complaints/partials/list.html' %}
+    </div>
+</div>
+
+<div class="gov-detail" id="complaints-detail-panel"
+     {% if selected_id %}
+     hx-get="{{ url_for('governance.complaints_detail', complaint_id=selected_id) }}"
+     hx-trigger="load"
+     hx-swap="innerHTML"
+     {% endif %}>
+    <div class="gov-detail-empty">Select a complaint to view details</div>
+</div>
+
+{% endblock %}
+
+{% block gov_sidebar %}
+<span class="gov-sidebar-label">Filters &amp; Info</span>
+<div style="font-size:var(--text-sm); color:var(--text-muted);">
+    Click a complaint in the list to view details, or use <strong>+ New</strong> to record a new complaint.
+</div>
+<hr class="filter-sep">
+<span class="gov-sidebar-label">AGPAL SLA</span>
+<div style="font-size:0.75rem; color:var(--text-muted); line-height:1.5;">
+    Acknowledge within <strong>2 business days</strong> of receipt.<br>
+    Overdue items are flagged <span class="badge-status badge-overdue">OVERDUE</span>.
+</div>
+{% endblock %}
+
+{% block gov_scripts %}
+<script>
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail.target.id === 'complaints-detail-panel') {
+        evt.detail.target.scrollTop = 0;
+    }
+});
+</script>
+{% endblock %}

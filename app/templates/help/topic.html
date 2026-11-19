@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}{{ topic.title }} — Help — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="help-page">
+  <p class="help-crumbs"><a href="{{ url_for('help.index') }}">Help</a> › {{ topic.area }}</p>
+  <h1>{{ topic.title }}</h1>
+  {% if topic.intro %}<div class="help-body">{{ render(topic.intro) }}</div>{% endif %}
+  {% if topic.sections|length > 1 %}
+  <ul class="help-toc">{% for s in topic.sections %}<li><a href="#{{ s.id }}">{{ s.title }}</a></li>{% endfor %}</ul>
+  {% endif %}
+  {% for s in topic.sections %}
+  <section class="help-section" id="{{ s.id }}">
+    <h2>{{ s.title }}</h2>
+    <div class="help-body">{{ render(s.text) }}</div>
+  </section>
+  {% endfor %}
+  {% if related %}
+  <p class="help-related">See also: {% for r in related %}<a href="{{ url_for('help.topic', topic_id=r.id) }}">{{ r.title }}</a>{{ ', ' if not loop.last }}{% endfor %}</p>
+  {% endif %}
+  <p class="help-reviewed">Last reviewed {{ topic.reviewed }}.</p>
+</div>
+{% endblock %}

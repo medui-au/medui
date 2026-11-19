@@ -1,0 +1,10 @@
+{% if profile %}
+<div style="font-size:var(--text-sm); line-height:1.4;">
+    <div style="margin-bottom:0.25rem;"><strong>Smoking:</strong> {{ profile.get('SMOKING', 'No Data') }}</div>
+    <div style="margin-bottom:0.25rem;"><strong>Alcohol:</strong> {{ profile.get('ALCOHOLPERWEEK', 'No Data') }}</div>
+    <div style="margin-bottom:0.25rem;"><strong>Marital Status:</strong> {{ profile.get('MaritalStatus', 'No Data') }}</div>
+    <div style="margin-bottom:0.25rem;"><strong>Occupation:</strong> {{ profile.get('Occupation') or 'No Data' }}</div>
+</div>
+{% else %}
+<p class="text-muted" style="margin:0; font-size:var(--text-sm);">No social history available.</p>
+{% endif %}

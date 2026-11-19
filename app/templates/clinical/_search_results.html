@@ -1,0 +1,20 @@
+{% for p in patients %}
+<tr class="search-row" data-url="{{ url_for(row_endpoint or 'clinical.patient', patient_id=p.InternalId) }}"
+    onclick="window.location.href=this.dataset.url">
+  <td>
+    <strong>{{ p.Name }}</strong>
+    <span class="search-id">{{ p.DOB }}{% if p.Phone %}&nbsp;·&nbsp;{{ p.Phone }}{% endif %}</span>
+  </td>
+  <td class="nowrap">{{ p.Age }} {{ p.Gender }}</td>
+  <td class="text-sm text-secondary">{{ p.Address }}</td>
+  <td class="text-right">
+    <span class="badge badge-{{ 'success' if p.Status == 'Active' else 'neutral' if p.Status == 'Inactive' else 'danger' }}">
+      {{ p.Status }}
+    </span>
+  </td>
+</tr>
+{% else %}
+<tr>
+  <td colspan="4" class="search-empty">No patients found.</td>
+</tr>
+{% endfor %}

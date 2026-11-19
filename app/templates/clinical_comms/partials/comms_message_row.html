@@ -1,0 +1,26 @@
+<div class="cmsg" id="cmsg-{{ msg.id }}">
+  <div class="cmsg-meta">
+    <span class="cmsg-chan cmsg-chan-{{ msg.channel.value }}">{{ msg.channel.value | upper }}</span>
+    <span class="cmsg-status cmsg-status-{{ msg.status.value }}">{{ msg.status.value }}</span>
+    {% if msg.bp_exported %}<span class="cmsg-status" style="background:#6d4c41;color:#fff;">BP</span>{% endif %}
+    <span class="cmsg-date">{{ msg.created_at.strftime('%d %b %y %H:%M') if msg.created_at else '—' }}</span>
+  </div>
+  {% if msg.subject %}<div class="cmsg-subj">{{ msg.subject }}</div>{% endif %}
+  <div class="cmsg-to">→ {{ msg.to_address or '—' }}</div>
+  {% set pb = msg.body or '' %}
+  {% if pb %}<div class="cmsg-preview">{{ pb | truncate(80) }}</div>{% endif %}
+  {% if msg.error_message and msg.status.value == 'failed' %}
+  <div class="cmsg-preview" style="color:var(--danger);">{{ msg.error_message | truncate(80) }}</div>
+  {% endif %}
+  <div class="cmsg-actions" onclick="event.stopPropagation()">
+    {% if msg.status.value == 'failed' %}
+    <button class="cmsg-act" onclick="commsRetry({{ patient_id }}, {{ msg.id }})">Retry</button>
+    {% endif %}
+    {% if msg.status.value in ('sent','failed') and not msg.bp_exported %}
+    <button class="cmsg-act" onclick="commsPit({{ patient_id }}, {{ msg.id }}, this)">BP →</button>
+    {% endif %}
+    {% if msg.status.value != 'revoked' %}
+    <button class="cmsg-act danger" onclick="commsRevoke({{ patient_id }}, {{ msg.id }})">Revoke</button>
+    {% endif %}
+  </div>
+</div>

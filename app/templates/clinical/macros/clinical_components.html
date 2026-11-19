@@ -1,0 +1,209 @@
+{% macro render_disease_badges(profile_dict) %}
+<div style="display:flex; flex-wrap:wrap; gap:0.25rem; align-items:flex-start;">
+    {% if profile_dict %}
+        {# KDIGO categories as reference (ADR-104), shown in the CKD tooltips beside the patient's
+           values. No row is picked out for the patient: staging is the doctor's. #}
+        {% set ckd_reference %}
+Reference: KDIGO 2024 CKD categories (CKD = kidney abnormality for more than 3 months)
+eGFR (mL/min/1.73m²):
+  G1  ≥ 90     normal or high
+  G2  60–89    mildly decreased
+  G3a 45–59    mildly to moderately decreased
+  G3b 30–44    moderately to severely decreased
+  G4  15–29    severely decreased
+  G5  < 15     kidney failure
+Urine albumin/creatinine ratio (mg/mmol):
+  A1  < 3      normal to mildly increased
+  A2  3–30     moderately increased
+  A3  > 30     severely increased
+G1 and G2 count as CKD only with another marker of kidney damage (e.g. albuminuria).{% endset %}
+        {# HbA1c targets as reference (ADR-107); nothing is compared with the patient's values. #}
+        {% set hba1c_reference %}
+Reference: HbA1c targets (Australian guidance)
+  Type 2, adults: generally ≤ 7.0% (53 mmol/mol), individualised (RACGP handbook; ADS algorithm 2024)
+  Type 2, some older people: e.g. 8% (64) rather than 7% (53); above 8–8.5% (64–69) linked with harm (RACGP)
+  Type 1, adults: < 7.0% (53) (ADS/APEG 2011)
+  Type 1, children and adolescents: < 7.5% (58) (ADS/APEG 2011); < 7.0% (53) (ISPAD 2022)
+  High risk of severe hypoglycaemia: less tight targets
+Diagnosis: HbA1c ≥ 6.5% (48 mmol/mol), confirmed on a different day (RACGP; ADS 2015).
+% from mmol/mol by the IFCC–NGSP master equation: % = 0.09148 × mmol/mol + 2.152.{% endset %}
+        {% set conditions = [
+            ('isDiabetes',    'Diabetes',     'danger'),
+            ('isIHD',         'IHD',          'danger'),
+            ('isHT',          'Hypertension', 'warning'),
+            ('isAF',          'Atrial Fib',   'danger'),
+            ('isCVA',         'CVA/Stroke',   'danger'),
+            ('isCKDRecorded', 'CKD',          'warning'),
+            ('isVasculopathy','Vasculopathy', 'warning'),
+            ('isCovid19',     'COVID-19',     'info'),
+            ('isPacemaker',   'Pacemaker',    'accent-primary'),
+        ] %}
+        {% set state = namespace(active_count=0) %}
+        {% for key, label, css_class in conditions %}
+            {% if profile_dict.get(key) == 1 %}
+                {% set ckd_year = profile_dict.get('CKDRecordedYear') %}
+                {% set ckd_egfr = profile_dict.get('egfr_latest') %}
+                {% set dm_year = profile_dict.get('DiabetesRecordedYear') %}
+                {% set dm_a1c = profile_dict.get('hba1c_latest') %}
+                {% set dm_type = 'type 1' if profile_dict.get('isIDDM') == 1 else ('type 2' if profile_dict.get('isNIDDM') == 1 else '') %}
+                <span {% if key == 'isDiabetes' %}title="Diabetes{% if dm_type %} {{ dm_type }}{% endif %} recorded in the past history{% if dm_year %} in {{ dm_year }}{% endif %}.{% if dm_a1c %} Latest HbA1c {{ dm_a1c.pct }}{% if dm_a1c.unit == 'mmol/mol' %} (laboratory: {{ dm_a1c.value }} mmol/mol){% endif %} ({{ dm_a1c.date | clinical_date }}).{% endif %}
+
+{{ hba1c_reference }}" {% endif %}{% if key == 'isCKDRecorded' %}title="CKD recorded in the past history{% if ckd_year %} in {{ ckd_year }}{% endif %}.{% if ckd_egfr %} Latest eGFR {{ ckd_egfr.value }} ({{ ckd_egfr.date | clinical_date }}).{% endif %}
+
+{{ ckd_reference }}" {% endif %}style="font-size:0.7rem; padding:0.15rem 0.4rem; border-radius:0.25rem;
+                             font-weight:bold; background:var(--{{ css_class }}); color:white;
+                             vertical-align:top; outline:1px solid rgba(0,0,0,0.18);">
+                    {{ label }}
+                    {%- if key == 'isDiabetes' -%}
+                        {%- if dm_type %} {{ dm_type }}{% endif %} (recorded{% if dm_year %} {{ dm_year }}{% endif %})
+                        {%- if dm_a1c %} · HbA1c {{ dm_a1c.pct }}, {{ dm_a1c.date.strftime('%b %Y') }}{% endif -%}
+                    {%- endif -%}
+                    {%- if key == 'isCKDRecorded' -%}
+                        {%- set ckd_stage = profile_dict.get('CKDRecordedStage') or '' -%}
+                        {%- if 'STAGE' in ckd_stage|upper %} stage {{ (ckd_stage|upper).split('STAGE')[-1]|trim }}{% endif %} (recorded{% if ckd_year %} {{ ckd_year }}{% endif %})
+                        {%- if ckd_egfr %} · eGFR {{ ckd_egfr.value }}, {{ ckd_egfr.date.strftime('%b %Y') }}{% endif -%}
+                    {%- endif %}
+                </span>
+                {% set state.active_count = state.active_count + 1 %}
+            {% endif %}
+        {% endfor %}
+
+        {# eGFR criterion (ADR-104): describes the results, shown only where CKD isn't recorded.
+           Neutral and outlined, so it reads as a description of the results, not a diagnosis. #}
+        {% set egfr = profile_dict.get('egfr_criterion') %}
+        {% if egfr and egfr.state in ('met', 'met_previously') %}
+            {% set run = egfr.run %}
+            {% set tip %}eGFR below 60 from {{ run[0].date | clinical_date }} to {{ run[-1].date | clinical_date }} ({{ run | length }} results: {{ run | map(attribute='value') | join(', ') }}).{% if egfr.state == 'met_previously' %} Latest eGFR {{ egfr.latest.value }} ({{ egfr.latest.date | clinical_date }}).{% endif %} This meets the eGFR criterion for chronic kidney disease (KDIGO: below 60 for more than 3 months). No CKD diagnosis is recorded.
+
+{{ ckd_reference }}{% endset %}
+            <span title="{{ tip }}"
+                  style="font-size:0.7rem; padding:0.1rem 0.4rem; border-radius:0.25rem;
+                         font-weight:600; border:1px solid var(--text-muted); color:var(--text-primary);
+                         background:transparent; vertical-align:top; cursor:help;">
+                eGFR &lt; 60 for 3+ months{% if egfr.state == 'met_previously' %} (to {{ run[-1].date.strftime('%b %Y') }}){% endif %}
+            </span>
+            {% set state.active_count = state.active_count + 1 %}
+        {% endif %}
+
+        {# HbA1c criterion (ADR-107): describes the results, shown only where diabetes isn't
+           recorded, for adults; held back where HbA1c is unreliable. #}
+        {% set a1c = profile_dict.get('hba1c_criterion') %}
+        {% if a1c and a1c.state == 'met' %}
+            {% set tip %}{% for d in a1c.days[-2:] %}HbA1c {{ d.pct }}{% if d.unit == 'mmol/mol' %} ({{ d.value }} mmol/mol){% endif %} ({{ d.date | clinical_date }}){{ ' and ' if not loop.last }}{% endfor %}{% if a1c.days | length > 2 %} ({{ a1c.days | length }} days in all){% endif %}. Two results at or above 6.5% (48 mmol/mol) on different days meet the HbA1c criterion for diabetes (RACGP; Australian Diabetes Society 2015). No diabetes diagnosis is recorded.{% for inf in a1c.influences or [] %}
+
+{{ inf.condition | replace('_', ' ') | capitalize }} is recorded{% if inf.year %} ({{ inf.year }}){% endif %}{% if inf.effect %}, which {{ {'may raise': 'may raise', 'may lower': 'may lower', 'either': 'may move'}.get(inf.effect, inf.effect) }} HbA1c{% endif %}. {{ inf.wording }}{% for name, r in inf.results %} Latest {{ {'b12': 'B12', 'egfr': 'eGFR'}.get(name, name) }}: {% if r %}{{ r.value }} {{ r.units }}{% if r.range %} (range {{ r.range }}){% endif %}{% if r.flag %} [{{ r.flag }}]{% endif %}, {{ r.date | clinical_date }}{% else %}none recorded{% endif %}.{% endfor %}{% if inf.source %} ({{ inf.source }}){% endif %}{% endfor %}{% if a1c.latest %}
+
+Latest HbA1c {{ a1c.latest.pct }}{% if a1c.latest.unit == 'mmol/mol' %} ({{ a1c.latest.value }} mmol/mol){% endif %} ({{ a1c.latest.date | clinical_date }}).{% endif %} HbA1c is unreliable in haemoglobinopathy, haemolysis, iron deficiency, advanced CKD, pregnancy and after a recent transfusion or iron infusion (RACGP).
+
+{{ hba1c_reference }}{% endset %}
+            <span title="{{ tip }}"
+                  style="font-size:0.7rem; padding:0.1rem 0.4rem; border-radius:0.25rem;
+                         font-weight:600; border:1px solid var(--text-muted); color:var(--text-primary);
+                         background:transparent; vertical-align:top; cursor:help;">
+                HbA1c ≥ 6.5% on 2 occasions
+            </span>
+            {% set state.active_count = state.active_count + 1 %}
+        {% endif %}
+
+        {% if profile_dict.get('BMI') %}
+            {% set bmi_val = profile_dict.get('BMI') | float %}
+            {% if bmi_val > 30 %}
+                {% set bmi_color = 'var(--warning)' if bmi_val <= 35 else 'var(--danger)' %}
+                {% set text_color = 'black' if bmi_val <= 35 else 'white' %}
+                <span style="font-size:0.7rem; padding:0.15rem 0.4rem; border-radius:0.25rem;
+                             font-weight:bold; background:{{ bmi_color }}; color:{{ text_color }};
+                             white-space:pre-line; display:inline-block; vertical-align:top; line-height:1.1;">BMI {{ profile_dict['BMI'] }} {{ profile_dict.get('WEIGHT_EXCESS','') }}
+                    {{ profile_dict.get('WEIGHT_DATE') | clinical_date }}</span>
+                {% set state.active_count = state.active_count + 1 %}
+            {% endif %}
+        {% endif %}
+
+        {% if state.active_count == 0 %}
+            <span class="text-muted" style="font-size:var(--text-sm);">No flagged conditions.</span>
+        {% endif %}
+    {% else %}
+        <span class="text-muted" style="font-size:var(--text-sm);">Profile unavailable.</span>
+    {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro render_clinical_table(rows, columns_config, empty_msg="No records found.", strikethrough_key=None) %}
+{% if rows %}
+<div style="overflow-x:auto; max-height:400px; overflow-y:auto;">
+    <table style="width:100%; border-collapse:collapse; font-size:var(--text-sm); line-height:1.2;">
+        <thead style="position:sticky; top:0; background:var(--bg-secondary); z-index:1;">
+            <tr style="border-bottom:2px solid var(--border-color);">
+                {% for header, _ in columns_config %}
+                    <th style="padding:0.25rem 0.5rem; text-align:left;">{{ header }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            {% set row_state = namespace(is_strike=false) %}
+            {% if strikethrough_key %}
+                {% for k, v in row.items() %}
+                    {% if k|lower == strikethrough_key|lower %}
+                        {% if v == 'true' or v == True or v == 1 or v == '1' %}
+                            {% set row_state.is_strike = true %}
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+            <tr style="border-bottom:1px solid var(--border-color);
+                       {% if row_state.is_strike %}text-decoration:line-through; color:var(--text-muted); opacity:0.7;{% endif %}">
+                {% for _, key in columns_config %}
+                    <td style="padding:0.25rem 0.5rem; vertical-align:top;">{{ row.get(key, '') | clinical_date }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+    <p class="text-muted" style="margin:0; padding:0.5rem; font-size:var(--text-sm);">{{ empty_msg }}</p>
+{% endif %}
+{% endmacro %}
+
+
+{% macro render_family_history(fh_data) %}
+<div style="font-size:var(--text-sm); line-height:1.2; margin-bottom:0.5rem;">
+    {% if fh_data.overview %}
+        {% set ns = namespace(adopted=0, matalive=1, patalive=1, matage=0, patage=0, matcause='', patcause='') %}
+        {% for k, v in fh_data.overview.items() %}
+            {% if k|lower == 'adopted' %}{% set ns.adopted = v %}{% endif %}
+            {% if k|lower == 'matalive' %}{% set ns.matalive = v %}{% endif %}
+            {% if k|lower == 'patalive' %}{% set ns.patalive = v %}{% endif %}
+            {% if k|lower == 'matageatdeath' %}{% set ns.matage = v %}{% endif %}
+            {% if k|lower == 'patageatdeath' %}{% set ns.patage = v %}{% endif %}
+            {% if k|lower == 'matcauseofdeath' %}{% set ns.matcause = v %}{% endif %}
+            {% if k|lower == 'patcauseofdeath' %}{% set ns.patcause = v %}{% endif %}
+        {% endfor %}
+        <div style="margin-bottom:0.25rem;">
+            {% if ns.adopted == 1 %}<strong>Adopted.</strong> {% endif %}
+            {% if ns.matalive == 2 %}Mother deceased (age {{ ns.matage }}) of {{ ns.matcause }}. {% endif %}
+            {% if ns.patalive == 2 %}Father deceased (age {{ ns.patage }}) of {{ ns.patcause }}. {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+{{ render_clinical_table(
+    fh_data.detail,
+    [('Relation', 'RELATIONNAME'), ('Condition', 'CONDITION'), ('Comment', 'DISEASECOMMENT')],
+    empty_msg='No family history detail.'
+) }}
+
+{% if fh_data.overview %}
+    {% set ns_comment = namespace(comment='') %}
+    {% for k, v in fh_data.overview.items() %}
+        {% if k|lower == 'fhcomment' %}{% set ns_comment.comment = v %}{% endif %}
+    {% endfor %}
+    {% if ns_comment.comment %}
+    <div style="font-size:var(--text-sm); margin-top:0.5rem; padding-top:0.25rem;
+                border-top:1px dashed var(--border-color); color:var(--accent-primary);">
+        <strong>Legacy FH:</strong> {{ ns_comment.comment }}
+    </div>
+    {% endif %}
+{% endif %}
+{% endmacro %}

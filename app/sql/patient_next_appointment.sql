@@ -1,0 +1,15 @@
+SELECT TOP (1)
+    FORMAT(app.APPOINTMENTDATE, 'dddd d MMMM') +
+    ' at ' +
+    LOWER(RIGHT(CONVERT(varchar, DATEADD(second, app.APPOINTMENTTIME, 0), 100), 7)) +
+    ' at ' +
+    TRIM(ISNULL(loc.LOCATIONNAME, '')) +
+    ' with Dr. ' +
+    TRIM(ISNULL(us.FIRSTNAME, '')) + ' ' + TRIM(ISNULL(us.SURNAME, '')) AS AppointmentSummary
+FROM [BPSPATIENTS].[dbo].[APPOINTMENTS] app
+JOIN LOCATIONS loc ON app.locationid = loc.LOCATIONID
+JOIN USERS us ON app.USERID = us.USERID
+WHERE app.INTERNALID = ?
+  AND app.APPOINTMENTDATE >= CAST(GETDATE() AS DATE)
+  AND app.RECORDSTATUS = 1
+ORDER BY app.APPOINTMENTDATE, app.APPOINTMENTTIME;

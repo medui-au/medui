@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{#
+  _viz_base.html — Reusable tabbed visualisation base template.
+
+  Routes pass:  page_title (str), page_subtitle (str)
+
+  Child templates override any combination of:
+    {% block tab_grid %}       — sortable data grid
+    {% block tab_chart %}      — chart(s)
+    {% block tab_analytics %}  — AI-assisted analytics
+
+  Tabs are shown only for blocks that have content.
+  Additional blocks:
+    {% block viz_head %}    — extra <head> content (inline styles, meta)
+    {% block viz_scripts %} — page-specific JS, appended after tab switcher
+#}
+
+{% block title %}{{ page_title }} — {{ app_name }}{% endblock %}
+
+{% block head %}
+<script src="{{ url_for('static', filename='js/sortable-table.js') }}" defer></script>
+{% block viz_head %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+
+{# Capture each tab — blocks that stay empty produce no tab #}
+{% set _grid_content %}{% block tab_grid %}{% endblock %}{% endset %}
+{% set _chart_content %}{% block tab_chart %}{% endblock %}{% endset %}
+{% set _analytics_content %}{% block tab_analytics %}{% endblock %}{% endset %}
+
+{# Determine which tab is shown first #}
+{% set _first = namespace(tab='') %}
+{% if _grid_content.strip()      and _first.tab == '' %}{% set _first.tab = 'grid'      %}{% endif %}
+{% if _chart_content.strip()     and _first.tab == '' %}{% set _first.tab = 'chart'     %}{% endif %}
+{% if _analytics_content.strip() and _first.tab == '' %}{% set _first.tab = 'analytics' %}{% endif %}
+
+<div class="viz-page">
+
+  <div class="viz-header">
+    <h2>{{ page_title }}</h2>
+    {% if page_subtitle %}<p>{{ page_subtitle }}</p>{% endif %}
+  </div>
+
+  <div class="tab-bar" role="tablist">
+    {% if _grid_content.strip() %}
+    <button class="tab-btn{% if _first.tab == 'grid' %} active{% endif %}"
+            role="tab" aria-selected="{{ 'true' if _first.tab == 'grid' else 'false' }}"
+            aria-controls="viz-panel-grid" id="viz-tab-grid"
+            data-viz-tab="grid">Data</button>
+    {% endif %}
+    {% if _chart_content.strip() %}
+    <button class="tab-btn{% if _first.tab == 'chart' %} active{% endif %}"
+            role="tab" aria-selected="{{ 'true' if _first.tab == 'chart' else 'false' }}"
+            aria-controls="viz-panel-chart" id="viz-tab-chart"
+            data-viz-tab="chart">Chart</button>
+    {% endif %}
+    {% if _analytics_content.strip() %}
+    <button class="tab-btn{% if _first.tab == 'analytics' %} active{% endif %}"
+            role="tab" aria-selected="{{ 'true' if _first.tab == 'analytics' else 'false' }}"
+            aria-controls="viz-panel-analytics" id="viz-tab-analytics"
+            data-viz-tab="analytics">AI Analytics</button>
+    {% endif %}
+  </div>
+
+  {% if _grid_content.strip() %}
+  <div id="viz-panel-grid" class="tab-panel{% if _first.tab == 'grid' %} active{% endif %}"
+       role="tabpanel" aria-labelledby="viz-tab-grid">
+    {{ _grid_content | safe }}
+  </div>
+  {% endif %}
+
+  {% if _chart_content.strip() %}
+  <div id="viz-panel-chart" class="tab-panel{% if _first.tab == 'chart' %} active{% endif %}"
+       role="tabpanel" aria-labelledby="viz-tab-chart">
+    {{ _chart_content | safe }}
+  </div>
+  {% endif %}
+
+  {% if _analytics_content.strip() %}
+  <div id="viz-panel-analytics" class="tab-panel{% if _first.tab == 'analytics' %} active{% endif %}"
+       role="tabpanel" aria-labelledby="viz-tab-analytics">
+    {{ _analytics_content | safe }}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    'use strict';
+    var btns   = document.querySelectorAll('[data-viz-tab]');
+    var panels = document.querySelectorAll('[id^="viz-panel-"]');
+    btns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var target = 'viz-panel-' + btn.dataset.vizTab;
+            btns.forEach(function (b) {
+                b.classList.remove('active');
+                b.setAttribute('aria-selected', 'false');
+            });
+            panels.forEach(function (p) { p.classList.remove('active'); });
+            btn.classList.add('active');
+            btn.setAttribute('aria-selected', 'true');
+            var panel = document.getElementById(target);
+            if (panel) panel.classList.add('active');
+        });
+    });
+}());
+</script>
+{% block viz_scripts %}{% endblock %}
+{% endblock %}

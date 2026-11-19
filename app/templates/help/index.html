@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}Help — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="help-page">
+  <h1>Help</h1>
+  <form method="get" action="{{ url_for('help.index') }}" class="help-search">
+    <input type="search" name="q" value="{{ query }}" placeholder="Search help, e.g. results outside range"
+           aria-label="Search help" autofocus>
+    <button type="submit" class="btn btn-primary">Search</button>
+  </form>
+
+  {% if results is not none %}
+    <h2>{{ results|length }} result{{ '' if results|length == 1 else 's' }} for “{{ query }}”</h2>
+    {% for r in results %}
+    <div class="help-result">
+      <a href="{{ url_for('help.topic', topic_id=r.topic.id) }}#{{ r.section.id }}">{{ r.topic.title }}: {{ r.section.title }}</a>
+      <p>{{ r.snippet }}</p>
+    </div>
+    {% else %}
+    <p class="muted">Nothing found. Try fewer or different words.</p>
+    {% endfor %}
+    <p><a href="{{ url_for('help.index') }}">← All topics</a></p>
+  {% else %}
+    {% for area, topics in by_area %}
+    <h2>{{ area }}</h2>
+    <ul class="help-topics">
+      {% for t in topics %}<li><a href="{{ url_for('help.topic', topic_id=t.id) }}">{{ t.title }}</a></li>{% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">No help topics yet.</p>
+    {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Application Usage — {{ report.title }}</title>
+<style>
+/* Standalone printable page, as the Quality Report: no app stylesheet, so a
+   saved copy keeps its layout; light palette regardless of the app theme. */
+:root { --bg:#fff; --bg2:#f4f6f8; --border:#d1d9e0; --text:#1a1f2e; --muted:#718096; --accent:#2563eb; }
+* { box-sizing: border-box; }
+body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--text);
+       background: var(--bg2); margin: 0; padding: 1.5rem; }
+.toolbar { position: sticky; top: 0; display: flex; gap: 0.6rem; align-items: center; background: var(--bg);
+           border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.5rem 0.75rem; margin-bottom: 1rem; }
+.btn { border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 0.375rem;
+       padding: 0.35rem 0.8rem; cursor: pointer; }
+.page { background: var(--bg); border: 1px solid var(--border); border-radius: 0.5rem; padding: 1.5rem; }
+h1 { font-size: 1.25rem; margin: 0 0 0.2rem; }
+.muted { color: var(--muted); font-size: 0.85rem; margin: 0.15rem 0; }
+.named { color: #b42318; font-weight: 600; }
+.cards { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 1rem 0; }
+.card { flex: 1 1 140px; border: 1px solid var(--border); border-radius: 0.4rem; padding: 0.5rem 0.75rem; text-align: center; }
+.card .l { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--muted); }
+.card .v { font-size: 1.2rem; font-weight: 700; color: var(--accent); }
+table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+th, td { border-bottom: 1px solid var(--border); padding: 0.3rem 0.4rem; text-align: left; }
+th { background: var(--bg2); }
+.notes { font-size: 0.75rem; color: var(--muted); margin-top: 0.8rem; }
+@media print { body { background: #fff; padding: 0; } .toolbar { display: none; }
+               .page { border: none; padding: 0; } }
+</style>
+</head>
+<body>
+<div class="toolbar">
+    <button type="button" class="btn" onclick="window.print()">Print / Save as PDF</button>
+    <span class="muted">Generated {{ generated_at.strftime('%d %b %Y %H:%M') }}</span>
+</div>
+<div class="page">
+    <h1>Application Usage — {{ report.title }}</h1>
+    <p class="muted">{{ report.description }}</p>
+    <p class="muted">{{ report.filters | join(' · ') }}</p>
+    {% if identified %}
+    <p class="named">Staff are NAMED in this report — keep it inside the practice.</p>
+    {% else %}
+    <p class="muted">Staff are de-identified (permanent labels).</p>
+    {% endif %}
+
+    {% if report.cards %}
+    <div class="cards">
+        {% for c in report.cards %}
+        <div class="card"><div class="l">{{ c.label }}</div><div class="v">{{ c.value }}</div></div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <table>
+        <thead><tr>{% for c in report.table.columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+        {% for row in report.table.rows %}
+            <tr>{% for v in row %}<td>{{ v }}</td>{% endfor %}</tr>
+        {% else %}
+            <tr><td colspan="{{ report.table.columns | length or 1 }}">Nothing recorded for these filters.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+        {% for extra in report.extra_tables %}
+    <h2 style="font-size:1rem; margin:1.2rem 0 0.4rem;">{{ extra.title }}</h2>
+    <table>
+        <thead><tr>{% for c in extra.columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>{% for row in extra.rows %}<tr>{% for v in row %}<td>{{ v }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+    </table>
+    {% endfor %}
+{% for note in report.notes %}<p class="notes">{{ note }}</p>{% endfor %}
+    <p class="notes">{{ app_name }} · Application Usage · generated {{ generated_at.strftime('%d %b %Y %H:%M') }}</p>
+</div>
+</body>
+</html>

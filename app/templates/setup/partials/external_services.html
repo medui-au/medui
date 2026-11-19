@@ -1,0 +1,233 @@
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}" id="global-csrf">
+
+<div class="setup-section">
+
+    <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.75rem;">
+        <h2 class="setup-h2" style="margin:0; flex:1;">External Services{{ help('setup.external') }}</h2>
+        <button type="button" class="btn btn-outline"
+                onclick="toggleForm('add-ext-form')"
+                style="padding:0.25rem 0.6rem; font-size:0.72rem;">+ Add Service</button>
+    </div>
+
+    <p style="font-size:var(--text-sm); color:var(--text-muted); margin-bottom:0.75rem; margin-top:0;">
+        Configure a local LiteParse OCR server. OCR is recommended for scanned documents.
+    </p>
+
+    {# ── Add form ── #}
+    <div id="add-ext-form" style="display:none;" class="provider-edit-form" style="margin-bottom:1rem;">
+        <div style="font-size:0.75rem; font-weight:600; margin-bottom:0.5rem;">Add external service</div>
+        <form hx-post="{{ url_for('setup.external_add') }}"
+              hx-target="#setup-content" hx-swap="innerHTML">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.5rem;">
+                <div>
+                    <label class="form-label-xs">Display Name *</label>
+                    <input type="text" name="display_name" required placeholder="e.g. Local LiteParse"
+                           class="form-control-xs" style="width:100%;">
+                </div>
+                <div>
+                    <label class="form-label-xs">Service Type *</label>
+                    <select name="service_type" required class="form-control-xs" style="width:100%;">
+                        <option value="ocr">OCR</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label-xs">Base URL *</label>
+                    <input type="url" name="base_url" required placeholder="{{ config.OCR_SERVICE_URL or 'http://liteparse:5707' }}"
+                           class="form-control-xs" style="width:100%;">
+                </div>
+                <div>
+                    <label class="form-label-xs">Health Check Path</label>
+                    <input type="text" name="health_check_path" placeholder="/health"
+                           class="form-control-xs" style="width:100%;">
+                </div>
+                <div>
+                    <label class="form-label-xs">API Key (optional)</label>
+                    <input type="password" name="api_key" placeholder="leave blank if not required"
+                           class="form-control-xs" style="width:100%;" autocomplete="new-password">
+                </div>
+                <div>
+                    <label class="form-label-xs">Auth Header Name</label>
+                    <input type="text" name="auth_header_name" placeholder="X-API-KEY"
+                           class="form-control-xs" style="width:100%;">
+                </div>
+            </div>
+            <div style="grid-column:1/-1; margin-bottom:0.5rem;">
+                <label class="form-label-xs">API Path <span style="font-weight:400; color:var(--text-muted);">(default: <code>/parse</code>)</span></label>
+                <input type="text" name="api_path"
+                       placeholder="/parse"
+                       class="form-control-xs" style="width:100%;">
+            </div>
+            <div style="margin-bottom:0.5rem;">
+                <label class="form-label-xs">Notes</label>
+                <input type="text" name="notes" placeholder="Optional notes"
+                       class="form-control-xs" style="width:100%;">
+            </div>
+            <div style="display:flex; gap:0.5rem;">
+                <button type="submit" class="btn btn-primary"
+                        style="padding:0.25rem 0.6rem; font-size:0.72rem;">Add</button>
+                <button type="button" class="btn btn-outline"
+                        onclick="toggleForm('add-ext-form')"
+                        style="padding:0.25rem 0.5rem; font-size:0.72rem;">Cancel</button>
+            </div>
+        </form>
+    </div>
+
+    {# ── Service cards ── #}
+    {% if not services %}
+    <p style="color:var(--text-muted); font-size:var(--text-sm);">
+        No external services configured yet. Click <strong>+ Add Service</strong> to add one.
+    </p>
+    {% endif %}
+
+    {% for svc in services %}
+    <div class="provider-card" id="ext-card-{{ svc.id }}">
+
+        {# ── Card header ── #}
+        <div class="provider-card-header">
+            <span style="font-size:0.82rem; font-weight:600; flex:1;">{{ svc.display_name }}</span>
+            <span style="font-size:0.65rem; padding:0.05rem 0.35rem; border-radius:0.2rem;
+                         background:var(--info); color:#fff; text-transform:uppercase;">
+                {{ svc.service_type.value }}
+            </span>
+            {% if not svc.is_enabled %}
+            <span style="font-size:0.65rem; padding:0.05rem 0.35rem; border-radius:0.2rem;
+                         background:var(--bg-secondary); color:var(--text-muted); border:1px solid var(--border-color);">
+                Disabled
+            </span>
+            {% endif %}
+            {% if svc.last_health_check_ok is not none %}
+            <span style="font-size:0.65rem; padding:0.05rem 0.35rem; border-radius:0.2rem;
+                         background:{{ 'var(--success)' if svc.last_health_check_ok else 'var(--danger)' }}; color:#fff;">
+                {{ 'OK' if svc.last_health_check_ok else 'UNREACHABLE' }}
+            </span>
+            {% endif %}
+        </div>
+
+        {# ── Card meta ── #}
+        <div class="provider-card-meta">
+            {{ svc.base_url }}
+            {% if svc.api_key_enc %}· API key stored{% endif %}
+            {% if svc.last_health_check_at %}
+            · Checked {{ svc.last_health_check_at.strftime('%d %b %H:%M') }}
+            {% endif %}
+        </div>
+
+        {# ── Actions row ── #}
+        <div style="display:flex; gap:0.4rem; flex-wrap:wrap; padding:0.4rem 0.75rem 0.5rem; border-top:1px solid var(--border-color);">
+
+            {# Test #}
+            <form hx-post="{{ url_for('setup.external_test', service_id=svc.id) }}"
+                  hx-target="#ext-test-{{ svc.id }}"
+                  hx-swap="innerHTML"
+                  hx-include="#global-csrf"
+                  style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-xs">Test</button>
+            </form>
+            <span id="ext-test-{{ svc.id }}" style="font-size:0.72rem; align-self:center;"></span>
+
+            <span style="flex:1;"></span>
+
+            {# Edit toggle #}
+            <button type="button" class="btn-xs"
+                    onclick="toggleForm('ext-edit-{{ svc.id }}')">Edit</button>
+
+            {# Delete #}
+            <form hx-post="{{ url_for('setup.external_delete', service_id=svc.id) }}"
+                  hx-target="#setup-content" hx-swap="innerHTML"
+                  hx-include="#global-csrf"
+                  onsubmit="return confirm('Delete {{ svc.display_name | e }}?')"
+                  style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-xs btn-xs-danger">Delete</button>
+            </form>
+        </div>
+
+        {# ── Edit form (hidden) ── #}
+        <div id="ext-edit-{{ svc.id }}" style="display:none;" class="provider-edit-form"
+             style="border-top:1px solid var(--border-color);">
+            <div style="font-size:0.75rem; font-weight:600; margin-bottom:0.5rem;">Edit service</div>
+            <form hx-post="{{ url_for('setup.external_update', service_id=svc.id) }}"
+                  hx-target="#setup-content" hx-swap="innerHTML">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.5rem;">
+                    <div>
+                        <label class="form-label-xs">Display Name *</label>
+                        <input type="text" name="display_name" required value="{{ svc.display_name }}"
+                               class="form-control-xs" style="width:100%;">
+                    </div>
+                    <div>
+                        <label class="form-label-xs">Service Type</label>
+                        <select name="service_type" class="form-control-xs" style="width:100%;">
+                            <option value="ocr" {{ 'selected' if svc.service_type.value == 'ocr' }}>OCR</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label-xs">Base URL *</label>
+                        <input type="url" name="base_url" required value="{{ svc.base_url }}"
+                               class="form-control-xs" style="width:100%;">
+                    </div>
+                    <div>
+                        <label class="form-label-xs">Health Check Path</label>
+                        <input type="text" name="health_check_path"
+                               value="{{ svc.health_check_path or '/health' }}"
+                               class="form-control-xs" style="width:100%;">
+                    </div>
+                    <div>
+                        <label class="form-label-xs">New API Key</label>
+                        <input type="password" name="api_key"
+                               placeholder="{{ 'key stored — enter new to replace' if svc.api_key_enc else 'leave blank if not required' }}"
+                               class="form-control-xs" style="width:100%;" autocomplete="new-password">
+                        {% if svc.api_key_enc %}
+                        <label style="font-size:0.65rem; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; gap:0.3rem; margin-top:0.2rem;">
+                            <input type="checkbox" name="clear_api_key" value="1">
+                            clear stored key
+                        </label>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="form-label-xs">Auth Header Name</label>
+                        <input type="text" name="auth_header_name"
+                               value="{{ svc.auth_header_name or 'X-API-KEY' }}"
+                               class="form-control-xs" style="width:100%;">
+                    </div>
+                </div>
+                <div style="grid-column:1/-1; margin-bottom:0.5rem;">
+                    <label class="form-label-xs">API Path <span style="font-weight:400; color:var(--text-muted);">(default: <code>/parse</code>)</span></label>
+                    <input type="text" name="api_path"
+                           value="{{ svc.api_path or '' }}"
+                           placeholder="/parse"
+                           class="form-control-xs" style="width:100%;">
+                </div>
+                <div style="margin-bottom:0.5rem;">
+                    <label class="form-label-xs">Notes</label>
+                    <input type="text" name="notes" value="{{ svc.notes or '' }}"
+                           class="form-control-xs" style="width:100%;">
+                </div>
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <button type="submit" class="btn btn-primary"
+                            style="padding:0.25rem 0.6rem; font-size:0.72rem;">Save</button>
+                    <button type="button" class="btn btn-outline"
+                            onclick="toggleForm('ext-edit-{{ svc.id }}')"
+                            style="padding:0.25rem 0.5rem; font-size:0.72rem;">Cancel</button>
+                    <label style="font-size:0.72rem; margin-left:0.5rem; cursor:pointer; display:flex; align-items:center; gap:0.3rem;">
+                        <input type="checkbox" name="is_enabled" value="1"
+                               {{ 'checked' if svc.is_enabled }}>
+                        Enabled
+                    </label>
+                </div>
+            </form>
+        </div>
+
+    </div>
+    {% endfor %}
+
+</div>
+
+<script>
+function toggleForm(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+</script>

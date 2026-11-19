@@ -1,0 +1,150 @@
+{% extends 'clinical/patient_workspace.html' %}
+
+{% block patient_main %}
+<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.5rem; align-items:start;">
+
+    {# ── Column 1: History · Medications · Immunizations ──────────── #}
+    <div style="display:flex; flex-direction:column; gap:0.5rem;">
+
+        <div class="card" style="margin-bottom:0; padding:0.75rem;">
+            <h3 style="margin:0 0 0.5rem 0; font-size:var(--text-base);
+                       border-bottom:1px solid var(--border-color); padding-bottom:0.25rem;">History</h3>
+            <div hx-get="{{ url_for('clinical.api_history', patient_id=patient.patient_id) }}"
+                 hx-trigger="load">
+                <span class="text-muted" style="font-size:var(--text-sm);">Loading…</span>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom:0; padding:0.75rem;">
+            <h3 style="margin:0 0 0.5rem 0; font-size:var(--text-base);
+                       border-bottom:1px solid var(--border-color); padding-bottom:0.25rem;">Medications</h3>
+            <div hx-get="{{ url_for('clinical.api_medications', patient_id=patient.patient_id) }}"
+                 hx-trigger="load">
+                <span class="text-muted" style="font-size:var(--text-sm);">Loading…</span>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom:0; padding:0.75rem;">
+            <h3 style="margin:0 0 0.5rem 0; font-size:var(--text-base);
+                       border-bottom:1px solid var(--border-color); padding-bottom:0.25rem;
+                       display:grid; grid-template-columns:auto minmax(0,1fr); align-items:start; column-gap:0.5rem;">
+                <span>Immunizations</span>
+                <span hx-get="{{ url_for('clinical.api_immunizations_eligibility_flags', patient_id=patient.patient_id) }}"
+                      hx-trigger="load" hx-swap="innerHTML"
+                      style="min-width:0; text-align:right; align-self:start; margin-top:-0.15rem;"></span>
+            </h3>
+            <div hx-get="{{ url_for('clinical.api_immunizations', patient_id=patient.patient_id) }}"
+                 hx-trigger="load">
+                <span class="text-muted" style="font-size:var(--text-sm);">Loading…</span>
+            </div>
+        </div>
+
+    </div>
+
+    {# ── Column 2: Allergies · Family History · Social History · Recalls · Actions ── #}
+    <div style="display:flex; flex-direction:column; gap:0.5rem;">
+
+        <div class="card" style="margin-bottom:0; padding:0.75rem;">
+            <h3 style="margin:0 0 0.5rem 0; font-size:var(--text-base);
+                       border-bottom:1px solid var(--border-color); padding-bottom:0.25rem;">Allergies / ADR</h3>
+            <div hx-get="{{ url_for('clinical.api_allergies', patient_id=patient.patient_id) }}"
+                 hx-trigger="load">
+                <span class="text-muted" style="font-size:var(--text-sm);">Loading…</span>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom:0; padding:0.75rem;">
+            <h3 style="margin:0 0 0.5rem 0; font-size:var(--text-base);
+                       border-bottom:1px solid var(--border-color); padding-bottom:0.25rem;">Family History</h3>
+            <div hx-get="{{ url_for('clinical.api_family_history', patient_id=patient.patient_id) }}"
+                 hx-trigger="load">
+                <span class="text-muted" style="font-size:var(--text-sm);">Loading…</span>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom:0; padding:0.75rem;">
+            <h3 style="margin:0 0 0.5rem 0; font-size:var(--text-base);
+                       border-bottom:1px solid var(--border-color); padding-bottom:0.25rem;">Social History</h3>
+            <div hx-get="{{ url_for('clinical.api_social_history', patient_id=patient.patient_id) }}"
+                 hx-trigger="load">
+                <span class="text-muted" style="font-size:var(--text-sm);">Loading…</span>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom:0; padding:0.75rem;">
+            <h3 style="margin:0 0 0.5rem 0; font-size:var(--text-base);
+                       border-bottom:1px solid var(--border-color); padding-bottom:0.25rem;">Recalls</h3>
+            <div hx-get="{{ url_for('clinical.api_recalls', patient_id=patient.patient_id) }}"
+                 hx-trigger="load">
+                <span class="text-muted" style="font-size:var(--text-sm);">Loading…</span>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom:0; padding:0.75rem;">
+            <h3 style="margin:0 0 0.5rem 0; font-size:var(--text-base);
+                       border-bottom:1px solid var(--border-color); padding-bottom:0.25rem;">Actions</h3>
+            <div hx-get="{{ url_for('clinical.api_actions', patient_id=patient.patient_id) }}"
+                 hx-trigger="load">
+                <span class="text-muted" style="font-size:var(--text-sm);">Loading…</span>
+            </div>
+        </div>
+
+    </div>
+
+    {# ── Column 3: Letters · Pathology Trends · Last Services ─────── #}
+    <div style="display:flex; flex-direction:column; gap:0.5rem;">
+
+        <div class="card" style="margin-bottom:0; padding:0.75rem;">
+            <h3 style="margin:0 0 0.5rem 0; font-size:var(--text-base);
+                       border-bottom:1px solid var(--border-color); padding-bottom:0.25rem;">Letters Out</h3>
+            <div hx-get="{{ url_for('clinical.api_letters', patient_id=patient.patient_id) }}"
+                 hx-trigger="load">
+                <span class="text-muted" style="font-size:var(--text-sm);">Loading…</span>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom:0; padding:0.75rem;">
+            <h3 style="margin:0 0 0.5rem 0; font-size:var(--text-base);
+                       border-bottom:1px solid var(--border-color); padding-bottom:0.25rem;">Pathology Trends</h3>
+            <div hx-get="{{ url_for('clinical.api_pathology_trends', patient_id=patient.patient_id) }}"
+                 hx-trigger="load">
+                <span class="text-muted" style="font-size:var(--text-sm);">Loading…</span>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom:0; padding:0.75rem;">
+            <h3 style="margin:0 0 0.5rem 0; font-size:var(--text-base);
+                       border-bottom:1px solid var(--border-color); padding-bottom:0.25rem;">Last Services</h3>
+            <div hx-get="{{ url_for('clinical.api_last_items', patient_id=patient.patient_id) }}"
+                 hx-trigger="load">
+                <span class="text-muted" style="font-size:var(--text-sm);">Loading…</span>
+            </div>
+        </div>
+
+    </div>
+
+    {# ── Column 4: Pathology Summary · Scans & Documents ──────────── #}
+    <div style="display:flex; flex-direction:column; gap:0.5rem;">
+
+        <div class="card" style="margin-bottom:0; padding:0.75rem;">
+            <h3 style="margin:0 0 0.5rem 0; font-size:var(--text-base);
+                       border-bottom:1px solid var(--border-color); padding-bottom:0.25rem;">Pathology Summary</h3>
+            <div hx-get="{{ url_for('clinical.api_pathsummary', patient_id=patient.patient_id) }}"
+                 hx-trigger="load">
+                <span class="text-muted" style="font-size:var(--text-sm);">Loading…</span>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom:0; padding:0.75rem;">
+            <h3 style="margin:0 0 0.5rem 0; font-size:var(--text-base);
+                       border-bottom:1px solid var(--border-color); padding-bottom:0.25rem;">Scans &amp; Documents</h3>
+            <div hx-get="{{ url_for('clinical.api_scans', patient_id=patient.patient_id) }}"
+                 hx-trigger="load">
+                <span class="text-muted" style="font-size:var(--text-sm);">Loading…</span>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

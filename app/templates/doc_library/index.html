@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+{% block title %}Library — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+/* ── Library list page ── */
+.lib-page        { padding: 1.25rem 1.5rem; max-width: 1400px; margin: 0 auto; }
+
+/* In patient workspace the workspace-main supplies its own padding */
+.workspace-main .lib-page { padding: 0; max-width: none; }
+
+.lib-header      { display:flex; align-items:center; gap:1rem; margin-bottom:1rem; }
+.lib-header h1   { font-size:var(--text-xl); font-weight:700; margin:0; flex:1; }
+.lib-search-row  { display:flex; gap:0.5rem; align-items:center; margin-bottom:1.25rem; }
+.lib-search-input{ flex:1; max-width:480px; padding:0.4rem 0.65rem; font-size:var(--text-sm);
+                   border:1px solid var(--border-color); border-radius:var(--radius);
+                   background:var(--bg-primary); color:var(--text-primary); }
+.lib-search-input:focus { outline:none; border-color:var(--accent); }
+
+/* ── Card grid ── */
+.lib-card-grid   { display:grid; grid-template-columns:repeat(5,1fr); gap:0.9rem; }
+@media (max-width:1100px) { .lib-card-grid { grid-template-columns:repeat(3,1fr); } }
+@media (max-width:700px)  { .lib-card-grid { grid-template-columns:repeat(2,1fr); } }
+
+/* ── Individual card ── */
+.lib-card        { position:relative; background:var(--bg-primary);
+                   border:1px solid var(--border-color); border-radius:var(--radius-lg);
+                   padding:0.75rem 0.85rem 0.6rem;
+                   display:flex; flex-direction:column; gap:0.4rem;
+                   box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+.lib-card:hover  { border-color:var(--accent-muted); box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+
+.lib-card-delete { position:absolute; top:0.35rem; right:0.4rem;
+                   background:none; border:none; cursor:pointer;
+                   font-size:0.9rem; line-height:1; color:var(--text-muted);
+                   padding:0.1rem 0.25rem; border-radius:var(--radius-sm); }
+.lib-card-delete:hover { color:var(--danger); background:var(--danger-light); }
+
+.lib-card-badges { display:flex; flex-wrap:wrap; gap:0.25rem; }
+.lib-badge       { font-size:0.6rem; font-weight:700; text-transform:uppercase;
+                   letter-spacing:0.04em; padding:0.1rem 0.35rem;
+                   border-radius:0.2rem; display:inline-block; }
+.lib-badge-all     { background:var(--accent-light); color:var(--accent); }
+.lib-badge-private { background:var(--bg-tertiary); color:var(--text-secondary); }
+.lib-badge-doctors { background:var(--warning-light,#fef3c7); color:var(--warning,#d97706); }
+.lib-badge-patient { background:var(--info-light,#dbeafe); color:var(--info,#2563eb); }
+
+/* ── Title row: title link + inline edit ── */
+.lib-card-title-row { display:flex; align-items:baseline; gap:0.35rem; }
+.lib-card-title  { font-size:var(--text-sm); font-weight:600; color:var(--text-primary);
+                   line-height:1.35; flex:1; min-width:0;
+                   display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical;
+                   overflow:hidden; text-decoration:none; }
+.lib-card-title:hover { color:var(--accent); }
+.lib-card-edit-inline { flex-shrink:0; font-size:var(--text-xs); color:var(--accent);
+                        text-decoration:none; font-weight:500; white-space:nowrap; opacity:0.7; }
+.lib-card-edit-inline:hover { text-decoration:underline; opacity:1; }
+
+.lib-card-keywords{ font-size:var(--text-xs); color:var(--text-muted);
+                    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+.lib-card-footer { display:flex; justify-content:space-between; align-items:center;
+                   font-size:var(--text-xs); color:var(--text-muted); margin-top:auto;
+                   padding-top:0.25rem; }
+.lib-card-footer-right { display:flex; gap:0.5rem; align-items:center; }
+
+.lib-card-link   { font-size:var(--text-xs); color:var(--accent); text-decoration:none;
+                   font-weight:500; }
+.lib-card-link:hover { text-decoration:underline; }
+.lib-card-link-btn { background:none; border:none; cursor:pointer; padding:0;
+                     font-family:inherit; }
+
+.lib-empty { color:var(--text-muted); font-size:var(--text-sm);
+             padding:2rem 0; text-align:center; }
+
+/* ── Filter badges ── */
+.lib-filter-btns { display:flex; gap:0.3rem; flex-wrap:wrap; align-items:center; }
+.lib-filter-btn  { font-size:0.7rem; font-weight:600; padding:0.22rem 0.6rem;
+                   border:1px solid var(--border-color); border-radius:9999px;
+                   background:var(--bg-primary); color:var(--text-secondary);
+                   cursor:pointer; white-space:nowrap; transition:border-color 0.15s, color 0.15s, background 0.15s; }
+.lib-filter-btn:hover { border-color:var(--accent); color:var(--accent); }
+.lib-filter-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.lib-filter-btn.active[data-filter="private"] { background:var(--bg-tertiary); color:var(--text-secondary); border-color:var(--border-color); }
+.lib-filter-btn.active[data-filter="doctors"] { background:var(--warning-light,#fef3c7); color:var(--warning,#d97706); border-color:var(--warning,#d97706); }
+.lib-filter-btn.active[data-filter="hidden"]  { background:var(--bg-tertiary); color:var(--text-muted); border-color:var(--border-color); }
+.lib-filter-btn.active[data-filter="deleted"] { background:var(--danger-light,#fee2e2); color:var(--danger,#dc2626); border-color:var(--danger,#dc2626); }
+
+/* ── Deleted card state ── */
+.lib-card--deleted       { opacity:0.65; }
+.lib-card--deleted .lib-card-title { text-decoration:line-through; color:var(--text-muted); }
+.lib-badge-deleted { background:var(--danger-light,#fee2e2); color:var(--danger,#dc2626); }
+
+/* ── Clickable card body (badges + keywords) ── */
+.lib-card-body-link { display:flex; flex-direction:column; gap:0.25rem;
+                      text-decoration:none; color:inherit; }
+</style>
+{% endblock %}
+
+{# ── Reusable library content (header + search + card grid) ── #}
+{% macro lib_body() %}
+<div class="lib-page">
+
+  <div class="lib-header">
+    <h1>Library{{ help('library.finding') }}</h1>
+    <a href="{{ url_for('doc_library.editor_new', patient_id=patient_id) if patient_id else url_for('doc_library.editor_new') }}"
+       class="btn btn-primary btn-sm">+ New Document</a>
+  </div>
+
+  <div class="lib-search-row">
+    <input type="search" id="lib-search" class="lib-search-input"
+           placeholder="Search title, content or keywords…"
+           autocomplete="off" name="q"
+           oninput="libSearchDebounce()">
+
+    <div class="lib-filter-btns">
+      <button class="lib-filter-btn{% if not active_filter %} active{% endif %}"
+              data-filter="" onclick="libSetFilter(this)">All</button>
+      <button class="lib-filter-btn{% if active_filter == 'all_users' %} active{% endif %}"
+              data-filter="all_users" onclick="libSetFilter(this)">All Users</button>
+      <button class="lib-filter-btn{% if active_filter == 'private' %} active{% endif %}"
+              data-filter="private" onclick="libSetFilter(this)">Private</button>
+      {% if current_user.security_level >= 4 %}
+      <button class="lib-filter-btn{% if active_filter == 'doctors' %} active{% endif %}"
+              data-filter="doctors" onclick="libSetFilter(this)">Doctors</button>
+      {% endif %}
+      <button class="lib-filter-btn{% if active_filter == 'hidden' %} active{% endif %}"
+              data-filter="hidden" onclick="libSetFilter(this)">Hidden</button>
+      <button class="lib-filter-btn{% if active_filter == 'deleted' %} active{% endif %}"
+              data-filter="deleted" onclick="libSetFilter(this)">Deleted</button>
+    </div>
+  </div>
+
+  <div id="lib-card-wrapper">
+    {% include 'doc_library/partials/card_grid.html' %}
+  </div>
+
+</div>
+{% endmacro %}
+
+{% block content %}
+
+{% if patient %}
+{# ── Patient context: workspace layout with demographics sidebar ── #}
+<div class="workspace">
+  <aside class="workspace-sidebar">
+    <div class="card" style="padding:0.6rem;">
+      {% include 'clinical/_demographics.html' %}
+    </div>
+    {% include 'clinical/_patient_tools.html' %}
+  </aside>
+  <section class="workspace-main">
+    {{ lib_body() }}
+  </section>
+</div>
+
+{% else %}
+{# ── Standalone layout ── #}
+{{ lib_body() }}
+{% endif %}
+
+<script>
+const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
+const _libPatientId = {{ patient_id or 'null' }};
+let _libFilter = '{{ active_filter }}';
+let _libSearchTimer = null;
+
+function libSetFilter(btn) {
+  document.querySelectorAll('.lib-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _libFilter = btn.dataset.filter || '';
+  libReloadCards();
+}
+
+function libSearchDebounce() {
+  clearTimeout(_libSearchTimer);
+  _libSearchTimer = setTimeout(libReloadCards, 300);
+}
+
+function libReloadCards() {
+  const q = document.getElementById('lib-search')?.value.trim() || '';
+  const area = document.getElementById('lib-card-wrapper');
+  if (!area) return;
+  let url = '/library/search?q=' + encodeURIComponent(q);
+  if (_libFilter) url += '&filter=' + encodeURIComponent(_libFilter);
+  if (_libPatientId) url += '&patient_id=' + _libPatientId;
+  area.innerHTML = '<div style="padding:1rem;color:var(--text-muted);font-size:var(--text-sm);">Loading…</div>';
+  fetch(url, { headers: { 'X-CSRFToken': CSRF } })
+    .then(r => r.text())
+    .then(html => { area.innerHTML = html; });
+}
+
+function libDeleteDoc(docId, btn) {
+    if (!confirm('Delete this document? This cannot be undone.')) return;
+    fetch(`/library/${docId}/delete`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF },
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.ok) {
+            const card = document.getElementById(`lib-card-${docId}`);
+            if (card) {
+                card.style.transition = 'opacity 0.2s';
+                card.style.opacity = '0';
+                setTimeout(() => card.remove(), 200);
+            }
+        } else {
+            alert(d.error || 'Delete failed.');
+        }
+    })
+    .catch(() => alert('Delete request failed.'));
+}
+
+function libHideDoc(docId, btn) {
+    fetch(`/library/${docId}/hide`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF },
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.ok && d.hidden) {
+            const card = document.getElementById(`lib-card-${docId}`);
+            if (card) {
+                card.style.transition = 'opacity 0.2s';
+                card.style.opacity = '0';
+                setTimeout(() => card.remove(), 200);
+            }
+        } else if (d.ok) {
+            btn.textContent = 'Hide';
+        }
+    })
+    .catch(() => alert('Hide request failed.'));
+}
+</script>
+{% endblock %}

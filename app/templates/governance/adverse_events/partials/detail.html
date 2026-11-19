@@ -1,0 +1,462 @@
+{% set sac_map = {
+    'sac1_catastrophic': ('SAC 1 — Catastrophic','badge-sac1'),
+    'sac2_major':        ('SAC 2 — Major','badge-sac2'),
+    'sac3_moderate':     ('SAC 3 — Moderate','badge-sac3'),
+    'sac4_minor':        ('SAC 4 — Minor','badge-sac4'),
+    'sac5_near_miss':    ('SAC 5 — Near Miss','badge-sac5'),
+} %}
+{% set sac_label, sac_cls = sac_map.get(event.severity.value, ('?','')) %}
+
+<div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">
+    <div>
+        <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+            <span style="font-family:monospace; font-size:1rem; font-weight:700; color:var(--accent-primary);">
+                {{ event.reference_no }}
+            </span>
+            <span class="badge-status {{ sac_cls }}">{{ sac_label }}</span>
+            <span class="badge-status badge-{{ event.status.value }}">
+                {{ event.status.value.replace('_',' ') }}
+            </span>
+            {% if overdue %}
+            <span class="badge-status badge-overdue">OVERDUE TRIAGE</span>
+            {% endif %}
+            {% if event.event_type.value == 'sentinel_event' %}
+            <span class="badge-status" style="background:#ffebee;color:#b71c1c;font-weight:700;">SENTINEL</span>
+            {% endif %}
+        </div>
+        <div style="font-size:var(--text-sm); color:var(--text-muted); margin-top:0.2rem;">
+            Occurred {{ event.occurred_at | short_date if event.occurred_at else '—' }}
+            &middot; Reported {{ event.reported_at | short_date if event.reported_at else '—' }}
+            by {{ event.reported_by.display_name if event.reported_by else '—' }}
+        </div>
+    </div>
+    <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+    {% if event.voided_at %}
+    <span class="badge-status" style="background:#fce4ec;color:#880e4f;">VOIDED — {{ event.void_reason }}</span>
+    {% elif has_gov_level(9) %}
+        {% if event.status.value not in ('closed','no_action_required') %}
+        <form method="post" action="{{ url_for('governance.ae_close', event_id=event.id) }}"
+              onsubmit="return confirm('Close this event?');" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% if can_close %}
+            <button type="submit" class="btn btn-sm btn-outline">Close</button>
+            {% endif %}
+        </form>
+        {% if not can_close %}
+        <span style="color:var(--danger); font-size:var(--text-sm);">Cannot close: {{ close_msg }}</span>
+        {% endif %}
+        {% endif %}
+        <button type="button" class="btn btn-sm btn-outline"
+                style="color:var(--danger);border-color:var(--danger);"
+                onclick="document.getElementById('void-form-ae-{{ event.id }}').style.display='block';this.style.display='none';">
+            Void (Error)
+        </button>
+        <form id="void-form-ae-{{ event.id }}" method="post"
+              action="{{ url_for('governance.ae_void', event_id=event.id) }}"
+              style="display:none; margin-top:0.3rem; width:100%;"
+              onsubmit="return confirm('Void this event? It will be hidden from the register.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="display:flex; gap:0.4rem; align-items:flex-end; flex-wrap:wrap;">
+                <div style="flex:1; min-width:200px;">
+                    <div class="gov-field-label">Reason for voiding <span style="color:var(--danger);">*</span></div>
+                    <input name="reason" type="text" class="filter-input" placeholder="e.g. Duplicate entry" required>
+                </div>
+                <button type="submit" class="btn btn-sm" style="background:var(--danger);color:#fff;border:none;">Confirm Void</button>
+                <button type="button" class="btn btn-sm btn-outline"
+                        onclick="this.closest('form').style.display='none';">Cancel</button>
+            </div>
+        </form>
+    {% endif %}
+    </div>
+</div>
+
+{# Status timeline #}
+<div class="gov-steps">
+    {% set step_order = ['reported','triaged','under_review','rca_in_progress','action_plan_set','monitoring','closed'] %}
+    {% set cur = event.status.value %}
+    {% set current_idx = step_order.index(cur) if cur in step_order else -1 %}
+    {% for s in step_order %}
+    {% if not (s == 'rca_in_progress' and not event.rca_required) %}
+    {% set idx = loop.index0 %}
+    <span class="gov-step {{ 'done' if idx < current_idx else ('current' if idx == current_idx else '') }}">
+        {{ s.replace('_',' ').title() }}
+    </span>
+    {% endif %}
+    {% endfor %}
+    {% if event.status.value == 'no_action_required' %}
+    <span class="gov-step current">No Action Required</span>
+    {% endif %}
+</div>
+
+{# Involved person #}
+<div class="gov-section">
+    <div class="gov-section-title">Involved Person</div>
+    {% if event.involved_person_type.value == 'patient' and patient %}
+    <div class="gov-field">
+        <span class="gov-field-label">Patient</span>
+        <span class="gov-field-value">
+            {{ patient.get('Firstname','') }} {{ patient.get('Surname','') }}
+            (ID: {{ event.patient_id }})
+        </span>
+    </div>
+    {% elif event.external_name %}
+    <div class="gov-field">
+        <span class="gov-field-label">{{ event.involved_person_type.value.replace('_',' ').title() }}</span>
+        <span class="gov-field-value">{{ event.external_name }}</span>
+    </div>
+    {% else %}
+    <span class="gov-field-value">{{ event.involved_person_type.value.replace('_',' ').title() }}</span>
+    {% endif %}
+</div>
+
+{# Event detail #}
+<div class="gov-section">
+    <div class="gov-section-title">Event Details</div>
+    <div class="gov-field">
+        <span class="gov-field-label">Title</span>
+        <span class="gov-field-value" style="font-weight:600;">{{ event.title }}</span>
+    </div>
+    <div class="gov-field">
+        <span class="gov-field-label">Type</span>
+        <span class="gov-field-value">{{ event.event_type.value.replace('_',' ').title() }}</span>
+    </div>
+    {% if event.location %}
+    <div class="gov-field">
+        <span class="gov-field-label">Location</span>
+        <span class="gov-field-value">{{ event.location }}</span>
+    </div>
+    {% endif %}
+    <div class="gov-field">
+        <span class="gov-field-label">Description</span>
+        <div class="gov-field-value" style="white-space:pre-wrap; max-height:120px; overflow-y:auto; background:var(--bg-secondary); padding:0.5rem; border-radius:0.3rem; font-size:0.8rem;">{{ event.description }}</div>
+    </div>
+    {% if event.immediate_actions %}
+    <div class="gov-field">
+        <span class="gov-field-label">Immediate Actions Taken</span>
+        <div class="gov-field-value" style="white-space:pre-wrap; font-size:0.8rem; background:var(--bg-secondary); padding:0.5rem; border-radius:0.3rem;">{{ event.immediate_actions }}</div>
+    </div>
+    {% endif %}
+</div>
+
+{# Triage #}
+<div class="gov-section">
+    <div class="gov-section-title">Triage</div>
+    {% if event.triaged_at %}
+    <div class="gov-field">
+        <span class="gov-field-label">Triaged</span>
+        <span class="gov-field-value">
+            {{ event.triaged_at | short_date }}
+            by {{ event.triaged_by.display_name if event.triaged_by else '—' }}
+        </span>
+    </div>
+    {% if event.triage_notes %}
+    <div class="gov-field">
+        <span class="gov-field-label">Notes</span>
+        <div class="gov-field-value" style="font-size:0.8rem; white-space:pre-wrap;">{{ event.triage_notes }}</div>
+    </div>
+    {% endif %}
+    {% elif has_gov_level(6) and event.status.value == 'reported' %}
+    <form method="post" action="{{ url_for('governance.ae_triage', event_id=event.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="gov-field">
+            <label class="gov-field-label" for="triage-sev">Confirm Severity</label>
+            <select id="triage-sev" name="confirmed_severity" class="filter-select" style="margin-bottom:0.35rem;">
+                <option value="">— no change —</option>
+                {% for s in severities %}
+                <option value="{{ s.value }}" {{ 'selected' if event.severity == s }}>
+                    {{ s.value.replace('_',' ').title() }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <textarea name="notes" rows="2" class="filter-input" placeholder="Triage notes…" style="margin-bottom:0.35rem;"></textarea>
+        <button type="submit" class="btn btn-sm btn-primary">Triage Event</button>
+    </form>
+    {% else %}
+    <span style="color:var(--text-muted); font-size:var(--text-sm);">Not yet triaged</span>
+    {% endif %}
+</div>
+
+{# RCA #}
+{% if event.rca_required %}
+<div class="gov-section">
+    <div class="gov-section-title">Root Cause Analysis</div>
+    {% if event.rca_completed_at %}
+    <div class="gov-field">
+        <span class="gov-field-label">Method</span>
+        <span class="gov-field-value">{{ event.rca_method or '—' }}</span>
+    </div>
+    <div class="gov-field">
+        <span class="gov-field-label">Completed</span>
+        <span class="gov-field-value">
+            {{ event.rca_completed_at | short_date }}
+            by {{ event.rca_completed_by.display_name if event.rca_completed_by else '—' }}
+        </span>
+    </div>
+    {% if event.rca_summary %}
+    <div class="gov-field">
+        <span class="gov-field-label">Summary</span>
+        <div class="gov-field-value" style="white-space:pre-wrap; font-size:0.8rem; background:var(--bg-secondary); padding:0.5rem; border-radius:0.3rem; max-height:120px; overflow-y:auto;">{{ event.rca_summary }}</div>
+    </div>
+    {% endif %}
+    {% elif has_gov_level(6) %}
+    <form method="post" action="{{ url_for('governance.ae_rca', event_id=event.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="gov-field">
+            <select name="rca_method" class="filter-select" style="margin-bottom:0.35rem;">
+                <option value="">— method —</option>
+                <option value="5_whys">5 Whys</option>
+                <option value="fishbone">Fishbone / Ishikawa</option>
+                <option value="london_protocol">London Protocol</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+        <textarea name="rca_summary" rows="4" class="filter-input"
+                  placeholder="Root cause analysis findings…" style="margin-bottom:0.35rem;">{{ event.rca_summary or '' }}</textarea>
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+            <input id="rca-done" name="rca_completed" type="checkbox" value="1">
+            <label for="rca-done" style="font-size:var(--text-sm); margin:0;">Mark RCA as complete</label>
+        </div>
+        <button type="submit" class="btn btn-sm btn-primary">Save RCA</button>
+    </form>
+    {% else %}
+    <span style="color:var(--danger); font-size:var(--text-sm);">RCA required — not yet completed</span>
+    {% endif %}
+</div>
+{% endif %}
+
+{# Open disclosure #}
+<div class="gov-section">
+    <div class="gov-section-title">Open Disclosure</div>
+    <div class="gov-field">
+        <span class="gov-field-label">Required</span>
+        <span class="gov-field-value">
+            {% if event.open_disclosure_required %}
+            <span style="color:var(--danger); font-weight:600;">Yes</span>
+            {% else %}
+            <span style="color:var(--text-muted);">No</span>
+            {% endif %}
+        </span>
+    </div>
+    {% if has_gov_level(6) %}
+    <form method="post" action="{{ url_for('governance.ae_set_disclosure_required', event_id=event.id) }}"
+          style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.6rem;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input id="od-required-{{ event.id }}" name="open_disclosure_required" type="checkbox" value="1"
+               {{ 'checked' if event.open_disclosure_required }}
+               onchange="this.form.requestSubmit()">
+        <label for="od-required-{{ event.id }}" style="font-size:var(--text-sm); margin:0;">
+            Open disclosure required
+        </label>
+    </form>
+    {% endif %}
+    {% if event.open_disclosure_required %}
+        {% if event.open_disclosure_completed_at %}
+        <div class="gov-field">
+            <span class="gov-field-label">Completed</span>
+            <span class="gov-field-value">
+                {{ event.open_disclosure_completed_at | short_date }}
+                by {{ event.open_disclosure_by.display_name if event.open_disclosure_by else '—' }}
+            </span>
+        </div>
+        {% if event.open_disclosure_notes %}
+        <div class="gov-field">
+            <span class="gov-field-label">Notes</span>
+            <div class="gov-field-value" style="white-space:pre-wrap; font-size:0.8rem;">{{ event.open_disclosure_notes }}</div>
+        </div>
+        {% endif %}
+        {% elif has_gov_level(6) %}
+        <form method="post" action="{{ url_for('governance.ae_disclosure', event_id=event.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <textarea name="notes" rows="2" class="filter-input" placeholder="Disclosure notes…" style="margin-bottom:0.35rem;"></textarea>
+            <button type="submit" class="btn btn-sm btn-primary">Mark Disclosure Complete</button>
+        </form>
+        {% else %}
+        <span style="color:var(--danger); font-size:var(--text-sm);">Disclosure required — not yet completed</span>
+        {% endif %}
+    {% endif %}
+</div>
+
+{# Authority notification #}
+{% if event.event_type.value == 'sentinel_event' or event.severity.value in ('sac1_catastrophic','sac2_major') %}
+<div class="gov-section">
+    <div class="gov-section-title">Authority Notification</div>
+    {% if event.notified_authority and event.notified_authority.value != 'none' %}
+    <div class="gov-field">
+        <span class="gov-field-label">Notified</span>
+        <span class="gov-field-value">
+            {{ event.notified_authority.value.replace('_',' ').title() }}
+            {% if event.notified_at %}on {{ event.notified_at | short_date }}{% endif %}
+            {% if event.notified_authority_ref %} (Ref: {{ event.notified_authority_ref }}){% endif %}
+        </span>
+    </div>
+    {% elif has_gov_level(6) %}
+    <form method="post" action="{{ url_for('governance.ae_notify', event_id=event.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <select name="authority" class="filter-select" style="margin-bottom:0.35rem;" required>
+            <option value="">— authority —</option>
+            {% for a in authorities %}
+            {% if a.value != 'none' %}
+            <option value="{{ a.value }}">{{ a.value.replace('_',' ').title() }}</option>
+            {% endif %}
+            {% endfor %}
+        </select>
+        <input name="ref" type="text" class="filter-input" placeholder="Reference number" style="margin-bottom:0.35rem;">
+        <textarea name="notes" rows="2" class="filter-input" placeholder="Notes…" style="margin-bottom:0.35rem;"></textarea>
+        <button type="submit" class="btn btn-sm btn-primary">Record Notification</button>
+    </form>
+    {% endif %}
+</div>
+{% endif %}
+
+{# Corrective action items #}
+<div class="gov-section">
+    <div class="gov-section-title">
+        Corrective Action Plan
+        {% if action_items %}
+        <span style="font-size:0.7rem; font-weight:400; color:var(--text-muted);">
+            {{ action_items | selectattr('status.value','eq','completed') | list | length }}/{{ action_items | length }} done
+        </span>
+        {% endif %}
+    </div>
+
+    {% for item in action_items %}
+    <div style="padding:0.4rem 0; border-bottom:1px dashed var(--border-color); font-size:var(--text-sm);">
+        <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+            {% if item.status.value == 'completed' %}
+            <span style="color:var(--success);">&#10003;</span>
+            <span style="text-decoration:line-through; color:var(--text-muted);">{{ item.description }}</span>
+            {% else %}
+            <span style="color:var(--text-muted);">&#9632;</span>
+            <span>{{ item.description }}</span>
+            {% if item.due_date %}
+            <span style="font-size:0.7rem; color:var(--text-muted);">Due {{ item.due_date }}</span>
+            {% endif %}
+            {% if has_gov_level(6) %}
+            <form method="post" action="{{ url_for('governance.ae_complete_action_item', event_id=event.id, item_id=item.id) }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-xs btn-outline" style="padding:0.1rem 0.4rem;font-size:0.68rem;">Done</button>
+            </form>
+            {% endif %}
+            {% endif %}
+        </div>
+        {% if item.assigned_to %}
+        <div style="font-size:0.7rem; color:var(--text-muted);">Assigned: {{ item.assigned_to.display_name }}</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    {% if has_gov_level(6) %}
+    <form method="post" action="{{ url_for('governance.ae_add_action_item', event_id=event.id) }}"
+          style="margin-top:0.5rem;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input name="description" type="text" class="filter-input" placeholder="Action item…"
+               required style="margin-bottom:0.35rem;">
+        <div style="display:flex; gap:0.35rem; flex-wrap:wrap;">
+            <input name="due_date" type="date" class="filter-input" style="width:auto; flex:1;">
+            <button type="submit" class="btn btn-sm btn-outline">+ Add</button>
+        </div>
+    </form>
+    {% endif %}
+</div>
+
+{# Cross-links #}
+{% if cross_links %}
+<div class="gov-section">
+    <div class="gov-section-title">Linked Complaints</div>
+    {% for link in cross_links %}
+    {% if link.complaint_id %}
+    <div style="font-size:var(--text-sm); margin-bottom:0.3rem;">
+        <a href="{{ url_for('governance.complaints_detail', complaint_id=link.complaint_id) }}"
+           hx-get="{{ url_for('governance.complaints_detail', complaint_id=link.complaint_id) }}"
+           hx-target="#ae-detail-panel" hx-swap="innerHTML">
+            {% if link.complaint %}{{ link.complaint.reference_no }}{% else %}#{{ link.complaint_id }}{% endif %}
+        </a>
+        <span style="color:var(--text-muted);">— {{ link.link_type.value.replace('_',' ') }}</span>
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+
+{# Workflow actions #}
+{% if has_gov_level(6) and event.status.value not in ('closed','no_action_required') %}
+<div class="gov-section">
+    <div class="gov-section-title">Actions</div>
+    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+        <a href="{{ url_for('governance.ae_edit', event_id=event.id) }}"
+           hx-get="{{ url_for('governance.ae_edit', event_id=event.id) }}"
+           hx-target="#ae-detail-panel" hx-swap="innerHTML"
+           class="btn btn-sm btn-outline">Edit</a>
+
+        {% if event.status.value == 'triaged' %}
+        <form method="post" action="{{ url_for('governance.ae_transition', event_id=event.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="under_review">
+            <button type="submit" class="btn btn-sm btn-primary">Begin Review</button>
+        </form>
+        <form method="post" action="{{ url_for('governance.ae_transition', event_id=event.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="no_action_required">
+            <button type="submit" class="btn btn-sm btn-outline" onclick="return confirm('Mark as no action required?');">No Action Required</button>
+        </form>
+        {% elif event.status.value == 'under_review' %}
+        {% if event.rca_required %}
+        <form method="post" action="{{ url_for('governance.ae_transition', event_id=event.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="rca_in_progress">
+            <button type="submit" class="btn btn-sm btn-primary">Begin RCA</button>
+        </form>
+        {% else %}
+        <form method="post" action="{{ url_for('governance.ae_transition', event_id=event.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="action_plan_set">
+            <button type="submit" class="btn btn-sm btn-primary">Set Action Plan</button>
+        </form>
+        {% endif %}
+        {% elif event.status.value == 'rca_in_progress' and event.rca_completed_at %}
+        <form method="post" action="{{ url_for('governance.ae_transition', event_id=event.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="action_plan_set">
+            <button type="submit" class="btn btn-sm btn-primary">Set Action Plan</button>
+        </form>
+        {% elif event.status.value == 'action_plan_set' %}
+        <form method="post" action="{{ url_for('governance.ae_transition', event_id=event.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="monitoring">
+            <button type="submit" class="btn btn-sm btn-primary">Begin Monitoring</button>
+        </form>
+        {% elif event.status.value == 'monitoring' and all_actions_complete and has_gov_level(9) %}
+        {% if can_close %}
+        <form method="post" action="{{ url_for('governance.ae_close', event_id=event.id) }}" style="display:inline;"
+              onsubmit="return confirm('Close this event?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-primary">Close Event</button>
+        </form>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{# Add note #}
+{% if has_gov_level(4) %}
+<div class="gov-section">
+    <div class="gov-section-title">Add Note / Keywords</div>
+    <form method="post" action="{{ url_for('governance.ae_note', event_id=event.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <textarea name="notes" rows="2" class="filter-input" placeholder="Note…" style="margin-bottom:0.35rem;" required></textarea>
+        <button type="submit" class="btn btn-sm btn-outline">Add Note</button>
+    </form>
+</div>
+{% endif %}
+
+{# Audit log #}
+<div class="gov-section">
+    <div class="gov-section-title">Activity Log</div>
+    <div hx-get="{{ url_for('governance.ae_actions', event_id=event.id) }}"
+         hx-trigger="load"
+         hx-swap="innerHTML">
+        Loading…
+    </div>
+</div>

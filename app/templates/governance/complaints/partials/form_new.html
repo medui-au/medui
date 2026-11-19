@@ -1,0 +1,68 @@
+<form method="post" action="{{ url_for('governance.complaints_create') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h3 style="font-size:0.95rem; font-weight:700; margin:0 0 1rem;">New Complaint</h3>
+
+    <div class="gov-field">
+        <label class="gov-field-label" for="c-complainant-type">Complainant Type <span style="color:var(--danger);">*</span></label>
+        <select id="c-complainant-type" name="complainant_type" class="filter-select" required
+                onchange="document.getElementById('c-patient-block').style.display=this.value==='patient'?'block':'none';document.getElementById('c-external-block').style.display=(!['patient','anonymous'].includes(this.value))?'block':'none';">
+            <option value="">— select —</option>
+            {% for t in complainant_types %}
+            <option value="{{ t.value }}">{{ t.value.replace('_',' ').title() }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div id="c-patient-block" style="display:none;" class="gov-field">
+        <label class="gov-field-label" for="c-patient-id">Patient ID (BPSDB InternalId)</label>
+        <input id="c-patient-id" name="patient_id" type="number" class="filter-input" placeholder="e.g. 12345">
+    </div>
+    <div id="c-external-block" style="display:none;">
+        <div class="gov-field">
+            <label class="gov-field-label" for="c-external-name">Name</label>
+            <input id="c-external-name" name="external_name" type="text" class="filter-input">
+        </div>
+        <div class="gov-field">
+            <label class="gov-field-label" for="c-external-contact">Contact (phone/email)</label>
+            <input id="c-external-contact" name="external_contact" type="text" class="filter-input">
+        </div>
+    </div>
+
+    <div class="gov-field">
+        <label class="gov-field-label" for="c-category">Category <span style="color:var(--danger);">*</span></label>
+        <select id="c-category" name="category" class="filter-select" required>
+            <option value="">— select —</option>
+            {% for c in categories %}
+            <option value="{{ c.value }}">{{ c.value.replace('_',' ').title() }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="gov-field">
+        <label class="gov-field-label" for="c-subject">Subject <span style="color:var(--danger);">*</span></label>
+        <input id="c-subject" name="subject" type="text" class="filter-input" required maxlength="500">
+    </div>
+
+    <div class="gov-field">
+        <label class="gov-field-label" for="c-description">Full Description <span style="color:var(--danger);">*</span></label>
+        <textarea id="c-description" name="description" rows="4" class="filter-input" required></textarea>
+    </div>
+
+    <div class="gov-field">
+        <label class="gov-field-label" for="c-received-at">Date Received</label>
+        <input id="c-received-at" name="received_at" type="datetime-local" class="filter-input">
+    </div>
+
+    <div class="gov-field" style="display:flex; align-items:center; gap:0.5rem;">
+        <input id="c-disclosure" name="open_disclosure_required" type="checkbox" value="1">
+        <label for="c-disclosure" style="font-size:var(--text-sm); margin:0;">Open disclosure required</label>
+    </div>
+
+    <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+        <button type="submit" class="btn btn-primary">Submit Complaint</button>
+        <button type="button" class="btn btn-outline"
+                onclick="document.getElementById('complaints-detail-panel').innerHTML='<div class=gov-detail-empty>Select a complaint to view details</div>';">
+            Cancel
+        </button>
+    </div>
+</form>

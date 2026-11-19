@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}Pipeline Runs — {{ app_name }}{% endblock %}
+
+{% block content %}
+<div style="padding:1.25rem 1.5rem;">
+    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1.25rem;">
+        <h1 style="font-size:0.95rem; font-weight:700; margin:0; flex:1;">Pipeline Runs</h1>
+        <a href="{{ url_for('pipeline_run.designer') }}" class="btn btn-outline"
+           style="font-size:0.75rem; padding:0.25rem 0.6rem;">Pipeline Designer →</a>
+    </div>
+
+    {% if runs %}
+    <table style="width:100%; border-collapse:collapse; font-size:0.78rem;">
+        <thead>
+            <tr style="background:var(--bg-secondary);">
+                <th style="padding:0.4rem 0.75rem; text-align:left; border-bottom:1px solid var(--border-color);">#</th>
+                <th style="padding:0.4rem 0.5rem; text-align:left; border-bottom:1px solid var(--border-color);">Pipeline</th>
+                <th style="padding:0.4rem 0.5rem; text-align:center; border-bottom:1px solid var(--border-color);">Patient</th>
+                <th style="padding:0.4rem 0.5rem; text-align:center; border-bottom:1px solid var(--border-color);">Status</th>
+                <th style="padding:0.4rem 0.5rem; text-align:center; border-bottom:1px solid var(--border-color);">Redacted</th>
+                <th style="padding:0.4rem 0.5rem; text-align:left; border-bottom:1px solid var(--border-color);">Started</th>
+                <th style="padding:0.4rem 0.5rem; text-align:right; border-bottom:1px solid var(--border-color);">Duration</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in runs %}
+            <tr style="border-bottom:1px solid var(--border-color);">
+                <td style="padding:0.35rem 0.75rem; color:var(--text-muted);">{{ r.id }}</td>
+                <td style="padding:0.35rem 0.5rem; font-weight:500;">
+                    {{ r.pipeline.name if r.pipeline else '(deleted)' }}
+                </td>
+                <td style="padding:0.35rem 0.5rem; text-align:center; color:var(--text-muted);">
+                    {{ r.patient_id or '—' }}
+                </td>
+                <td style="padding:0.35rem 0.5rem; text-align:center;">
+                    {% set sv = r.status.value %}
+                    <span style="font-size:0.65rem; padding:0.05rem 0.35rem; border-radius:0.2rem; font-weight:700;
+                                 background:{{ 'var(--success)' if sv == 'completed' else ('var(--danger)' if sv == 'failed' else ('var(--warning)' if sv == 'running' else 'var(--bg-tertiary)')) }};
+                                 color:{{ '#fff' if sv in ('completed','failed','running') else 'var(--text-muted)' }};">
+                        {{ sv.upper() }}
+                    </span>
+                </td>
+                <td style="padding:0.35rem 0.5rem; text-align:center; font-size:0.7rem;">
+                    {% if r.is_redacted is not none %}
+                        {% if r.is_redacted and r.is_hcp_redacted %}
+                        <span style="color:var(--success);" title="Patient + HCP redacted">✓ Full</span>
+                        {% elif r.is_redacted %}
+                        <span style="color:var(--warning);" title="Patient PII only">✓ PII</span>
+                        {% else %}
+                        <span style="color:var(--danger);" title="Not redacted">✗</span>
+                        {% endif %}
+                    {% else %}
+                    <span style="color:var(--text-muted);">—</span>
+                    {% endif %}
+                </td>
+                <td style="padding:0.35rem 0.5rem; color:var(--text-muted); font-size:0.72rem;">
+                    {{ r.started_at.strftime('%d %b %H:%M') if r.started_at else '—' }}
+                </td>
+                <td style="padding:0.35rem 0.5rem; text-align:right; color:var(--text-muted); font-size:0.72rem;">
+                    {% if r.started_at and r.finished_at %}
+                        {% set dur = (r.finished_at - r.started_at).total_seconds() | int %}
+                        {{ dur }}s
+                    {% elif r.status.value == 'running' %}
+                        <span style="color:var(--warning);">running…</span>
+                    {% else %}—{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:var(--text-muted); font-size:var(--text-sm);">
+        No runs yet. Open the <a href="{{ url_for('pipeline_run.designer') }}">Pipeline Designer</a>
+        and click ▶ Run Pipeline.
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

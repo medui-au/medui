@@ -1,0 +1,206 @@
+{% extends 'doctor/base.html' %}
+{% block title %}Care Plan Recipes — {{ app_name }}{% endblock %}
+{% block doctor_styles %}
+.cp-list { width:100%; border-collapse:collapse; font-size:0.85rem; }
+.cp-list td, .cp-list th { padding:0.35rem; border-bottom:1px solid var(--border-color); text-align:left; vertical-align:top; }
+.cp-status { font-size:0.72rem; padding:0.05rem 0.4rem; border-radius:0.6rem; background:var(--bg-secondary); border:1px solid var(--border-color); }
+.cp-muted { color:var(--text-muted); font-size:0.8rem; }
+.cp-tokform input { font-size:0.8rem; }
+.cp-pick { display:none; margin-top:0.6rem; padding:0.6rem; border:1px solid var(--border-color); border-radius:0.4rem; background:var(--bg-secondary); }
+.cp-pick-list { max-height:22rem; overflow-y:auto; margin-top:0.4rem; }
+.cp-pick-list td { font-size:0.8rem; }
+.cp-pick-in td { background:var(--bg-primary); }
+.cp-related { font-size:0.75rem; color:var(--text-muted); }
+{% endblock %}
+{% block doctor_content %}
+<div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.6rem;">
+  <h2 style="margin:0; font-size:1.15rem;">Care Plan Recipes{{ help('care-plans.recipes') }}</h2>
+  <a class="btn btn-primary btn-sm" href="{{ url_for('careplan.recipe_edit') }}">New recipe</a>
+</div>
+<p class="cp-muted">Your recipes and the practice's approved recipes. In a care plan you choose the issue,
+then the recipe or variant; nothing is chosen for the patient automatically.</p>
+<table class="cp-list">
+  <thead><tr><th>Issue</th><th>Variant</th><th>Whose</th><th>Status</th><th>Version</th><th>Review by</th></tr></thead>
+  <tbody>
+  {% for r in recipes %}
+    {% set v = r.current_version %}
+    <tr>
+      <td><a href="{{ url_for('careplan.recipe_edit', recipe_id=r.id) }}">{{ r.issue_label }}</a>{% if r.always_offer %} <span class="cp-status">standing</span>{% endif %}</td>
+      <td>{{ r.variant_label or '' }}{% if r.modifiers %} <span class="cp-muted">{% for k, val in r.modifiers.items() %}{{ k }}: {{ val }}{{ ', ' if not loop.last }}{% endfor %}</span>{% endif %}</td>
+      <td>{{ 'Practice' if r.scope.value == 'practice' else ('Mine' if r.owner_id == current_user.id else r.owner.display_name) }}</td>
+      <td><span class="cp-status">{{ r.status.value }}</span>{% if v and not v.is_approved and r.status.value == 'approved' %} <span class="cp-muted">(new draft version)</span>{% endif %}</td>
+      <td>{{ v.version if v else '' }}</td>
+      <td>{{ v.review_due_on.strftime('%d/%m/%Y') if v and v.review_due_on else '' }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6" class="cp-muted">No recipes yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h3 style="font-size:0.95rem; margin-top:1.2rem;">Result tokens</h3>
+<p class="cp-muted">A token names a result for plans and recipes: <code>{key.last}</code> (value and unit),
+<code>{key.date}</code>, <code>{key.unit}</code>, <code>{key.target}</code> (the recipe's target). The first tokens are
+filled from the record (observations, demographics, social history) as recorded; the rest match pathology results by
+LOINC code. A different unit from the expected one is shown, never converted.</p>
+<table class="cp-list">
+  <thead><tr><th>Key</th><th>Label</th><th>Filled from</th><th>Unit</th><th>Older than (days)</th><th>Active</th>{% if current_user.is_admin %}<th></th>{% endif %}</tr></thead>
+  <tbody>
+  {% for t in fact_tokens %}
+    <tr class="cp-tokform" data-id="{{ t.id }}">
+      <td><code>{{ t.key }}</code></td>
+      {% if current_user.is_admin %}
+      <td><input name="label" value="{{ t.label }}" size="16"></td>
+      {% else %}<td>{{ t.label }}</td>{% endif %}
+      <td class="cp-muted">{{ {'bp': 'Latest blood pressure (systolic/diastolic, same reading)', 'weight': 'Latest weight',
+           'height': 'Latest height', 'bmi': 'Latest weight and height', 'weight_excess': 'Latest weight and height, beside the weight for BMI 20 to 25',
+           'age': 'Date of birth', 'sex': 'Demographics', 'alcohol': 'Social history', 'smoking': 'Social history'}[t.key] }}</td>
+      <td>{{ t.expected_unit or '' }}</td>
+      {% if current_user.is_admin %}
+      <td><input name="max_age_days" value="{{ t.max_age_days or '' }}" size="4"></td>
+      <td><input type="checkbox" name="active" {{ 'checked' if t.active }}></td>
+      <td><button class="btn btn-outline btn-sm" onclick="saveToken(this)">Save</button></td>
+      {% else %}
+      <td>{{ t.max_age_days or '' }}</td><td>{{ 'yes' if t.active else 'no' }}</td>
+      {% endif %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p class="cp-muted" style="margin-top:0.8rem;">Results from pathology, matched by LOINC code:</p>
+<table class="cp-list">
+  <thead><tr><th>Key</th><th>Label</th><th>LOINC codes</th><th>Expected unit</th><th>Older than (days)</th><th>Active</th>{% if current_user.is_admin %}<th></th>{% endif %}</tr></thead>
+  <tbody>
+  {% for t in tokens %}
+    <tr class="cp-tokform" data-id="{{ t.id }}">
+      {% if current_user.is_admin %}
+      <td><input name="key" value="{{ t.key }}" size="10"></td><td><input name="label" value="{{ t.label }}" size="16"></td>
+      <td><input name="loinc_codes" value="{{ t.loinc_codes | join(', ') }}" size="22"> <button type="button" class="btn btn-outline btn-sm" onclick="openPick(this)">Pick…</button>
+        {% for key, codes in shared[t.key].items() %}<div class="cp-related" style="color:var(--warning-color, #b45309);">{{ codes | join(', ') }} also in <code>{{ key }}</code></div>{% endfor %}</td>
+      <td><input name="expected_unit" value="{{ t.expected_unit or '' }}" size="8"></td>
+      <td><input name="max_age_days" value="{{ t.max_age_days or '' }}" size="4"></td>
+      <td><input type="checkbox" name="active" {{ 'checked' if t.active }}></td>
+      <td><button class="btn btn-outline btn-sm" onclick="saveToken(this)">Save</button></td>
+      {% else %}
+      <td><code>{{ t.key }}</code></td><td>{{ t.label }}</td><td>{{ t.loinc_codes | join(', ') }}</td>
+      <td>{{ t.expected_unit or '' }}</td><td>{{ t.max_age_days or '' }}</td><td>{{ 'yes' if t.active else 'no' }}</td>
+      {% endif %}
+    </tr>
+  {% endfor %}
+  {% if current_user.is_admin %}
+    <tr class="cp-tokform" data-id="">
+      <td><input name="key" placeholder="urate" size="10"></td><td><input name="label" placeholder="Uric acid" size="16"></td>
+      <td><input name="loinc_codes" placeholder="codes, comma separated" size="22"> <button type="button" class="btn btn-outline btn-sm" onclick="openPick(this)">Pick…</button></td>
+      <td><input name="expected_unit" placeholder="mmol/L" size="8"></td>
+      <td><input name="max_age_days" size="4"></td><td><input type="checkbox" name="active" checked></td>
+      <td><button class="btn btn-primary btn-sm" onclick="saveToken(this)">Add</button></td>
+    </tr>
+  {% endif %}
+  </tbody>
+</table>
+{% if current_user.is_admin %}
+<div class="cp-pick" id="cp-pick">
+  <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+    <strong id="cp-pick-title" style="font-size:0.85rem;">LOINC codes</strong>
+    <input id="cp-pick-q" placeholder="filter by code or result name" size="28">
+    <span class="cp-muted" id="cp-pick-status"></span>
+    <button type="button" class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="closePick()">Done</button>
+  </div>
+  <p class="cp-muted" style="margin:0.3rem 0 0;">Codes in the practice's results over the last 5 years, with the names and units
+  laboratories used. Click <b>Add</b> to put a code in the token; an empty Expected unit takes that code's main unit. Codes marked <i>same name and unit</i> were reported
+  under a name and unit shared with a code already in the token: they may be the same test; you decide. Then save the row.</p>
+  <div class="cp-pick-list"><table class="cp-list"><thead><tr><th>Code</th><th>Result names</th><th>Units</th><th>Results</th><th>Latest</th><th></th></tr></thead>
+  <tbody id="cp-pick-rows"></tbody></table></div>
+</div>
+{% endif %}
+{% endblock %}
+{% block doctor_scripts %}
+<script>
+function saveToken(btn) {
+  const tr = btn.closest('tr');
+  const body = {id: tr.dataset.id ? parseInt(tr.dataset.id) : null};
+  tr.querySelectorAll('input').forEach(i => body[i.name] = i.type === 'checkbox' ? i.checked : i.value);
+  fetch({{ url_for('careplan.token_save') | tojson }}, {method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':document.querySelector('meta[name="csrf-token"]').content},
+    body: JSON.stringify(body)}).then(r => r.json()).then(d => {
+      if (d.error) return alert(d.error);
+      if (d.warnings && d.warnings.length) alert('Saved. Check: ' + d.warnings.join(' ') + ' One result would fill both tokens.');
+      location.reload();
+    });
+}
+
+{% if current_user.is_admin %}
+let pickCodes = null, pickInput = null;
+const pickRows = document.getElementById('cp-pick-rows');
+
+function inputCodes() {
+  return pickInput.value.split(/[,\s]+/).map(c => c.trim()).filter(Boolean);
+}
+
+function openPick(btn) {
+  const tr = btn.closest('tr');
+  pickInput = tr.querySelector('input[name="loinc_codes"]');
+  const label = tr.querySelector('input[name="label"]').value || tr.querySelector('input[name="key"]').value;
+  document.getElementById('cp-pick-title').textContent = 'LOINC codes for ' + (label || 'new token');
+  const q = document.getElementById('cp-pick-q');
+  q.value = inputCodes().length ? '' : label;
+  document.getElementById('cp-pick').style.display = 'block';
+  document.getElementById('cp-pick').scrollIntoView({block: 'nearest'});
+  if (pickCodes) { renderPick(); return; }
+  document.getElementById('cp-pick-status').textContent = 'Reading Best Practice…';
+  fetch({{ url_for('careplan.loinc_catalogue') | tojson }}).then(r => r.json()).then(d => {
+    if (d.error) { document.getElementById('cp-pick-status').textContent = d.error; return; }
+    pickCodes = d.codes; renderPick();
+  });
+}
+
+function closePick() { document.getElementById('cp-pick').style.display = 'none'; }
+
+function renderPick() {
+  const q = document.getElementById('cp-pick-q').value.trim().toLowerCase();
+  const chosen = new Set(inputCodes());
+  const byCode = Object.fromEntries(pickCodes.map(c => [c.code, c]));
+  const related = {};
+  for (const code of chosen) for (const r of (byCode[code] || {related: []}).related) if (!chosen.has(r)) related[r] = code;
+  const match = (c) => !q || c.code.toLowerCase().includes(q) || c.names.some(n => n.toLowerCase().includes(q));
+  // Codes in the token first, then suggestions, then the filtered rest.
+  const rows = [...[...chosen].map(k => byCode[k] || {code: k, names: ['(not in results for 5 years)'], units: [], n: 0, last: null, related: []}),
+                ...Object.keys(related).map(k => byCode[k]),
+                ...pickCodes.filter(c => !chosen.has(c.code) && !(c.code in related) && match(c)).slice(0, 150)];
+  pickRows.replaceChildren();
+  for (const c of rows) {
+    const tr = document.createElement('tr');
+    if (chosen.has(c.code)) tr.className = 'cp-pick-in';
+    const td = (text) => { const el = document.createElement('td'); el.textContent = text; tr.append(el); return el; };
+    td(c.code);
+    const names = td(c.names.join(' · '));
+    if (related[c.code]) {
+      const s = document.createElement('div'); s.className = 'cp-related';
+      s.textContent = 'same name and unit as ' + related[c.code]; names.append(s);
+    }
+    td(c.units.slice(0, 3).map(u => (u.unit || '(blank)') + (c.units.length > 1 ? ' ×' + u.n : '')).join(', '));
+    td(String(c.n));
+    td(c.last ? c.last.split('-').reverse().join('/') : '');
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn btn-outline btn-sm';
+    b.textContent = chosen.has(c.code) ? 'Remove' : 'Add';
+    b.addEventListener('click', () => {
+      const now = inputCodes().filter(k => k !== c.code);
+      if (!chosen.has(c.code)) now.push(c.code);
+      pickInput.value = now.join(', ');
+      // An empty Expected unit takes the added code's main unit; the administrator can change it.
+      const unitBox = pickInput.closest('tr').querySelector('input[name="expected_unit"]');
+      const main = c.units.find(u => u.unit);
+      if (!chosen.has(c.code) && main && !unitBox.value.trim()) unitBox.value = main.unit;
+      renderPick();
+    });
+    const cell = document.createElement('td'); cell.append(b); tr.append(cell);
+    pickRows.append(tr);
+  }
+  document.getElementById('cp-pick-status').textContent =
+    `${pickCodes.length} codes` + (chosen.size ? ` · ${chosen.size} in this token` : '');
+}
+document.getElementById('cp-pick-q').addEventListener('input', () => pickCodes && renderPick());
+{% endif %}
+</script>
+{% endblock %}

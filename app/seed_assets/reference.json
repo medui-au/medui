@@ -1,0 +1,3576 @@
+{
+  "drug_mappings": [
+    {
+      "product_id": 6078,
+      "brand_name": "PROGOUT 300 TABLET",
+      "generic_name": "Allopurinol",
+      "atc_code": "M04AA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2904,
+      "brand_name": "FLIXOTIDE 125 CFC-FREE 125MCG",
+      "generic_name": "fluticasone propionate",
+      "atc_code": "R03AK11",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7121,
+      "brand_name": "TAMSULOSIN 400MCG TABLET",
+      "generic_name": "Tamsulosin",
+      "atc_code": "G04CA02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3875,
+      "brand_name": "IRBESARTAN 75MG TABLET",
+      "generic_name": "Irbesartan",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10103,
+      "brand_name": "ROSUVASTATIN 20MG TABLET",
+      "generic_name": "Rosuvastatin",
+      "atc_code": "C10AA07",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 517,
+      "brand_name": "ARTHREXIN 25MG CAPSULE",
+      "generic_name": "Indometacin",
+      "atc_code": "M01AB01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 25394,
+      "brand_name": "OZEMPIC 1.34MG/ML 1MG/DOSE PEN",
+      "generic_name": "Semaglutide",
+      "atc_code": "A10BJ06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4698,
+      "brand_name": "MICARDIS 40MG TABLET",
+      "generic_name": "Telmisartan",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 12673,
+      "brand_name": "HYLO FORTE 0.2% EYE DROPS",
+      "generic_name": "hyaluronate sodium",
+      "atc_code": "S01XA20",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8219,
+      "brand_name": "SERTRALINE 50MG TABLET",
+      "generic_name": "Sertraline",
+      "atc_code": "N06AB06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 12564,
+      "brand_name": "RIVAROXABAN 20MG TABLET",
+      "generic_name": "Rivaroxaban",
+      "atc_code": "B01AF01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7615,
+      "brand_name": "VALTREX 500MG TABLET",
+      "generic_name": "Valaciclovir",
+      "atc_code": "J05AB11",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1074,
+      "brand_name": "CANDESARTAN 16MG TABLET",
+      "generic_name": "Candesartan",
+      "atc_code": "C09CA06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10150,
+      "brand_name": "NEO-B12 1MG/ML INJECTION",
+      "generic_name": "Hydroxocobalamin",
+      "atc_code": "B03BA03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9488,
+      "brand_name": "PANADOL OSTEO 665MG TABLET",
+      "generic_name": "Paracetamol",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8006,
+      "brand_name": "ZYLOPRIM 100MG TABLET",
+      "generic_name": "Allopurinol",
+      "atc_code": "M04AA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11228,
+      "brand_name": "ZOTON FASTABS 30MG ORALLY DISI",
+      "generic_name": "Lansoprazole",
+      "atc_code": "A02BC03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 14761,
+      "brand_name": "ELOCON 0.1% ALCOHOL FREE CREAM",
+      "generic_name": "Mometasone",
+      "atc_code": "D07AC13",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10975,
+      "brand_name": "RIVAROXABAN 10MG TABLET",
+      "generic_name": "Rivaroxaban",
+      "atc_code": "B01AF01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8055,
+      "brand_name": "AMLODIPINE 5MG TABLET",
+      "generic_name": "Amlodipine",
+      "atc_code": "C08CA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 25429,
+      "brand_name": "VENTOLIN CFC-FREE WITH COUNTER",
+      "generic_name": "Salbutamol",
+      "atc_code": "R03CC02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 17196,
+      "brand_name": "NEXIUM 20MG TABLETS",
+      "generic_name": "Esomeprazole",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3874,
+      "brand_name": "IRBESARTAN 300MG TABLET",
+      "generic_name": "Irbesartan",
+      "atc_code": "C09CA04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4163,
+      "brand_name": "LERCANIDIPINE 10MG TABLET",
+      "generic_name": "Lercanidipine",
+      "atc_code": "C08CA13",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1148,
+      "brand_name": "CARTIA 100MG TABLET",
+      "generic_name": "Aspirin",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 570,
+      "brand_name": "ATENOLOL 50MG TABLET",
+      "generic_name": "Atenolol",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8096,
+      "brand_name": "EZETIMIBE 10MG TABLET",
+      "generic_name": "Ezetimibe",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 25393,
+      "brand_name": "OZEMPIC 0.25, 0.5MG/DOSE PEN D",
+      "generic_name": "Semaglutide",
+      "atc_code": "A10BJ06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 25430,
+      "brand_name": "SALBUTAMOL CFC-FREE WITH COUNT",
+      "generic_name": "Salbutamol",
+      "atc_code": "R03AC02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7317,
+      "brand_name": "LEVOTHYROXINE 0.2MG TABLET",
+      "generic_name": "Levothyroxine",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8517,
+      "brand_name": "PANTOPRAZOLE 40MG TABLET",
+      "generic_name": "Pantoprazole",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7315,
+      "brand_name": "LEVOTHYROXINE 50 MCG TABLET",
+      "generic_name": "Levothyroxine",
+      "atc_code": "H03AA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3873,
+      "brand_name": "IRBESARTAN 150MG TABLET",
+      "generic_name": "Irbesartan",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 14373,
+      "brand_name": "JANUMET XR 100MG;1000MG EXTEND",
+      "generic_name": "Sitagliptin + metformin",
+      "atc_code": "A10BD07",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 12995,
+      "brand_name": "APIXABAN 5MG TABLET",
+      "generic_name": "Apixaban",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9797,
+      "brand_name": "METFORMIN 500MG TABLET, EXTEND",
+      "generic_name": "Metformin",
+      "atc_code": "A10BA02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 576,
+      "brand_name": "ATORVASTATIN 40MG TABLET",
+      "generic_name": "Atorvastatin",
+      "atc_code": "C10AA05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9915,
+      "brand_name": "PERINDOPRIL 10MG TABLET",
+      "generic_name": "Perindopril",
+      "atc_code": "C09AA04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8377,
+      "brand_name": "HYDRALAZINE 25MG TABLET",
+      "generic_name": "Hydralazine",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 17171,
+      "brand_name": "JARDIAMET 12.5/1000 12.5MG;100",
+      "generic_name": "Empagliflozin + metformin",
+      "atc_code": "A10BD20",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3248,
+      "brand_name": "GLICLAZIDE 30MG TABLET, MODIFI",
+      "generic_name": "Gliclazide",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 330,
+      "brand_name": "AMLODIPINE 10MG TABLET",
+      "generic_name": "Amlodipine",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 546,
+      "brand_name": "ASPIRIN 100MG TABLET",
+      "generic_name": "Aspirin",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8341,
+      "brand_name": "METOPROLOL TARTRATE 100MG TABL",
+      "generic_name": "METOPROLOL TARTRATE",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5186,
+      "brand_name": "NITROLINGUAL PUMPSPRAY 400MCG/",
+      "generic_name": "Glyceryl trinitrate",
+      "atc_code": "C01DA02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2639,
+      "brand_name": "EPIPEN 0.3MG/0.3ML PEN DEVICE",
+      "generic_name": "Adrenaline (epinephrine)",
+      "atc_code": "C01CA24",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 577,
+      "brand_name": "ATORVASTATIN 80MG TABLET",
+      "generic_name": "Atorvastatin",
+      "atc_code": "C10AA05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6210,
+      "brand_name": "QUESTRAN LITE 4G POWDER SACHET",
+      "generic_name": "Colestyramine",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7347,
+      "brand_name": "TIMOPTOL XE 0.5% EYE DROPS",
+      "generic_name": "Timolol",
+      "atc_code": "S01ED01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1554,
+      "brand_name": "CLOPIDOGREL 75MG TABLET",
+      "generic_name": "Clopidogrel",
+      "atc_code": "B01AC04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10100,
+      "brand_name": "ROSUVASTATIN 40MG TABLET",
+      "generic_name": "Rosuvastatin",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6253,
+      "brand_name": "RAMIPRIL 1.25MG TABLET",
+      "generic_name": "Ramipril",
+      "atc_code": "C09AA05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 25362,
+      "brand_name": "OPTISULIN SOLOSTAR 100IU/ML PE",
+      "generic_name": "Insulin glargine",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 14686,
+      "brand_name": "JARDIANCE 10MG TABLET",
+      "generic_name": "Empagliflozin",
+      "atc_code": "A10BK03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6911,
+      "brand_name": "SPIRONOLACTONE 25MG TABLET",
+      "generic_name": "Spironolactone",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 574,
+      "brand_name": "ATORVASTATIN 10MG TABLET",
+      "generic_name": "Atorvastatin",
+      "atc_code": "C10AA05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6900,
+      "brand_name": "SPAN-K 600MG TABLET",
+      "generic_name": "Potassium Chloride",
+      "atc_code": "A12BA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 25747,
+      "brand_name": "OMEPRAZOLE 20MG ENTERIC COATED",
+      "generic_name": "Omeprazole",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8413,
+      "brand_name": "MYCOPHENOLATE 500MG TABLET",
+      "generic_name": "Mycophenolate",
+      "atc_code": "L04AA06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3060,
+      "brand_name": "FRUSEMIDE 40MG TABLET",
+      "generic_name": "Furosemide",
+      "atc_code": "C03CA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8340,
+      "brand_name": "METOPROLOL TARTRATE 50MG TABLE",
+      "generic_name": "Metoprolol",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2241,
+      "brand_name": "DIGOXIN 62.5MCG TABLET",
+      "generic_name": "Digoxin",
+      "atc_code": "C01AA05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5638,
+      "brand_name": "PARACETAMOL 665MG TABLET, MODI",
+      "generic_name": "Paracetamol",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3057,
+      "brand_name": "FRUSEMIDE 20MG TABLET",
+      "generic_name": "Furosemide",
+      "atc_code": "C03CA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4387,
+      "brand_name": "MAGNESIUM ASPARTATE 500MG TABL",
+      "generic_name": "Magnesium Aspartate",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 12085,
+      "brand_name": "APIXABAN 2.5MG TABLET",
+      "generic_name": "Apixaban",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 209,
+      "brand_name": "ALENDRONATE 70MG TABLET",
+      "generic_name": "Alendronate",
+      "atc_code": "M05BA04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6702,
+      "brand_name": "SIMVASTATIN 10MG TABLET",
+      "generic_name": "Simvastatin",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8082,
+      "brand_name": "BISOPROLOL 10MG TABLET",
+      "generic_name": "Bisoprolol",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4129,
+      "brand_name": "LASIX 40MG TABLET",
+      "generic_name": "Furosemide",
+      "atc_code": "C03CA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7176,
+      "brand_name": "TEMAZEPAM 10MG TABLET",
+      "generic_name": "Temazepam",
+      "atc_code": "N05CD07",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2571,
+      "brand_name": "ELOCON 0.1% LOTION",
+      "generic_name": "Mometasone",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3625,
+      "brand_name": "HYDROCORTISONE 1% CREAM",
+      "generic_name": "Hydrocortisone",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7659,
+      "brand_name": "VENTOLIN CFC-FREE 100MCG/DOSE",
+      "generic_name": "Salbutamol",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2404,
+      "brand_name": "DOSTINEX 0.5MG TABLET",
+      "generic_name": "Cabergoline",
+      "atc_code": "G02CB03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10636,
+      "brand_name": "LENALIDOMIDE 10MG CAPSULE",
+      "generic_name": "LENALIDOMIDE",
+      "atc_code": "L04AX04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 12967,
+      "brand_name": "DAPAGLIFLOZIN 10MG TABLETS",
+      "generic_name": "DAPAGLIFLOZIN",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1108,
+      "brand_name": "CARBIMAZOLE 5MG TABLET",
+      "generic_name": "CARBIMAZOLE",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 17645,
+      "brand_name": "METFORMIN 1G TABLET, EXTENDED",
+      "generic_name": "METFORMIN",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 76,
+      "brand_name": "ACITRETIN 10MG CAPSULE",
+      "generic_name": "Acitretin",
+      "atc_code": "D10AD01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6681,
+      "brand_name": "SILDENAFIL 100MG TABLET",
+      "generic_name": "SILDENAFIL",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 12562,
+      "brand_name": "XARELTO 15MG TABLET",
+      "generic_name": "Rivaroxaban",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 17451,
+      "brand_name": "FUROSEMIDE 40MG TABLET",
+      "generic_name": "FUROSEMIDE",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11435,
+      "brand_name": "GLICLAZIDE 60MG TABLET, MODIFI",
+      "generic_name": "GLICLAZIDE",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5658,
+      "brand_name": "PARIET 20MG TABLET",
+      "generic_name": "Rabeprazole",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10096,
+      "brand_name": "CRESTOR 5MG TABLET",
+      "generic_name": "Rosuvastatin",
+      "atc_code": "C10AA07",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4423,
+      "brand_name": "MAREVAN 1MG TABLET",
+      "generic_name": "Warfarin",
+      "atc_code": "B01AA03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 25995,
+      "brand_name": "SLINDA 4MG TABLETS",
+      "generic_name": "Drospirenone",
+      "atc_code": "G03AC10",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 364,
+      "brand_name": "AMOXICILLIN 500MG CAPSULE",
+      "generic_name": "Amoxicillin",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10784,
+      "brand_name": "CIALIS 5MG TABLET",
+      "generic_name": "Tadalafil",
+      "atc_code": "G04BE08",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2685,
+      "brand_name": "ESOMEPRAZOLE 20MG TABLET",
+      "generic_name": "Esomeprazole",
+      "atc_code": "A02BC05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 248,
+      "brand_name": "ALLOPURINOL 300MG TABLET",
+      "generic_name": "ALLOPURINOL",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5979,
+      "brand_name": "PREDNISOLONE 1MG TABLET",
+      "generic_name": "PREDNISOLONE",
+      "atc_code": "H02AB06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5981,
+      "brand_name": "PREDNISOLONE 5MG TABLET",
+      "generic_name": "PREDNISOLONE",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4250,
+      "brand_name": "LIPITOR 10MG TABLET",
+      "generic_name": "Atorvastatin",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 563,
+      "brand_name": "ASTRIX 100 100MG TABLET",
+      "generic_name": "Aspirin",
+      "atc_code": "B01AC06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7091,
+      "brand_name": "TACROLIMUS 1MG CAPSULE",
+      "generic_name": "Tacrolimus",
+      "atc_code": "L04AD02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9786,
+      "brand_name": "REANDRON 1000 INJECTION",
+      "generic_name": "testosterone undecanoate",
+      "atc_code": "G03BA03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 23475,
+      "brand_name": "RYZODEG PENFILL 70/30 70UNITS;",
+      "generic_name": "Insulin degludec + insulin aspart",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10102,
+      "brand_name": "ROSUVASTATIN 10MG TABLET",
+      "generic_name": "Rosuvastatin",
+      "atc_code": "C10AA07",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2153,
+      "brand_name": "DIABEX 1000 1,000MG TABLET",
+      "generic_name": "Metformin",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6842,
+      "brand_name": "SOMAC 40MG TABLET",
+      "generic_name": "Pantoprazole",
+      "atc_code": "A02BC02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7316,
+      "brand_name": "LEVOTHYROXINE 100MCG TABLET",
+      "generic_name": "Levothyroxine",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4424,
+      "brand_name": "MAREVAN 3MG TABLET",
+      "generic_name": "Warfarin",
+      "atc_code": "B01AA03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4425,
+      "brand_name": "MAREVAN 5MG TABLET",
+      "generic_name": "Warfarin",
+      "atc_code": "B01AA03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 545,
+      "brand_name": "ASPIRIN 100MG CAPSULE",
+      "generic_name": "aspirin",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 27125,
+      "brand_name": "SOTYKTU 6MG TABLETS",
+      "generic_name": "deucravacitinib",
+      "atc_code": "L04AF07",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7788,
+      "brand_name": "XALATAN 0.005% 50MCG/ML EYE DR",
+      "generic_name": "Latanoprost",
+      "atc_code": "S01EE01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10097,
+      "brand_name": "CRESTOR 10MG TABLET",
+      "generic_name": "Rosuvastatin",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7172,
+      "brand_name": "TELMISARTAN 80MG TABLET",
+      "generic_name": "Telmisartan",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9264,
+      "brand_name": "PEGASYS 135MCG/0.5ML SYRINGE",
+      "generic_name": "Peginterferon alfa-2a",
+      "atc_code": "L03AB11",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11098,
+      "brand_name": "DUTASTERIDE 500MCG CAPSULE",
+      "generic_name": "Dutasteride",
+      "atc_code": "G04CB02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 24,
+      "brand_name": "ACARBOSE 50MG TABLET",
+      "generic_name": "Acarbose",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10098,
+      "brand_name": "CRESTOR 20MG TABLET",
+      "generic_name": "Rosuvastatin",
+      "atc_code": "C10AA07",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8516,
+      "brand_name": "PANTOPRAZOLE 20MG TABLET",
+      "generic_name": "Pantoprazole",
+      "atc_code": "A02BC02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 14711,
+      "brand_name": "VAGIFEM LOW 10MCG PESSARIES",
+      "generic_name": "Estradiol",
+      "atc_code": "G03CA03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 17605,
+      "brand_name": "PROGESTERONE 100MG CAPSULES",
+      "generic_name": "Progesterone",
+      "atc_code": "G03DA04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7171,
+      "brand_name": "TELMISARTAN 40MG TABLET",
+      "generic_name": "Telmisartan",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2600,
+      "brand_name": "ENDEP 10 10MG TABLET",
+      "generic_name": "Amitriptyline",
+      "atc_code": "N06AA09",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 14656,
+      "brand_name": "BREO ELLIPTA 200/25 200MCG;25M",
+      "generic_name": "fluticasone furoate + vilanterol",
+      "atc_code": "R03AK10",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 171,
+      "brand_name": "AIROMIR AUTOHALER CFC-FREE 100",
+      "generic_name": "Salbutamol",
+      "atc_code": "R03AC02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11832,
+      "brand_name": "DUODART 500MCG; 400MCG CAPSULE",
+      "generic_name": "Dutasteride + tamsulosin",
+      "atc_code": "G04CA52",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8431,
+      "brand_name": "ONDANSETRON 4MG TABLET",
+      "generic_name": "Ondansetron",
+      "atc_code": "A04AA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7090,
+      "brand_name": "SYSTANE 0.4%;0.3% EYE DROPS",
+      "generic_name": "polyethylene glycol-400 + propylene glycol",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7971,
+      "brand_name": "ZOLOFT 100MG TABLET",
+      "generic_name": "Sertraline",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 14655,
+      "brand_name": "BREO ELLIPTA 100/25 100MCG;25M",
+      "generic_name": "fluticasone furoate + vilanterol",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11726,
+      "brand_name": "PROLIA 60MG/ML INJECTION",
+      "generic_name": "Denosumab",
+      "atc_code": "M05BX04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 15783,
+      "brand_name": "VEDAFIL 100MG TABLET",
+      "generic_name": "Sildenafil",
+      "atc_code": "G04BE03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1215,
+      "brand_name": "CELEBREX 200MG CAPSULE",
+      "generic_name": "Celecoxib",
+      "atc_code": "M01AH01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7071,
+      "brand_name": "SYMBICORT 200/6 200MCG;6MCG/DO",
+      "generic_name": "Budesonide + formoterol",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9888,
+      "brand_name": "MIRTAZAPINE 15MG TABLET",
+      "generic_name": "Mirtazapine",
+      "atc_code": "N06AX11",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2603,
+      "brand_name": "ENDONE 5MG TABLET",
+      "generic_name": "Oxycodone",
+      "atc_code": "N02AA05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8579,
+      "brand_name": "VENLAFAXINE 75MG CAPSULE, MODI",
+      "generic_name": "Venlafaxine",
+      "atc_code": "N06AX16",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2540,
+      "brand_name": "EFEXOR XR 150MG CAPSULE, MODIF",
+      "generic_name": "Venlafaxine",
+      "atc_code": "N06AX16",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1743,
+      "brand_name": "CREON 25000 25,000 BP UNITS CA",
+      "generic_name": "pancreatic extract",
+      "atc_code": "A09AA02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6215,
+      "brand_name": "QUETIAPINE 25MG TABLET",
+      "generic_name": "Quetiapine",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8716,
+      "brand_name": "SYMBICORT 400/12 400MCG;12MCG/",
+      "generic_name": "Budesonide + formoterol",
+      "atc_code": "R03AK07",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 25982,
+      "brand_name": "CATIONORM EYE DROPS",
+      "generic_name": "liquid paraffin + glycerol + tyloxapol + poloxamer-188 + trometamol hydrochloride + trometamol + cetalkonium chloride",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4824,
+      "brand_name": "MOBIC 15MG TABLET",
+      "generic_name": "Meloxicam",
+      "atc_code": "M01AC06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6111,
+      "brand_name": "PROPRANOLOL 10MG TABLET",
+      "generic_name": "Propranolol",
+      "atc_code": "C07AA05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 25400,
+      "brand_name": "SILODOSIN 4MG CAPSULES",
+      "generic_name": "Silodosin",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8130,
+      "brand_name": "IRBESARTAN/HYDROCHLOROTHIAZIDE",
+      "generic_name": "Irbesartan and Hydrochlorothiazide",
+      "atc_code": "C09DA04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10101,
+      "brand_name": "ROSUVASTATIN 5MG TABLET",
+      "generic_name": "Rosuvastatin",
+      "atc_code": "C10AA07",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1625,
+      "brand_name": "COLCHICINE 500MCG TABLET",
+      "generic_name": "Colchicine",
+      "atc_code": "M04AC01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4525,
+      "brand_name": "MELOXICAM 15MG TABLET",
+      "generic_name": "Meloxicam",
+      "atc_code": "M01AC06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 22323,
+      "brand_name": "GLYXAMBI 25MG;5MG TABLETS",
+      "generic_name": "Empagliflozin with linagliptin",
+      "atc_code": "A10BD19",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11883,
+      "brand_name": "ONDANSETRON 8MG ORALLY DISINTE",
+      "generic_name": "Ondansetron",
+      "atc_code": "A04AA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3734,
+      "brand_name": "IMIGRAN 50MG TABLET",
+      "generic_name": "Sumatriptan",
+      "atc_code": "N02CC01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4252,
+      "brand_name": "LIPITOR 40MG TABLET",
+      "generic_name": "Atorvastatin",
+      "atc_code": "C10AA05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11606,
+      "brand_name": "DIABEX XR 1000 1G TABLET, EXTE",
+      "generic_name": "Metformin",
+      "atc_code": "A10BA02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2751,
+      "brand_name": "EUTROXSIG 0.05MG TABLET",
+      "generic_name": "Levothyroxine",
+      "atc_code": "H03AA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2753,
+      "brand_name": "EUTROXSIG 0.2MG TABLET",
+      "generic_name": "Levothyroxine",
+      "atc_code": "H03AA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11434,
+      "brand_name": "DIAMICRON MR 60MG TABLET, MODI",
+      "generic_name": "Gliclazide",
+      "atc_code": "A10BB09",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3644,
+      "brand_name": "HYDROXYCHLOROQUINE 200MG TABLE",
+      "generic_name": "Hydroxychloroquine",
+      "atc_code": "M01CA",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4631,
+      "brand_name": "METHOTREXATE 10MG TABLET",
+      "generic_name": "Methotrexate",
+      "atc_code": "L01BA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4825,
+      "brand_name": "MOBIC 7.5MG TABLET",
+      "generic_name": "Meloxicam",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8650,
+      "brand_name": "METFORMIN 500MG TABLET",
+      "generic_name": "Metformin",
+      "atc_code": "A10BA02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11008,
+      "brand_name": "VALSARTAN 160MG TABLET",
+      "generic_name": "VALSARTAN",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4317,
+      "brand_name": "LORATADINE 10MG TABLET",
+      "generic_name": "LORATADINE",
+      "atc_code": "R06AX13",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7965,
+      "brand_name": "ZOLADEX 10 .8 10.8MG IMPLANT",
+      "generic_name": "Goserelin",
+      "atc_code": "L02AE03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3249,
+      "brand_name": "GLICLAZIDE 80MG TABLET",
+      "generic_name": "Gliclazide",
+      "atc_code": "A10BB09",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 12927,
+      "brand_name": "FORXIGA 10MG TABLETS",
+      "generic_name": "Dapagliflozin",
+      "atc_code": "A10BK01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11181,
+      "brand_name": "LYRICA 25MG CAPSULE",
+      "generic_name": "Pregabalin",
+      "atc_code": "N02BF02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9552,
+      "brand_name": "LYRICA 75MG CAPSULE",
+      "generic_name": "Pregabalin",
+      "atc_code": "N02BF02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7598,
+      "brand_name": "VALACICLOVIR 500MG TABLET",
+      "generic_name": "Valaciclovir",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3254,
+      "brand_name": "GLIMEPIRIDE 4MG TABLET",
+      "generic_name": "Glimepiride",
+      "atc_code": "A10BB12",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4805,
+      "brand_name": "MIRTAZAPINE 30MG TABLET",
+      "generic_name": "Mirtazapine",
+      "atc_code": "N06AX11",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10795,
+      "brand_name": "SIFROL 125MCG TABLET",
+      "generic_name": "Pramipexole",
+      "atc_code": "N04BC05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5636,
+      "brand_name": "PARACETAMOL 500MG TABLET",
+      "generic_name": "Paracetamol",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5224,
+      "brand_name": "NORVASC 10MG TABLET",
+      "generic_name": "Amlodipine",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 15842,
+      "brand_name": "XELJANZ 5MG TABLET",
+      "generic_name": "Tofacitinib",
+      "atc_code": "L04AF01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8304,
+      "brand_name": "ASPIRIN 100MG TABLET",
+      "generic_name": "Aspirin",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2419,
+      "brand_name": "DOXYCYCLINE 100MG TABLET",
+      "generic_name": "Doxycycline",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11420,
+      "brand_name": "MAXALT 10MG WAFER",
+      "generic_name": "Rizatriptan",
+      "atc_code": "N02CC04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 328,
+      "brand_name": "AMITRIPTYLINE 10MG TABLET",
+      "generic_name": "Amitriptyline",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8310,
+      "brand_name": "CANDESARTAN 4MG TABLET",
+      "generic_name": "Candesartan",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8830,
+      "brand_name": "FLUOXETINE 20MG DISPERSIBLE TA",
+      "generic_name": "Fluoxetine",
+      "atc_code": "N06AB03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2541,
+      "brand_name": "EFEXOR XR 75MG CAPSULE, MODIFI",
+      "generic_name": "Venlafaxine",
+      "atc_code": "N06AX16",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10796,
+      "brand_name": "SIFROL 250MCG TABLET",
+      "generic_name": "Pramipexole",
+      "atc_code": "N04BC05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7833,
+      "brand_name": "YASMIN TABLET",
+      "generic_name": "Drospirenone + ethinylestradiol",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2371,
+      "brand_name": "DITROPAN 5MG TABLET",
+      "generic_name": "Oxybutynin",
+      "atc_code": "G04BD04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9837,
+      "brand_name": "PHYSIOTENS 0.2MG TABLET",
+      "generic_name": "Moxonidine",
+      "atc_code": "C02AC05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3991,
+      "brand_name": "KARVEA 300MG TABLET",
+      "generic_name": "Irbesartan",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9768,
+      "brand_name": "VYTORIN 10MG;80MG TABLET",
+      "generic_name": "Ezetimibe + simvastatin",
+      "atc_code": "C10BA02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8324,
+      "brand_name": "ESCITALOPRAM 20MG TABLET",
+      "generic_name": "Escitalopram",
+      "atc_code": "N06AB10",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6651,
+      "brand_name": "SEROQUEL 100MG TABLET",
+      "generic_name": "Quetiapine",
+      "atc_code": "N05AH04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4279,
+      "brand_name": "LITHIUM 250MG TABLET",
+      "generic_name": "Lithium carbonate",
+      "atc_code": "N06AX",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10482,
+      "brand_name": "RAMIPRIL 10MG TABLET",
+      "generic_name": "Ramipril",
+      "atc_code": "C09AA05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9838,
+      "brand_name": "PHYSIOTENS 0.4MG TABLET",
+      "generic_name": "Moxonidine",
+      "atc_code": "C02AC05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11529,
+      "brand_name": "COVERAM 10/10 10MG; 10MG TABLE",
+      "generic_name": "Perindopril + amlodipine",
+      "atc_code": "C09BB04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 16947,
+      "brand_name": "EZETIMIBE /ATORVASTATIN 10MG;8",
+      "generic_name": "ezetimibe (&) rosuvastatin",
+      "atc_code": "C10BA06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11011,
+      "brand_name": "AMLODIPINE/VALSARTAN 5MG;160MG",
+      "generic_name": "Amlodipine + valsartan",
+      "atc_code": "C09DB01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11725,
+      "brand_name": "DENOSUMAB 60MG/ML INJECTION",
+      "generic_name": "DENOSUMAB",
+      "atc_code": "M05BX04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8600,
+      "brand_name": "SOTALOL 80MG TABLET",
+      "generic_name": "SOTALOL",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 25364,
+      "brand_name": "DOUBLUTS 500MCG;400MCG MODIFIE",
+      "generic_name": "Dutasteride + tamsulosin",
+      "atc_code": "G04CA52",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 14729,
+      "brand_name": "ROSUZET COMPOSITE PACK 10MG;40",
+      "generic_name": "ezetimibe (&) rosuvastatin",
+      "atc_code": "C10BA06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11433,
+      "brand_name": "CANDESARTAN /HYDROCHLOROTHIAZI",
+      "generic_name": "Candesartan + Hydrochlorothiazide",
+      "atc_code": "C09DA06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3990,
+      "brand_name": "KARVEA 150MG TABLET",
+      "generic_name": "Irbesartan",
+      "atc_code": "C09CA04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8032,
+      "brand_name": "VERAPAMIL 240MG TABLET, SLOW R",
+      "generic_name": "VERAPAMIL",
+      "atc_code": "C08DA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 14730,
+      "brand_name": "EZETIMIBE /ROSUVASTATIN 10MG;2",
+      "generic_name": "ezetimibe (&) rosuvastatin",
+      "atc_code": "C10BA06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8704,
+      "brand_name": "RANITIDINE 300MG TABLET",
+      "generic_name": "Ranitidine",
+      "atc_code": "A02BA02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3251,
+      "brand_name": "GLIMEPIRIDE 1MG TABLET",
+      "generic_name": "Glimepiride",
+      "atc_code": "A10BB12",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6656,
+      "brand_name": "SERTRALINE 100MG TABLET",
+      "generic_name": "Sertraline",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5396,
+      "brand_name": "OMEPRAZOLE 10MG TABLET",
+      "generic_name": "Omeprazole",
+      "atc_code": "A02BC01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5556,
+      "brand_name": "PANADOL 500MG TABLET",
+      "generic_name": "Paracetamol",
+      "atc_code": "N02BE01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 12050,
+      "brand_name": "TICAGRELOR 90MG TABLET",
+      "generic_name": "Ticagrelor",
+      "atc_code": "B01AC24",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5758,
+      "brand_name": "PHENERGAN 10MG TABLET",
+      "generic_name": "Promethazine",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5760,
+      "brand_name": "PHENERGAN 25MG TABLET",
+      "generic_name": "Promethazine",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7096,
+      "brand_name": "TADALAFIL 20MG TABLET",
+      "generic_name": "Tadalafil",
+      "atc_code": "G04BE08",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9556,
+      "brand_name": "PREGABALIN 75MG CAPSULE",
+      "generic_name": "Pregabalin",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11455,
+      "brand_name": "MELATONIN 2MG TABLET, MODIFIED",
+      "generic_name": "Melatonin",
+      "atc_code": "N05CH01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10987,
+      "brand_name": "PRISTIQ 50MG TABLET",
+      "generic_name": "Desvenlafaxine",
+      "atc_code": "N06AX23",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8708,
+      "brand_name": "SALBUTAMOL CFC-FREE 100MCG/DOS",
+      "generic_name": "Salbutamol",
+      "atc_code": "R03AC02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11741,
+      "brand_name": "EXFORGE HCT 10/320/25 10MG; 32",
+      "generic_name": "Amlodipine + valsartan + Hydrochlorothiazide",
+      "atc_code": "C09DB01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1216,
+      "brand_name": "CELECOXIB 100MG CAPSULE",
+      "generic_name": "Celecoxib",
+      "atc_code": "M01AH01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 14478,
+      "brand_name": "SUMATRAN 50MG TABLETS",
+      "generic_name": "Sumatriptan",
+      "atc_code": "N02CC01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11992,
+      "brand_name": "TELMISARTAN /AMLODIPINE 40MG;",
+      "generic_name": "Telmisartan + Amlodipine",
+      "atc_code": "C09CA07",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5484,
+      "brand_name": "OVESTIN VAGINAL 1MG/G CREAM",
+      "generic_name": "Estriol",
+      "atc_code": "G03CA04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2545,
+      "brand_name": "EFUDIX 5% CREAM",
+      "generic_name": "Fluorouracil",
+      "atc_code": "L01BC02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5980,
+      "brand_name": "PREDNISOLONE 25MG TABLET",
+      "generic_name": "Prednisolone",
+      "atc_code": "H02AB06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11256,
+      "brand_name": "PREGABALIN 25MG CAPSULE",
+      "generic_name": "Pregabalin",
+      "atc_code": "N02BF02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 23873,
+      "brand_name": "DULOXECOR 60MG CAPSULE",
+      "generic_name": "Duloxetine",
+      "atc_code": "N06AX21",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2269,
+      "brand_name": "DILTIAZEM 180MG CAPSULE",
+      "generic_name": "Diltiazem",
+      "atc_code": "C08DB01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 30287,
+      "brand_name": "WEGOVY 1.34MG/ML 1MG/DOSE FLEX",
+      "generic_name": "Semaglutide",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8256,
+      "brand_name": "ESOMEPRAZOLE 40MG TABLET",
+      "generic_name": "Esomeprazole",
+      "atc_code": "A02BC05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 785,
+      "brand_name": "BETALOC 50MG TABLET",
+      "generic_name": "METOPROLOL TARTRATE",
+      "atc_code": "C07AB02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1218,
+      "brand_name": "CELESTONE M 0.02% CREAM",
+      "generic_name": "betamethasone valerate",
+      "atc_code": "D07AC01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8351,
+      "brand_name": "CANESTEN CLOTRIMAZOLE THRUSH T",
+      "generic_name": "Clotrimazone",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5984,
+      "brand_name": "PREDNISONE 1MG TABLET",
+      "generic_name": "Prednisone",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 564,
+      "brand_name": "ATACAND 16MG TABLET",
+      "generic_name": "Candesartan",
+      "atc_code": "C09CA06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8007,
+      "brand_name": "ZYLOPRIM 300MG TABLET",
+      "generic_name": "Allopurinol",
+      "atc_code": "M04AA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 566,
+      "brand_name": "ATACAND 8MG TABLET",
+      "generic_name": "Candesartan",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 23858,
+      "brand_name": "LOSEC 20MG TABLETS",
+      "generic_name": "Omeprazole",
+      "atc_code": "A02BC01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8081,
+      "brand_name": "BISOPROLOL 5MG TABLET",
+      "generic_name": "Bisoprolol",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9118,
+      "brand_name": "IPRATROPIUM 21MCG/DOSE INHALER",
+      "generic_name": "IPRATROPIUM",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 17450,
+      "brand_name": "FUROSEMIDE 20MG TABLET",
+      "generic_name": "Furosemide",
+      "atc_code": "C03CA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 25136,
+      "brand_name": "VELTASSA POWDER FOR SUSPENSION",
+      "generic_name": "Patiromer",
+      "atc_code": "V03AE09",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 33421,
+      "brand_name": "SPIRIVA RESPIMAT 2.5MCG SOLUTI",
+      "generic_name": "Tiotropium",
+      "atc_code": "R03BB04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 17214,
+      "brand_name": "ENTRESTO 97/103 TABLETS",
+      "generic_name": "Sacubitril + valsartan",
+      "atc_code": "C09DX04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 14688,
+      "brand_name": "EMPAGLIFLOZIN 10MG TABLETS",
+      "generic_name": "EMPAGLIFLOZIN",
+      "atc_code": "A10BK03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 30288,
+      "brand_name": "WEGOVY 2.27MG/ML 1.7MG/DOSE FL",
+      "generic_name": "Semaglutide",
+      "atc_code": "A10BJ06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11767,
+      "brand_name": "HYDROXO-B12 1MG/ML INJECTION",
+      "generic_name": "Hydroxocobalamin",
+      "atc_code": "B03BA03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6939,
+      "brand_name": "STEMETIL 5MG TABLET",
+      "generic_name": "Prochlorperazine",
+      "atc_code": "A04AD",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1563,
+      "brand_name": "CLOTRIMAZOLE 1% CREAM",
+      "generic_name": "Clotrimazole",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3729,
+      "brand_name": "IMDUR 60MG DURULES",
+      "generic_name": "Isosorbide Mononitrate",
+      "atc_code": "C01DA14",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6256,
+      "brand_name": "RAMIPRIL 2.5MG TABLET",
+      "generic_name": "Ramipril",
+      "atc_code": "C09AA05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10224,
+      "brand_name": "ENTECAVIR 500MCG TABLET",
+      "generic_name": "Entecavir",
+      "atc_code": "J05AF10",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2421,
+      "brand_name": "DOXYCYCLINE 50MG TABLET",
+      "generic_name": "Doxycycline",
+      "atc_code": "J01AA02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1214,
+      "brand_name": "CELEBREX 100MG CAPSULE",
+      "generic_name": "Celecoxib",
+      "atc_code": "M01AH01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 531,
+      "brand_name": "ASMOL CFC-FREE 100MCG/DOSE INH",
+      "generic_name": "Salbutamol",
+      "atc_code": "R03AC02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8533,
+      "brand_name": "THIAMINE 100MG TABLET",
+      "generic_name": "Thiamine",
+      "atc_code": "A11DA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3643,
+      "brand_name": "HYDROXOCOBALAMIN 1MG/ML INJECT",
+      "generic_name": "HYDROXOCOBALAMIN",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2855,
+      "brand_name": "FERROUS SULFATE 325MG TABLET",
+      "generic_name": "FERROUS SULFATE",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8948,
+      "brand_name": "GLYCERYL TRINITRATE 400MCG/DOS",
+      "generic_name": "GLYCERYL TRINITRATE",
+      "atc_code": "C01DA02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8382,
+      "brand_name": "LERCANIDIPINE 20MG TABLET",
+      "generic_name": "Lercanidipine",
+      "atc_code": "C08CA13",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 23334,
+      "brand_name": "DUPIXENT 300MG/2ML PREFILLED S",
+      "generic_name": "Dupilumab",
+      "atc_code": "D11AH05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1393,
+      "brand_name": "CHLORSIG 1% EYE OINTMENT",
+      "generic_name": "Chloramphenicol",
+      "atc_code": "S01AA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10962,
+      "brand_name": "LEVOTHYROXINE 75MCG TABLET",
+      "generic_name": "Levothyroxine",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 153,
+      "brand_name": "ADVANTAN 0.1% FATTY OINTMENT",
+      "generic_name": "Methylprednisolone",
+      "atc_code": "D07AC14",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8487,
+      "brand_name": "PULMICORT 400MCG TURBUHALER",
+      "generic_name": "Budesonide",
+      "atc_code": "R03BA02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8182,
+      "brand_name": "OMEPRAZOLE 20MG TABLET",
+      "generic_name": "Omeprazole",
+      "atc_code": "A02BC01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4699,
+      "brand_name": "MICARDIS 80MG TABLET",
+      "generic_name": "Telmisartan",
+      "atc_code": "C09CA07",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1632,
+      "brand_name": "COLGOUT 500MCG TABLET",
+      "generic_name": "Colchicine",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4804,
+      "brand_name": "MIRENA 52MG IUD",
+      "generic_name": "Levonorgestrel",
+      "atc_code": "G02BA03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 534,
+      "brand_name": "ASPALGIN 300MG;8MG EFFERVESCEN",
+      "generic_name": "Aspirin + codeine",
+      "atc_code": "N02AJ07",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1467,
+      "brand_name": "CITALOPRAM 20MG TABLET",
+      "generic_name": "Citalopram",
+      "atc_code": "N06AB04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9913,
+      "brand_name": "PERINDOPRIL 2.5MG TABLET",
+      "generic_name": "Perindopril",
+      "atc_code": "C09AA04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5125,
+      "brand_name": "NICORANDIL 10MG TABLET",
+      "generic_name": "NICORANDIL",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8054,
+      "brand_name": "AMIODARONE 200MG TABLET",
+      "generic_name": "Amiodarone",
+      "atc_code": "C01BD01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 12084,
+      "brand_name": "ELIQUIS 2.5MG TABLET",
+      "generic_name": "Apixban",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3274,
+      "brand_name": "GLUCOSAMINE 500MG TABLET",
+      "generic_name": "Glucosamine",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10785,
+      "brand_name": "TADALAFIL 5MG TABLET",
+      "generic_name": "Tadalafil",
+      "atc_code": "G04BE08",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3078,
+      "brand_name": "GABAPENTIN 100MG CAPSULE",
+      "generic_name": "Gabapentin",
+      "atc_code": "N03AX",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3079,
+      "brand_name": "GABAPENTIN 300MG CAPSULE",
+      "generic_name": "Gabapentin",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 427,
+      "brand_name": "ANTROQUORIL 0.02% CREAM",
+      "generic_name": "betamethasone valerate",
+      "atc_code": "D07AC01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9839,
+      "brand_name": "MOXONIDINE 200MCG TABLET",
+      "generic_name": "Moxonidine",
+      "atc_code": "C02AC05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 637,
+      "brand_name": "AVAPRO 300MG TABLET",
+      "generic_name": "Irbesartan",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 601,
+      "brand_name": "ATROVENT CFC FREE 21MCG/DOSE A",
+      "generic_name": "Ipratropium",
+      "atc_code": "R03BB01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9840,
+      "brand_name": "MOXONIDINE 400MCG TABLET",
+      "generic_name": "Moxonidine",
+      "atc_code": "C02AC05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7613,
+      "brand_name": "VALPROATE SODIUM 200MG ENTERIC",
+      "generic_name": "valproate",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6892,
+      "brand_name": "SOTALOL 160MG TABLET",
+      "generic_name": "Sotalol",
+      "atc_code": "C01BD",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10786,
+      "brand_name": "DULOXETINE 30MG CAPSULE",
+      "generic_name": "Duloxetine",
+      "atc_code": "N06AX21",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10787,
+      "brand_name": "DULOXETINE 60MG CAPSULE",
+      "generic_name": "Duloxetine",
+      "atc_code": "N06AX21",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5579,
+      "brand_name": "PANAMAX 500MG TABLET",
+      "generic_name": "Paracetamol",
+      "atc_code": "N02BE01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 575,
+      "brand_name": "ATORVASTATIN 20MG TABLET",
+      "generic_name": "Atorvastatin",
+      "atc_code": "C10AA05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1741,
+      "brand_name": "CREON 10000 10,000 BP UNITS CA",
+      "generic_name": "pancreatic extract",
+      "atc_code": "A09AA02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8215,
+      "brand_name": "CITALOPRAM 40MG TABLET",
+      "generic_name": "Citalopram",
+      "atc_code": "N06AB04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3556,
+      "brand_name": "HIPREX 1G TABLET",
+      "generic_name": "methenamine hippurate",
+      "atc_code": "J01XX05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 695,
+      "brand_name": "BACTROBAN 2% OINTMENT",
+      "generic_name": "Mupirocin",
+      "atc_code": "D06AX09",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10963,
+      "brand_name": "OROXINE 75MCG TABLET",
+      "generic_name": "Levothyroxine",
+      "atc_code": "H03AA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 246,
+      "brand_name": "ALLOPURINOL 100MG TABLET",
+      "generic_name": "Allopurinol",
+      "atc_code": "M04AA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9564,
+      "brand_name": "COMBIGAN EYE DROPS",
+      "generic_name": "Brimonidine + timolol",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 25196,
+      "brand_name": "VYVANSE 40MG CAPSULES",
+      "generic_name": "Lisdexamfetamine",
+      "atc_code": "N06BA12",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1163,
+      "brand_name": "CAVERJECT IMPULSE 20MCG SYRING",
+      "generic_name": "Alprostadil",
+      "atc_code": "G04BE01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 12519,
+      "brand_name": "SPREN 100 100MG TABLET",
+      "generic_name": "Aspirin",
+      "atc_code": "B01AC06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7787,
+      "brand_name": "XALACOM 0.005%;0.5% EYE DROPS",
+      "generic_name": "Latanoprost + timolol",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5225,
+      "brand_name": "NORVASC 5MG TABLET",
+      "generic_name": "Amlodipine",
+      "atc_code": "C08CA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5963,
+      "brand_name": "PRAVACHOL 40MG TABLET",
+      "generic_name": "Pravastatin",
+      "atc_code": "C10AA03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5228,
+      "brand_name": "NOTEN 50MG TABLET",
+      "generic_name": "Atenolol",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1638,
+      "brand_name": "COLOFAC 135MG TABLET",
+      "generic_name": "Mebeverine",
+      "atc_code": "A03AA04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7972,
+      "brand_name": "ZOLOFT 50MG TABLET",
+      "generic_name": "Sertraline",
+      "atc_code": "N06AB06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2905,
+      "brand_name": "FLIXOTIDE 250 CFC-FREE 250MCG",
+      "generic_name": "fluticasone propionate",
+      "atc_code": "R03BA05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6408,
+      "brand_name": "RISEDRONATE 5MG TABLET",
+      "generic_name": "risedronate",
+      "atc_code": "M05BA07",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6706,
+      "brand_name": "SIMVASTATIN 80MG TABLET",
+      "generic_name": "Simvastatin",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4268,
+      "brand_name": "LISINOPRIL 20MG TABLET",
+      "generic_name": "LISINOPRIL",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 26894,
+      "brand_name": "TRIMBOW 200MCG;6MCG;10MCG SOLU",
+      "generic_name": "beclometasone + formoterol + glycopyrronium",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 33411,
+      "brand_name": "OZEMPIC 0.68MG/ML 0.25, 0.5MG/",
+      "generic_name": "Semaglutide",
+      "atc_code": "A10BJ06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5044,
+      "brand_name": "NEO-MERCAZOLE 5MG TABLET",
+      "generic_name": "Carbimazole",
+      "atc_code": "H03BB01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8053,
+      "brand_name": "AMITRIPTYLINE 50MG TABLET",
+      "generic_name": "AMITRIPTYLINE",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9914,
+      "brand_name": "PERINDOPRIL 5MG TABLET",
+      "generic_name": "Perindopril",
+      "atc_code": "C09AA04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11793,
+      "brand_name": "LERCAN 10MG TABLET",
+      "generic_name": "Lercanidipine",
+      "atc_code": "C08CA13",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8097,
+      "brand_name": "EZETROL 10MG TABLET",
+      "generic_name": "Ezetimibe",
+      "atc_code": "C10AX09",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 22194,
+      "brand_name": "GUANFACINE 1MG MODIFIED RELEAS",
+      "generic_name": "Guanfacine",
+      "atc_code": "N06B",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6736,
+      "brand_name": "SODIBIC 840MG CAPSULE",
+      "generic_name": "Sodium bicarbonate",
+      "atc_code": "G04BX",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2818,
+      "brand_name": "FELODUR ER 5MG TABLET",
+      "generic_name": "Felodipine",
+      "atc_code": "C08CA02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 12672,
+      "brand_name": "HYLO FRESH 0.1% EYE DROPS",
+      "generic_name": "hyaluronate sodium",
+      "atc_code": "S01XA20",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4526,
+      "brand_name": "MELOXICAM 7.5MG TABLET",
+      "generic_name": "Meloxicam",
+      "atc_code": "M01AC06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 562,
+      "brand_name": "ASTRIX 100 100MG CAPSULE",
+      "generic_name": "Aspirin",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 17604,
+      "brand_name": "PROMETRIUM 100MG CAPSULES",
+      "generic_name": "Progesterone",
+      "atc_code": "G03DA04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2973,
+      "brand_name": "FLUOXETINE 20MG CAPSULE",
+      "generic_name": "Fluoxetine",
+      "atc_code": "N06AB03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4086,
+      "brand_name": "LAMICTAL 25MG DISPERSIBLE TABL",
+      "generic_name": "Lamotrigine",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5976,
+      "brand_name": "PREDMIX 5MG/ML SOLUTION",
+      "generic_name": "prednisolone sodium phosphate",
+      "atc_code": "H02AB06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10571,
+      "brand_name": "KEPPRA 100MG/ML ORAL SOLUTION",
+      "generic_name": "Levetiracetam",
+      "atc_code": "N03AX14",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 23844,
+      "brand_name": "ACIMAX 20MG TABLETS",
+      "generic_name": "Omeprazole",
+      "atc_code": "A02BC01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2195,
+      "brand_name": "DICLOFENAC 50MG TABLET, ENTERI",
+      "generic_name": "Diclofenac",
+      "atc_code": "M01AB05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9236,
+      "brand_name": "GALANTAMINE 8MG PROLONGED RELE",
+      "generic_name": "GALANTAMINE",
+      "atc_code": "N06DA04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2324,
+      "brand_name": "DIPROSONE 0.05% OINTMENT",
+      "generic_name": "betamethasone dipropionate",
+      "atc_code": "D07AC01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 16942,
+      "brand_name": "ATOZET 10MG;40MG TABLET",
+      "generic_name": "Ezetimibe + atorvastatin",
+      "atc_code": "C10BA05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4083,
+      "brand_name": "LACTULOSE 3.34G/5ML SOLUTION",
+      "generic_name": "Lactulose",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6257,
+      "brand_name": "RAMIPRIL 5MG TABLET",
+      "generic_name": "Ramipril",
+      "atc_code": "C09AA05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3617,
+      "brand_name": "HYDROCHLOROTHIAZIDE 25MG TABLE",
+      "generic_name": "HYDROCHLOROTHIAZIDE",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9668,
+      "brand_name": "ETANERCEPT 50MG INJECTION SET",
+      "generic_name": "ETANERCEPT",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9912,
+      "brand_name": "COVERSYL 10MG TABLET",
+      "generic_name": "Perindopril",
+      "atc_code": "C09AA04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 259,
+      "brand_name": "ALPHAGAN 0.2% EYE DROPS",
+      "generic_name": "Brimonidine",
+      "atc_code": "S01EA05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10239,
+      "brand_name": "DUOTRAV 0.004%-0.5% EYE DROPS",
+      "generic_name": "Travoprost + timolol",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2175,
+      "brand_name": "DIAZEPAM 2MG TABLET",
+      "generic_name": "DIAZEPAM",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 16943,
+      "brand_name": "ATOZET 10MG;80MG TABLET",
+      "generic_name": "Ezetimibe + atorvastatin",
+      "atc_code": "C10BA05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1405,
+      "brand_name": "CIALIS 20MG TABLET",
+      "generic_name": "Tadalafil",
+      "atc_code": "G04BE08",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 24974,
+      "brand_name": "ESTROGEL 0.06% GEL",
+      "generic_name": "Estradiol",
+      "atc_code": "G03CA03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11528,
+      "brand_name": "COVERAM 5/10 5MG; 10MG TABLET",
+      "generic_name": "Perindopril + amlodipine",
+      "atc_code": "C09BB04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 26045,
+      "brand_name": "VEDOLIZUMAB 108MG PEN DEVICE",
+      "generic_name": "VEDOLIZUMAB",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 661,
+      "brand_name": "AZATHIOPRINE 50MG TABLET",
+      "generic_name": "Azathioprine",
+      "atc_code": "L04AX01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9926,
+      "brand_name": "FENOFIBRATE 145MG TABLET",
+      "generic_name": "Fenofibrate",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 16904,
+      "brand_name": "SIMBRINZA 10MG;2MG EYE DROPS",
+      "generic_name": "brinzolamide + brimonidine",
+      "atc_code": "S01EC54",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2161,
+      "brand_name": "DIAMOX 250MG TABLET",
+      "generic_name": "Acetazolamide",
+      "atc_code": "S01EC01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10964,
+      "brand_name": "EUTROXSIG 0.075MG TABLET",
+      "generic_name": "Levothyroxine",
+      "atc_code": "H03AA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11118,
+      "brand_name": "SOMAC 40MG GRANULES",
+      "generic_name": "Pantoprazole",
+      "atc_code": "A02BC02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 25415,
+      "brand_name": "CEFALEXIN 250MG/5ML SUSPENSION",
+      "generic_name": "Cefalexin",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7848,
+      "brand_name": "ZANIDIP 10MG TABLET",
+      "generic_name": "Lercanidipine",
+      "atc_code": "C08CA13",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 12563,
+      "brand_name": "XARELTO 20MG TABLET",
+      "generic_name": "Rivaroxaban",
+      "atc_code": "B01AF01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8378,
+      "brand_name": "HYDRALAZINE 50MG TABLET",
+      "generic_name": "Hydralazine",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8137,
+      "brand_name": "LEUCOVORIN CALCIUM 15MG TABLET",
+      "generic_name": "Folinic acid",
+      "atc_code": "V03AF03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4633,
+      "brand_name": "METHOTREXATE 2.5MG TABLET",
+      "generic_name": "Methotrexate",
+      "atc_code": "L01BA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 14723,
+      "brand_name": "ROSUZET COMPOSITE PACK 10MG;5M",
+      "generic_name": "ezetimibe (&) rosuvastatin",
+      "atc_code": "C10BA06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2680,
+      "brand_name": "ESCITALOPRAM 10MG TABLET",
+      "generic_name": "Escitalopram",
+      "atc_code": "N06AB10",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 12236,
+      "brand_name": "LINAGLIPTIN 5MG TABLET",
+      "generic_name": "LINAGLIPTIN",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6413,
+      "brand_name": "RISPERDAL 4MG TABLET",
+      "generic_name": "Risperidone",
+      "atc_code": "N05AX08",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6423,
+      "brand_name": "RISPERIDONE 4MG TABLET",
+      "generic_name": "Risperidone",
+      "atc_code": "N05AX08",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4195,
+      "brand_name": "LEVLEN ED TABLET",
+      "generic_name": "Levonorgestrel + ethinylestradiol",
+      "atc_code": "G03AA07",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 17213,
+      "brand_name": "ENTRESTO 49/51 TABLETS",
+      "generic_name": "Sacubitril + valsartan",
+      "atc_code": "C09DX04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 12007,
+      "brand_name": "PRADAXA 150MG CAPSULE",
+      "generic_name": "Dabigatran",
+      "atc_code": "B01AE07",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 816,
+      "brand_name": "BICOR 10MG TABLET",
+      "generic_name": "Bisoprolol",
+      "atc_code": "C07AB07",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9190,
+      "brand_name": "LENGOUT 500MCG TABLET",
+      "generic_name": "Colchicine",
+      "atc_code": "M04AC01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 3099,
+      "brand_name": "GASTRO-STOP 2MG CAPSULE",
+      "generic_name": "Loperamide",
+      "atc_code": "A07DA03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 23592,
+      "brand_name": "SALOFALK 1000MG TABLET, ENTERI",
+      "generic_name": "Mesalazine",
+      "atc_code": "A07EC02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 13013,
+      "brand_name": "VYVANSE 50MG CAPSULES",
+      "generic_name": "Lisdexamfetamine",
+      "atc_code": "N06BA12",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8432,
+      "brand_name": "ONDANSETRON 8MG TABLET",
+      "generic_name": "Ondansetron",
+      "atc_code": "A04AA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1104,
+      "brand_name": "CARBAMAZEPINE 100MG TABLET",
+      "generic_name": "CARBAMAZEPINE",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4253,
+      "brand_name": "LIPITOR 80MG TABLET",
+      "generic_name": "Atorvastatin",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9788,
+      "brand_name": "ATACAND 32MG TABLET",
+      "generic_name": "Candesartan",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10990,
+      "brand_name": "DESVENLAFAXINE 50MG TABLET",
+      "generic_name": "Desvenlafaxine",
+      "atc_code": "N06AX23",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6704,
+      "brand_name": "SIMVASTATIN 40MG TABLET",
+      "generic_name": "Simvastatin",
+      "atc_code": "C10AA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10209,
+      "brand_name": "PERINDOPRIL 4MG TABLET",
+      "generic_name": "Perindopril",
+      "atc_code": "C09AA04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8052,
+      "brand_name": "AMITRIPTYLINE 25MG TABLET",
+      "generic_name": "Amitriptyline",
+      "atc_code": "N06AA09",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 9807,
+      "brand_name": "IMIGRAN FDT 50MG TABLET, FAST",
+      "generic_name": "Sumatriptan",
+      "atc_code": "N02CC01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 365,
+      "brand_name": "AMOXICILLIN 1G TABLET",
+      "generic_name": "Amoxicillin",
+      "atc_code": "J01CA04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4210,
+      "brand_name": "LEXAPRO 20MG TABLET",
+      "generic_name": "Escitalopram",
+      "atc_code": "N06AB10",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1644,
+      "brand_name": "COLOXYL 120 120MG TABLET",
+      "generic_name": "Docusate",
+      "atc_code": "A06AA02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10757,
+      "brand_name": "SERTRA 50MG TABLET",
+      "generic_name": "Sertraline",
+      "atc_code": "N06AB06",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5977,
+      "brand_name": "PREDNEFRIN FORTE 1%-0.12% EYE",
+      "generic_name": "prednisolone acetate + phenylephrine",
+      "atc_code": "S01BB02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1725,
+      "brand_name": "COSOPT 2%;0.5% EYE DROPS",
+      "generic_name": "Dorzolamide + timolol",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 6426,
+      "brand_name": "RITALIN LA 20MG CAPSULE, MODIF",
+      "generic_name": "Methylphenidate",
+      "atc_code": "N06BA04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 25538,
+      "brand_name": "ASMOL CFC-FREE INHALER (WITH C",
+      "generic_name": "Salbutamol",
+      "atc_code": "R03AC02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4251,
+      "brand_name": "LIPITOR 20MG TABLET",
+      "generic_name": "Atorvastatin",
+      "atc_code": "C10AA05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2601,
+      "brand_name": "ENDEP 25 25MG TABLET",
+      "generic_name": "Amitriptyline",
+      "atc_code": "N06AA09",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2417,
+      "brand_name": "DOXY 50 50MG TABLET",
+      "generic_name": "Doxycycline",
+      "atc_code": "J01AA02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2394,
+      "brand_name": "DONEPEZIL 5MG TABLET",
+      "generic_name": "Donepezil",
+      "atc_code": "N06DA02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 16920,
+      "brand_name": "NEXOLE 20MG TABLETS",
+      "generic_name": "Esomeprazole",
+      "atc_code": "A02BC05",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11708,
+      "brand_name": "SEVIKAR 40/5 40MG; 5MG TABLET",
+      "generic_name": "Olmesartan + amlodipine",
+      "atc_code": "C09DB02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 5188,
+      "brand_name": "NIZATIDINE 300MG CAPSULE",
+      "generic_name": "NIZATIDINE",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 11441,
+      "brand_name": "NEBILET 10MG TABLET",
+      "generic_name": "Nebivolol",
+      "atc_code": "C07AB12",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4781,
+      "brand_name": "MINIPRESS 1MG TABLET",
+      "generic_name": "Prazosin",
+      "atc_code": "C02CA01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 14717,
+      "brand_name": "OSTEOMOL 665 PARACETAMOL 665MG",
+      "generic_name": "Paracetamol",
+      "atc_code": "N02BE01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4013,
+      "brand_name": "KEPPRA 500MG TABLET",
+      "generic_name": "Levetiracetam",
+      "atc_code": "N03AX14",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 7404,
+      "brand_name": "TOPIRAMATE 100MG TABLET",
+      "generic_name": "Topiramate",
+      "atc_code": "N03AX11",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 10264,
+      "brand_name": "ZIPRASIDONE 40MG CAPSULE",
+      "generic_name": "Ziprasidone",
+      "atc_code": "N05AE04",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 1551,
+      "brand_name": "CLONAZEPAM 2MG TABLET",
+      "generic_name": "CLONAZEPAM",
+      "atc_code": null,
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 8648,
+      "brand_name": "DAIVOBET 50/500 OINTMENT",
+      "generic_name": "calcipotriol + betamethasone dipropionate",
+      "atc_code": "D05AX52",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 2805,
+      "brand_name": "FEBRIDOL 500MG TABLET",
+      "generic_name": "Paracetamol",
+      "atc_code": "N02BE01",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 12994,
+      "brand_name": "ELIQUIS 5MG TABLET",
+      "generic_name": "Apixaban",
+      "atc_code": "B01AF02",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4304,
+      "brand_name": "LOGYNON ED TABLET",
+      "generic_name": "Levonorgestrel + ethinylestradiol",
+      "atc_code": "G03AB03",
+      "approved": false,
+      "source": "reference_seed"
+    },
+    {
+      "product_id": 4088,
+      "brand_name": "LAMICTAL 50MG DISPERSIBLE TABL",
+      "generic_name": "Lamotrigine",
+      "atc_code": "N03AX09",
+      "approved": false,
+      "source": "reference_seed"
+    }
+  ],
+  "vaccine_mapping": [
+    {
+      "brand_name": "Infanrix hexa",
+      "diseases": "Diphtheria, Tetanus, Pertussis, Hep B, Polio, Hib",
+      "generic_name": "DTPa-hepB-IPV-Hib",
+      "bpsdb_vaccine_id": 59
+    },
+    {
+      "brand_name": "Vaxelis",
+      "diseases": "Diphtheria, Tetanus, Pertussis, Hep B, Polio, Hib",
+      "generic_name": "DTPa-hepB-IPV-Hib",
+      "bpsdb_vaccine_id": 200
+    },
+    {
+      "brand_name": "Infanrix",
+      "diseases": "Diphtheria, Tetanus, Pertussis",
+      "generic_name": "DTPa",
+      "bpsdb_vaccine_id": 2
+    },
+    {
+      "brand_name": "Tripacel",
+      "diseases": "Diphtheria, Tetanus, Pertussis",
+      "generic_name": "DTPa",
+      "bpsdb_vaccine_id": 3
+    },
+    {
+      "brand_name": "Adacel",
+      "diseases": "Diphtheria, Tetanus, Pertussis (Booster)",
+      "generic_name": "dTpa",
+      "bpsdb_vaccine_id": 96
+    },
+    {
+      "brand_name": "Boostrix",
+      "diseases": "Diphtheria, Tetanus, Pertussis (Booster)",
+      "generic_name": "dTpa",
+      "bpsdb_vaccine_id": 53
+    },
+    {
+      "brand_name": "ADT Booster",
+      "diseases": "Diphtheria, Tetanus",
+      "generic_name": "dT",
+      "bpsdb_vaccine_id": 48
+    },
+    {
+      "brand_name": "Priorix",
+      "diseases": "Measles, Mumps, Rubella",
+      "generic_name": "MMR",
+      "bpsdb_vaccine_id": 8
+    },
+    {
+      "brand_name": "M-M-R II",
+      "diseases": "Measles, Mumps, Rubella",
+      "generic_name": "MMR",
+      "bpsdb_vaccine_id": 7
+    },
+    {
+      "brand_name": "Priorix-Tetra",
+      "diseases": "Measles, Mumps, Rubella, Varicella",
+      "generic_name": "MMRV",
+      "bpsdb_vaccine_id": 128
+    },
+    {
+      "brand_name": "ProQuad",
+      "diseases": "Measles, Mumps, Rubella, Varicella",
+      "generic_name": "MMRV",
+      "bpsdb_vaccine_id": 129
+    },
+    {
+      "brand_name": "Varivax",
+      "diseases": "Varicella (Chickenpox)",
+      "generic_name": "Varicella",
+      "bpsdb_vaccine_id": 36
+    },
+    {
+      "brand_name": "Varilrix",
+      "diseases": "Varicella (Chickenpox)",
+      "generic_name": "Varicella",
+      "bpsdb_vaccine_id": 35
+    },
+    {
+      "brand_name": "Gardasil 9",
+      "diseases": "Human Papillomavirus",
+      "generic_name": "9-valent HPV",
+      "bpsdb_vaccine_id": 142
+    },
+    {
+      "brand_name": "Prevenar 13",
+      "diseases": "Pneumococcal Disease",
+      "generic_name": "13vPCV",
+      "bpsdb_vaccine_id": 124
+    },
+    {
+      "brand_name": "Prevenar 20",
+      "diseases": "Pneumococcal Disease",
+      "generic_name": "20vPCV",
+      "bpsdb_vaccine_id": 203
+    },
+    {
+      "brand_name": "Pneumovax 23",
+      "diseases": "Pneumococcal Disease",
+      "generic_name": "23vPPV",
+      "bpsdb_vaccine_id": 21
+    },
+    {
+      "brand_name": "Bexsero",
+      "diseases": "Meningococcal B",
+      "generic_name": "4CMenB",
+      "bpsdb_vaccine_id": 133
+    },
+    {
+      "brand_name": "Trumenba",
+      "diseases": "Meningococcal B",
+      "generic_name": "MenB-fHBP",
+      "bpsdb_vaccine_id": 155
+    },
+    {
+      "brand_name": "Nimenrix",
+      "diseases": "Meningococcal A, C, W, Y",
+      "generic_name": "MenACWY-TT",
+      "bpsdb_vaccine_id": 134
+    },
+    {
+      "brand_name": "Menveo",
+      "diseases": "Meningococcal A, C, W, Y",
+      "generic_name": "MenACWY-CRM",
+      "bpsdb_vaccine_id": 121
+    },
+    {
+      "brand_name": "MenQuadfi",
+      "diseases": "Meningococcal A, C, W, Y",
+      "generic_name": "MenACWY-TT",
+      "bpsdb_vaccine_id": 186
+    },
+    {
+      "brand_name": "Rotarix",
+      "diseases": "Rotavirus",
+      "generic_name": "Live attenuated Rotavirus",
+      "bpsdb_vaccine_id": 91
+    },
+    {
+      "brand_name": "RotaTeq",
+      "diseases": "Rotavirus",
+      "generic_name": "Live pentavalent Rotavirus",
+      "bpsdb_vaccine_id": 92
+    },
+    {
+      "brand_name": "Havrix 1440",
+      "diseases": "Hepatitis A",
+      "generic_name": "Inactivated Hep A",
+      "bpsdb_vaccine_id": 38
+    },
+    {
+      "brand_name": "Engerix-B",
+      "diseases": "Hepatitis B",
+      "generic_name": "Hepatitis B surface antigen",
+      "bpsdb_vaccine_id": 49
+    },
+    {
+      "brand_name": "Twinrix",
+      "diseases": "Hepatitis A, Hepatitis B",
+      "generic_name": "HepA-HepB",
+      "bpsdb_vaccine_id": 40
+    },
+    {
+      "brand_name": "Fluad Quad",
+      "diseases": "Influenza",
+      "generic_name": "Adjuvanted QIV",
+      "bpsdb_vaccine_id": 167
+    },
+    {
+      "brand_name": "Flucelvax Quad",
+      "diseases": "Influenza",
+      "generic_name": "Cell-based QIV",
+      "bpsdb_vaccine_id": 169
+    },
+    {
+      "brand_name": "Vaxigrip Tetra",
+      "diseases": "Influenza",
+      "generic_name": "Egg-based QIV",
+      "bpsdb_vaccine_id": 168
+    },
+    {
+      "brand_name": "Afluria Quad",
+      "diseases": "Influenza",
+      "generic_name": "Egg-based QIV",
+      "bpsdb_vaccine_id": 149
+    },
+    {
+      "brand_name": "Abrysvo",
+      "diseases": "Respiratory Syncytial Virus (RSV)",
+      "generic_name": "RSV pre-fusion F protein",
+      "bpsdb_vaccine_id": 214
+    },
+    {
+      "brand_name": "Arexvy",
+      "diseases": "Respiratory Syncytial Virus (RSV)",
+      "generic_name": "RSV pre-fusion F protein (Adjuvanted)",
+      "bpsdb_vaccine_id": 206
+    },
+    {
+      "brand_name": "Comirnaty",
+      "diseases": "COVID-19",
+      "generic_name": "mRNA (Pfizer)",
+      "bpsdb_vaccine_id": 170
+    },
+    {
+      "brand_name": "Spikevax",
+      "diseases": "COVID-19",
+      "generic_name": "mRNA (Moderna)",
+      "bpsdb_vaccine_id": 190
+    },
+    {
+      "brand_name": "Nuvaxovid",
+      "diseases": "COVID-19",
+      "generic_name": "Protein-based (Novavax)",
+      "bpsdb_vaccine_id": 181
+    },
+    {
+      "brand_name": "Imojev",
+      "diseases": "Japanese Encephalitis",
+      "generic_name": "Live attenuated JE",
+      "bpsdb_vaccine_id": 131
+    },
+    {
+      "brand_name": "Stamaril",
+      "diseases": "Yellow Fever",
+      "generic_name": "Live attenuated Yellow Fever",
+      "bpsdb_vaccine_id": 46
+    },
+    {
+      "brand_name": "Rabipur",
+      "diseases": "Rabies",
+      "generic_name": "Inactivated Rabies",
+      "bpsdb_vaccine_id": 119
+    },
+    {
+      "brand_name": "Vivotif",
+      "diseases": "Typhoid",
+      "generic_name": "Oral live attenuated Typhoid",
+      "bpsdb_vaccine_id": 105
+    },
+    {
+      "brand_name": "Typhim Vi",
+      "diseases": "Typhoid",
+      "generic_name": "Polysaccharide Typhoid",
+      "bpsdb_vaccine_id": 45
+    },
+    {
+      "brand_name": "Dukoral",
+      "diseases": "Cholera",
+      "generic_name": "Oral inactivated Cholera",
+      "bpsdb_vaccine_id": 65
+    },
+    {
+      "brand_name": "Comirnaty LP.8.1",
+      "diseases": "COVID-19",
+      "generic_name": "mRNA (Pfizer)",
+      "bpsdb_vaccine_id": 220
+    },
+    {
+      "brand_name": "Comirnaty XBB.1.5",
+      "diseases": "COVID-19",
+      "generic_name": "mRNA (Pfizer)",
+      "bpsdb_vaccine_id": 205
+    },
+    {
+      "brand_name": "Comirnaty JN.1",
+      "diseases": "COVID-19",
+      "generic_name": "mRNA (Pfizer)",
+      "bpsdb_vaccine_id": 217
+    },
+    {
+      "brand_name": "Shingrix",
+      "diseases": "Shingles (Herpes Zoster)",
+      "generic_name": "Recombinant Varicella Zoster Virus antigen",
+      "bpsdb_vaccine_id": 173
+    },
+    {
+      "brand_name": "Zostavax",
+      "diseases": "Shingles (Herpes Zoster)",
+      "generic_name": "Live varicella vaccine",
+      "bpsdb_vaccine_id": 103
+    },
+    {
+      "brand_name": "HAVRIX JUNIOR",
+      "diseases": "Hepatitis A",
+      "generic_name": "Inactivated Hep A",
+      "bpsdb_vaccine_id": 22
+    },
+    {
+      "brand_name": "Capvaxive",
+      "diseases": "Pneumococcal Disease",
+      "generic_name": "pneumococcal 21-valent conjugate vaccine",
+      "bpsdb_vaccine_id": 223
+    },
+    {
+      "brand_name": "Fluad",
+      "diseases": "Influenza",
+      "generic_name": "Influenza",
+      "bpsdb_vaccine_id": 52
+    },
+    {
+      "brand_name": "Fluzone",
+      "diseases": "Influenza",
+      "generic_name": "Influenza",
+      "bpsdb_vaccine_id": 221
+    },
+    {
+      "brand_name": "Fluzone High-Dose",
+      "diseases": "Influenza",
+      "generic_name": "Influenza",
+      "bpsdb_vaccine_id": 152
+    },
+    {
+      "brand_name": "Fluzone High-Dose Quad",
+      "diseases": "Influenza",
+      "generic_name": "Influenza (Quadrivalent)",
+      "bpsdb_vaccine_id": 171
+    },
+    {
+      "brand_name": "Fluquadri",
+      "diseases": "Influenza",
+      "generic_name": "Influenza (Quadrivalent)",
+      "bpsdb_vaccine_id": 137
+    },
+    {
+      "brand_name": "Fluquadri Junior",
+      "diseases": "Influenza",
+      "generic_name": "Influenza (Quadrivalent)",
+      "bpsdb_vaccine_id": 138
+    },
+    {
+      "brand_name": "Spikevax XBB.1.5",
+      "diseases": "COVID-19",
+      "generic_name": "mRNA (Moderna)",
+      "bpsdb_vaccine_id": 204
+    },
+    {
+      "brand_name": "Vaxigrip",
+      "diseases": "Influenza",
+      "generic_name": "Influenza",
+      "bpsdb_vaccine_id": 26
+    }
+  ],
+  "nip_risk_mapping": [
+    {
+      "vaccine_name": "Capvaxive",
+      "eligible_condition_codes": "5762, 1345, 3765, 3814, 5892, 4160, 3826, 3959, 3958, 2773, 1612, 584, 27671, 27672, 587, 1470, 1376, 30081, 13718, 2195, 598, 462, 414, 3063, 672, 671, 211, 208, 211, 2176, 2175, 2178, 2174, 2222, 2226, 2223, 2224, 2225, 6003, 2931, 5108, 1727, 2350, 2374, 7506, 2853, 2882",
+      "bpsdb_vaccine_id": 223
+    },
+    {
+      "vaccine_name": "Shingrix",
+      "eligible_condition_codes": "3765, 3814, 5892, 4160, 3826, 462, 2176, 2175, 2178, 2174, 2222, 2226, 2223, 2224, 2225, 6003, 2931, 5108, 1727, 2350, 2374, 7506, 2853, 2882",
+      "bpsdb_vaccine_id": 173
+    }
+  ]
+}

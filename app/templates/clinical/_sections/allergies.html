@@ -1,0 +1,23 @@
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+{% if not rows %}
+<p class="section-empty">No allergies or adverse reactions recorded.</p>
+{% else %}
+<table class="data-table">
+  <thead><tr><th>Substance</th><th>Reaction</th><th>Severity</th></tr></thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td class="fw-500">{{ r.ItemName }}</td>
+      <td class="text-sm">{{ r.Reaction }}</td>
+      <td>
+        {% if r.Severity %}
+        <span class="badge badge-{{ 'danger' if r.Severity|lower in ('severe','anaphylaxis') else 'warning' if r.Severity|lower == 'moderate' else 'neutral' }}">
+          {{ r.Severity }}
+        </span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}

@@ -1,0 +1,686 @@
+{% extends 'base.html' %}
+{% block title %}Comms — {{ patient.get('SURNAME','') | upper }}, {{ patient.get('FIRSTNAME','') }} — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+body, html { height: 100%; overflow: hidden; }
+.workspace { height: calc(100vh - var(--topnav-height, 48px)); overflow: hidden; }
+
+/* ── Main comms area ──────────────────────────────────────────────── */
+.comms-main {
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--bg-primary); padding: 0 !important;
+}
+.comms-header {
+  flex-shrink: 0; padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  display: flex; align-items: center; gap: 0.6rem;
+}
+.comms-label {
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--text-muted); white-space: nowrap;
+}
+
+/* ── Outer tab bar (Email / SMS) ──────────────────────────────────── */
+.comms-tabs {
+  flex-shrink: 0; display: flex; border-bottom: 2px solid var(--border-color);
+  background: var(--bg-secondary); padding: 0 0.75rem; gap: 0;
+}
+.comms-tab {
+  padding: 0.4rem 1rem; font-size: 0.78rem; font-weight: 600;
+  cursor: pointer; border: none; background: none;
+  color: var(--text-muted); border-bottom: 2px solid transparent;
+  margin-bottom: -2px; white-space: nowrap;
+}
+.comms-tab:hover { color: var(--text-primary); }
+.comms-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.comms-tab-panel { display: none; flex: 1; overflow: hidden; flex-direction: column; min-height: 0; }
+.comms-tab-panel.active { display: flex; }
+
+/* ── Fields ───────────────────────────────────────────────────────── */
+.comms-fields {
+  flex-shrink: 0; padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex; flex-direction: column; gap: 0.3rem;
+}
+.comms-field-row { display: flex; align-items: center; gap: 0.5rem; }
+.comms-field-lbl {
+  font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--text-muted); width: 4.5rem; flex-shrink: 0;
+}
+.comms-field-row input, .comms-field-row select {
+  flex: 1; padding: 0.28rem 0.5rem; font-size: 0.82rem;
+  border: 1px solid var(--border-color); border-radius: var(--radius-sm);
+  background: var(--bg-primary); color: var(--text-primary);
+}
+.comms-field-row input:focus, .comms-field-row select:focus {
+  outline: none; border-color: var(--accent);
+}
+
+/* ── Editor: inner Raw / Rendered tabs ────────────────────────────── */
+.comms-editor-wrap {
+  flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0;
+}
+.comms-inner-tabs {
+  flex-shrink: 0; display: flex; padding: 0 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary); gap: 0;
+}
+.comms-inner-tab {
+  padding: 0.28rem 0.85rem; font-size: 0.72rem; font-weight: 600;
+  cursor: pointer; border: none; background: none;
+  color: var(--text-muted); border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.comms-inner-tab:hover { color: var(--text-primary); }
+.comms-inner-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.comms-inner-panel {
+  display: none; flex: 1; overflow: hidden; flex-direction: column; min-height: 0;
+}
+.comms-inner-panel.active { display: flex; }
+
+#inner-raw { padding-bottom: 3.9rem; }
+
+#email-body {
+  flex: 1; resize: none; border: none; outline: none; padding: 0.7rem;
+  font-size: 0.83rem; line-height: 1.55; font-family: var(--font-mono, monospace);
+  background: var(--bg-primary); color: var(--text-primary); width: 100%;
+  box-sizing: border-box; overflow-y: auto;
+}
+#email-preview {
+  flex: 1; border: none; width: 100%; min-height: 0; background: #fff;
+}
+
+/* ── SMS single pane ──────────────────────────────────────────────── */
+.comms-sms-wrap {
+  flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0;
+  padding: 0.7rem 0.75rem 4.6rem; gap: 0.4rem;
+}
+.sms-counter {
+  font-size: 0.72rem; font-weight: 700; text-align: right;
+  color: var(--text-muted); flex-shrink: 0;
+}
+.sms-counter.warn { color: var(--warning, #d97706); }
+.sms-counter.over { color: var(--danger); }
+.comms-sms-wrap textarea {
+  flex: 1; resize: none; padding: 0.65rem; font-size: 0.85rem; line-height: 1.55;
+  border: 1px solid var(--border-color); border-radius: var(--radius-sm);
+  background: var(--bg-primary); color: var(--text-primary);
+  min-height: 0; overflow-y: auto; box-sizing: border-box;
+}
+.comms-sms-wrap textarea:focus { outline: none; border-color: var(--accent); }
+.comms-sms-wrap textarea.over { border-color: var(--danger); }
+
+/* ── Toolbar ──────────────────────────────────────────────────────── */
+.comms-toolbar {
+  flex-shrink: 0; padding: 0.4rem 0.75rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;
+}
+.comms-btn {
+  font-size: 0.75rem; padding: 0.22rem 0.6rem;
+  border: 1px solid var(--border-color); border-radius: var(--radius-sm);
+  background: var(--bg-primary); color: var(--text-primary);
+  cursor: pointer; white-space: nowrap;
+}
+.comms-btn:hover { background: var(--bg-secondary); border-color: var(--accent); }
+.comms-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+.comms-btn.primary:hover { opacity: 0.88; }
+.comms-spacer { flex: 1; }
+.comms-status { font-size: 0.72rem; color: var(--text-muted); }
+.comms-status.ok  { color: var(--success); font-weight: 600; }
+.comms-status.err { color: var(--danger);  font-weight: 600; }
+
+/* ── Right panel: history — wider to give middle column less space ── */
+.workspace-right { width: 370px; min-width: 370px; }
+.comms-history-panel {
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--bg-secondary);
+}
+.comms-history-hdr {
+  padding: 0.35rem 0.75rem; font-size: 0.75rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em; color: #3a4f72;
+  background: #eaf0fb; border-bottom: 1px solid #bfcce0;
+  border-left: 4px solid var(--accent-primary); flex-shrink: 0;
+}
+[data-theme="dark"] .comms-history-hdr {
+  background: var(--bg-tertiary); color: var(--text-muted);
+  border-bottom-color: var(--border-color);
+}
+.comms-history-body { flex: 1; overflow-y: auto; }
+
+/* ── History row styles ───────────────────────────────────────────── */
+.cmsg { padding:0.4rem 0.6rem; border-bottom:1px solid var(--border-color); font-size:0.75rem; line-height:1.35; }
+.cmsg-meta { display:flex; align-items:center; gap:0.3rem; flex-wrap:wrap; margin-bottom:0.15rem; }
+.cmsg-chan { font-weight:700; font-size:0.65rem; padding:0.05rem 0.25rem; border-radius:0.2rem; color:#fff; }
+.cmsg-chan-email { background:#1a73e8; }
+.cmsg-chan-sms   { background:#2e7d32; }
+.cmsg-status { font-size:0.65rem; padding:0.05rem 0.25rem; border-radius:0.2rem; font-weight:700; }
+.cmsg-status-sent    { background:var(--success); color:#fff; }
+.cmsg-status-draft   { background:var(--text-muted); color:#fff; }
+.cmsg-status-failed  { background:var(--danger); color:#fff; }
+.cmsg-status-revoked { background:#888; color:#fff; }
+.cmsg-date    { font-size:0.65rem; color:var(--text-muted); }
+.cmsg-subj    { font-weight:600; color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cmsg-to      { font-size:0.68rem; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cmsg-preview { font-size:0.68rem; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:0.1rem; }
+.cmsg-actions { display:flex; gap:0.2rem; margin-top:0.2rem; }
+.cmsg-act {
+  font-size:0.62rem; padding:0.06rem 0.22rem;
+  border:1px solid var(--border-color); border-radius:0.2rem;
+  color:var(--text-muted); background:var(--bg-primary);
+  cursor:pointer; white-space:nowrap;
+}
+.cmsg-act:hover        { background:var(--accent-primary); color:#fff; border-color:var(--accent-primary); }
+.cmsg-act.danger:hover { background:var(--danger); color:#fff; border-color:var(--danger); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="workspace">
+
+  {# ── Left sidebar ────────────────────────────────────────────────── #}
+  <aside class="workspace-sidebar">
+    <div class="card" style="padding:0.6rem;">
+      {% include 'clinical/_demographics.html' %}
+    </div>
+    {% include 'clinical/_patient_tools.html' %}
+  </aside>
+
+  {# ── Main: composer ───────────────────────────────────────────────── #}
+  <section class="comms-main workspace-main">
+
+    <div class="comms-header">
+      <span class="comms-label">Patient Communications{{ help('comms.overview') }}</span>
+      <span style="flex:1; font-size:var(--text-sm); color:var(--text-primary); font-weight:500;">
+        {{ patient.get('SURNAME','') | upper }}, {{ patient.get('FIRSTNAME','') }}
+      </span>
+      {% if patient.get('EMAIL') %}
+      <span style="font-size:0.72rem; color:var(--text-muted);">{{ patient.EMAIL }}</span>
+      {% endif %}
+      {% set _mob = (patient.get('PHONE_MOBILE') or '') %}
+      {% if _mob and _mob != '(M) ' %}
+      <span style="font-size:0.72rem; color:var(--text-muted);">{{ _mob }}</span>
+      {% endif %}
+    </div>
+
+    {# ── Outer tab bar ───────────────────────────────────────────────── #}
+    <div class="comms-tabs">
+      <button class="comms-tab active" data-tab="email" onclick="switchTab('email')">Email</button>
+      <button class="comms-tab" data-tab="sms" onclick="switchTab('sms')">SMS</button>
+      <button class="comms-tab" data-tab="bp" onclick="switchTab('bp')">Best Practice</button>
+    </div>
+
+    {# ── Email tab ───────────────────────────────────────────────────── #}
+    <div class="comms-tab-panel active" id="tab-email">
+      <div class="comms-fields">
+        <div class="comms-field-row">
+          <span class="comms-field-lbl">To</span>
+          <input type="email" id="email-to" placeholder="patient@example.com"
+                 value="{{ patient.get('EMAIL','') | e }}">
+        </div>
+        <div class="comms-field-row">
+          <span class="comms-field-lbl">Subject</span>
+          <input type="text" id="email-subject" value="{{ default_subject | e }}">
+        </div>
+        <div class="comms-field-row">
+          <span class="comms-field-lbl">Template{{ help('comms.email') }}</span>
+          <select id="email-template" onchange="applyTemplate('email')">
+            <option value="">— select template —</option>
+            {% for t in templates %}
+            {% if not t.channel or t.channel.value in ('email','both') %}
+            <option value="{{ t.id }}"
+                    data-subject="{{ t.subject | e }}"
+                    data-body="{{ t.body | e }}">{{ t.name }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      {# ── Inner Raw / Rendered tabs ──────────────────────────────────── #}
+      <div class="comms-editor-wrap">
+        <div class="comms-inner-tabs">
+          <button class="comms-inner-tab active" data-inner="raw"
+                  onclick="switchInner('raw')">Raw</button>
+          <button class="comms-inner-tab" data-inner="rendered"
+                  onclick="switchInner('rendered')">Rendered</button>
+        </div>
+        <div class="comms-inner-panel active" id="inner-raw">
+          <textarea id="email-body" spellcheck="true"
+                    placeholder="Write your message in Markdown…&#10;&#10;**Bold**, *italic*, ## headings, - lists">{% if user_signature %}
+
+---
+{{ user_signature }}{% endif %}</textarea>
+        </div>
+        <div class="comms-inner-panel" id="inner-rendered">
+          <iframe id="email-preview" title="Email preview" sandbox="allow-same-origin"></iframe>
+        </div>
+      </div>
+
+      <div class="comms-toolbar">
+        {% if user_signature %}
+        <button class="comms-btn" onclick="toggleSignature()" id="sig-btn">Sig ✓</button>
+        {% endif %}
+        <button class="comms-btn" onclick="clearEmail()">Clear</button>
+        <button class="comms-btn" onclick="copyRendered()" title="Copy raw text or rendered HTML depending on active tab">Copy</button>
+        <button class="comms-btn" id="pit-btn" onclick="emailPit()"
+                style="display:none;" title="Export to Best Practice">BP →</button>
+        <button class="comms-btn" onclick="tidyUp()" title="AI tidy-up of draft">Tidy Up</button>
+        <span class="comms-spacer"></span>
+        <span class="comms-status" id="email-status"></span>
+        <button class="dictation-btn"
+                data-dictate-for="email-body"
+                data-dictate-url="{{ url_for('voice.dictate') }}"
+                data-worklet-url="{{ url_for('static', filename='js/audio-processor.js') }}"
+                title="Dictate into message"
+                aria-label="Dictate into message"
+                aria-pressed="false"
+                type="button">🎤</button>
+        <button class="comms-btn primary" onclick="sendEmail()">Send Email</button>
+      </div>
+    </div>
+
+    {# ── SMS tab ─────────────────────────────────────────────────────── #}
+    <div class="comms-tab-panel" id="tab-sms">
+      <div class="comms-fields">
+        <div class="comms-field-row">
+          <span class="comms-field-lbl">Mobile</span>
+          <input type="tel" id="sms-to" placeholder="+614…"
+                 value="{{ ((patient.get('PHONE_MOBILE') or '') | replace('(M) ', '')) | e }}">
+        </div>
+        <div class="comms-field-row">
+          <span class="comms-field-lbl">Template</span>
+          <select id="sms-template" onchange="applyTemplate('sms')">
+            <option value="">— select template —</option>
+            {% for t in templates %}
+            {% if not t.channel or t.channel.value in ('sms','both') %}
+            <option value="{{ t.id }}"
+                    data-subject=""
+                    data-body="{{ t.body | e }}">{{ t.name }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="comms-sms-wrap">
+        <div class="sms-counter" id="sms-counter">0 / 305</div>
+        <textarea id="sms-body" maxlength="305" spellcheck="true"
+                  placeholder="Type your SMS message here (max 305 characters)…"
+                  oninput="updateSmsCounter()"></textarea>
+      </div>
+
+      <div class="comms-toolbar">
+        <button class="comms-btn" onclick="clearSms()">Clear</button>
+        <button class="comms-btn" onclick="copySms()">Copy</button>
+        <span class="comms-spacer"></span>
+        <span class="comms-status" id="sms-status"></span>
+        <button class="dictation-btn"
+                data-dictate-for="sms-body"
+                data-dictate-url="{{ url_for('voice.dictate') }}"
+                data-worklet-url="{{ url_for('static', filename='js/audio-processor.js') }}"
+                title="Dictate into message"
+                aria-label="Dictate into message"
+                aria-pressed="false"
+                type="button">🎤</button>
+        <button class="comms-btn primary" onclick="sendSms()">Send SMS</button>
+      </div>
+    </div>
+
+    {# ── Best Practice tab: file a document into the record without sending it (ADR-093) ── #}
+    <div class="comms-tab-panel" id="tab-bp">
+      <div class="comms-fields">
+        <div class="comms-field-row">
+          <span class="comms-field-lbl">Title</span>
+          <input type="text" id="bp-label" placeholder="Shown as the document's name in Best Practice">
+        </div>
+      </div>
+      <div class="comms-editor-wrap">
+        <textarea id="bp-body" spellcheck="true" style="flex:1; width:100%; box-sizing:border-box; resize:none;
+                  padding:0.6rem 0.75rem; border:none; font-family:inherit; font-size:var(--text-sm);
+                  background:var(--bg-primary); color:var(--text-primary);"
+                  placeholder="The document to file in this patient's record…"></textarea>
+      </div>
+      <div class="comms-toolbar">
+        <span style="font-size:0.72rem; color:var(--text-muted);">Filed into this patient's Best Practice record; nothing is sent to the patient.{{ help('comms.file-to-bp') }}</span>
+        <span class="comms-spacer"></span>
+        <span class="comms-status" id="bp-status"></span>
+        <button class="comms-btn primary" onclick="fileToBp()">File to BP</button>
+      </div>
+    </div>
+
+  </section>
+
+  {# ── Right panel: history ─────────────────────────────────────────── #}
+  <aside class="workspace-right comms-history-panel" style="padding:0;">
+    <div class="comms-history-hdr">Message History</div>
+    <div class="comms-history-body"
+         id="comms-history"
+         hx-get="{{ url_for('clinical_comms.api_history', patient_id=patient_id) }}"
+         hx-trigger="load, commsHistoryRefresh from:body">
+      <p style="padding:0.75rem; font-size:var(--text-sm); color:var(--text-muted);">Loading…</p>
+    </div>
+  </aside>
+
+</div>
+
+<script>
+(function () {
+  const PATIENT_ID   = {{ patient_id }};
+  const PRACTICE     = {{ practice_name | tojson }};
+  const SIGNATURE    = {{ user_signature | tojson }};
+  const TPLVARS      = {
+    '{FIRSTNAME}':        {{ (patient.get('FIRSTNAME') or '') | tojson }},
+    '{SURNAME}':          {{ (patient.get('SURNAME') or '') | tojson }},
+    '{FULLNAME}':         {{ ((patient.get('FIRSTNAME') or '') + ' ' + (patient.get('SURNAME') or '')) | trim | tojson }},
+    '{DOCTOR_NAME}':      {{ (current_user.display_name or current_user.username) | tojson }},
+    '{PRACTICE}':         {{ practice_name | tojson }},
+    '{PRACTICE_NAME}':    {{ practice_name | tojson }},
+    '{NEXT_APPOINTMENT}': {{ (next_appointment or 'not yet scheduled') | tojson }},
+  };
+
+  // ── Outer tab switching ─────────────────────────────────────────
+  window.switchTab = function (tab) {
+    document.querySelectorAll('.comms-tab').forEach(el =>
+      el.classList.toggle('active', el.dataset.tab === tab));
+    document.querySelectorAll('.comms-tab-panel').forEach(el =>
+      el.classList.toggle('active', el.id === 'tab-' + tab));
+  };
+
+  // ── Inner tab switching (Raw / Rendered) ────────────────────────
+  window.switchInner = function (tab) {
+    document.querySelectorAll('.comms-inner-tab').forEach(el =>
+      el.classList.toggle('active', el.dataset.inner === tab));
+    document.querySelectorAll('.comms-inner-panel').forEach(el =>
+      el.classList.toggle('active', el.id === 'inner-' + tab));
+    if (tab === 'rendered') renderPreview();
+  };
+
+  // ── Preview ─────────────────────────────────────────────────────
+  const emailBody    = document.getElementById('email-body');
+  const emailPreview = document.getElementById('email-preview');
+  let _previewTimer  = null;
+
+  function schedulePreview() {
+    clearTimeout(_previewTimer);
+    _previewTimer = setTimeout(renderPreview, 400);
+  }
+
+  function renderPreview() {
+    const src = emailBody ? emailBody.value : '';
+    fetch('/clinical/comms/api/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': _csrf() },
+      body: JSON.stringify({ body: src }),
+    })
+    .then(r => r.json())
+    .then(d => {
+      const doc = emailPreview.contentDocument || emailPreview.contentWindow.document;
+      doc.open();
+      doc.write(d.html || '<p style="color:#999;font-family:sans-serif;padding:1rem;">Preview will appear here</p>');
+      doc.close();
+    })
+    .catch(() => {});
+  }
+
+  if (emailBody) emailBody.addEventListener('input', schedulePreview);
+
+  // ── Templates ───────────────────────────────────────────────────
+  function _expandVars(text) {
+    return Object.entries(TPLVARS).reduce((s, [k, v]) => s.replaceAll(k, v), text);
+  }
+
+  window.applyTemplate = function (channel) {
+    const sel = document.getElementById(channel + '-template');
+    if (!sel || !sel.value) return;
+    const opt = sel.options[sel.selectedIndex];
+    if (channel === 'email') {
+      const subj = opt.dataset.subject;
+      if (subj) document.getElementById('email-subject').value = _expandVars(subj);
+      emailBody.value = _expandVars(opt.dataset.body || '');
+      schedulePreview();
+    } else {
+      document.getElementById('sms-body').value = _expandVars(opt.dataset.body || '');
+      updateSmsCounter();
+    }
+  };
+
+  // ── Signature toggle ────────────────────────────────────────────
+  let sigActive = !!SIGNATURE;
+
+  window.toggleSignature = function () {
+    if (!SIGNATURE) return;
+    sigActive = !sigActive;
+    const btn = document.getElementById('sig-btn');
+    if (sigActive) {
+      btn.textContent = 'Sig ✓';
+      if (!emailBody.value.includes('\n---\n')) {
+        emailBody.value = emailBody.value.trimEnd() + '\n\n---\n' + SIGNATURE;
+      }
+    } else {
+      btn.textContent = 'Sig';
+      emailBody.value = emailBody.value.replace(/\n+---\n[\s\S]*$/, '').trimEnd();
+    }
+    schedulePreview();
+  };
+
+  // ── SMS counter ─────────────────────────────────────────────────
+  window.updateSmsCounter = function () {
+    const el  = document.getElementById('sms-body');
+    const cnt = document.getElementById('sms-counter');
+    if (!el || !cnt) return;
+    const len = el.value.length;
+    cnt.textContent = `${len} / 305`;
+    cnt.className = 'sms-counter' + (len > 305 ? ' over' : len > 270 ? ' warn' : '');
+    el.classList.toggle('over', len > 305);
+  };
+
+  // ── Send email ──────────────────────────────────────────────────
+  let _lastEmailMsgId = null;
+
+  window.sendEmail = function () {
+    const to      = document.getElementById('email-to').value.trim();
+    const subject = document.getElementById('email-subject').value.trim();
+    const body    = emailBody.value.trim();
+    const status  = document.getElementById('email-status');
+
+    if (!to)   { _setStatus(status, 'Enter recipient email address', 'err'); return; }
+    if (!body) { _setStatus(status, 'Message body is empty', 'err'); return; }
+
+    _setStatus(status, 'Sending…', '');
+    _postJSON(`/clinical/comms/api/patient/${PATIENT_ID}/send`,
+      { channel: 'email', to_address: to, subject, body })
+    .then(d => {
+      if (d.ok) {
+        _setStatus(status, 'Sent', 'ok');
+        _lastEmailMsgId = d.msg_id;
+        document.getElementById('pit-btn').style.display = '';
+        htmx.trigger(document.body, 'commsHistoryRefresh');
+      } else {
+        _setStatus(status, (d.error || 'Failed'), 'err');
+      }
+    })
+    .catch(() => _setStatus(status, 'Network error', 'err'));
+  };
+
+  // ── Send SMS ────────────────────────────────────────────────────
+  window.sendSms = function () {
+    const to     = document.getElementById('sms-to').value.trim();
+    const body   = document.getElementById('sms-body').value.trim();
+    const status = document.getElementById('sms-status');
+
+    if (!to)           { _setStatus(status, 'Enter mobile number', 'err'); return; }
+    if (!body)         { _setStatus(status, 'Message is empty', 'err'); return; }
+    if (body.length > 305) { _setStatus(status, 'Exceeds 305 characters', 'err'); return; }
+
+    _setStatus(status, 'Sending…', '');
+    _postJSON(`/clinical/comms/api/patient/${PATIENT_ID}/send`,
+      { channel: 'sms', to_address: to, body })
+    .then(d => {
+      if (d.ok) {
+        _setStatus(status, 'Sent', 'ok');
+        htmx.trigger(document.body, 'commsHistoryRefresh');
+      } else {
+        _setStatus(status, (d.error || 'Failed'), 'err');
+      }
+    })
+    .catch(() => _setStatus(status, 'Network error', 'err'));
+  };
+
+  // ── Clear ───────────────────────────────────────────────────────
+  window.clearEmail = function () {
+    emailBody.value = SIGNATURE ? '\n\n---\n' + SIGNATURE : '';
+    document.getElementById('email-subject').value = 'Email from ' + PRACTICE;
+    document.getElementById('email-template').value = '';
+    _setStatus(document.getElementById('email-status'), '', '');
+    document.getElementById('pit-btn').style.display = 'none';
+    _lastEmailMsgId = null;
+    schedulePreview();
+  };
+
+  window.clearSms = function () {
+    document.getElementById('sms-body').value = '';
+    document.getElementById('sms-template').value = '';
+    _setStatus(document.getElementById('sms-status'), '', '');
+    updateSmsCounter();
+  };
+
+  window.copySms = function () {
+    const body = document.getElementById('sms-body');
+    if (!body) return;
+    navigator.clipboard.writeText(body.value).catch(() => {});
+  };
+
+  // ── Copy: raw text or rendered HTML depending on active inner tab ──
+  window.copyRendered = function () {
+    const status    = document.getElementById('email-status');
+    const activeTab = document.querySelector('.comms-inner-tab.active');
+    const isRaw     = !activeTab || activeTab.dataset.inner === 'raw';
+    if (isRaw) {
+      navigator.clipboard.writeText(emailBody ? emailBody.value : '')
+        .then(() => _setStatus(status, 'Copied!', 'ok'))
+        .catch(() => _setStatus(status, 'Copy failed', 'err'));
+    } else {
+      _postJSON('/clinical/comms/api/preview', { body: emailBody ? emailBody.value : '' })
+        .then(d => navigator.clipboard.writeText(d.html || ''))
+        .then(() => _setStatus(status, 'Copied!', 'ok'))
+        .catch(() => _setStatus(status, 'Copy failed', 'err'));
+    }
+  };
+
+  // ── Tidy Up (client-side whitespace cleanup) ────────────────────
+  window.tidyUp = function () {
+    if (!emailBody) return;
+    emailBody.value = emailBody.value
+      .split('\n')
+      .map(l => l.trimEnd())          // strip trailing spaces on each line
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')     // collapse 3+ blank lines to 2
+      .trim();
+    schedulePreview();
+  };
+
+  // ── PIT export ──────────────────────────────────────────────────
+  window.emailPit = function () {
+    if (!_lastEmailMsgId) return;
+    fetch(`/clinical/comms/api/patient/${PATIENT_ID}/${_lastEmailMsgId}/export-pit`, {
+      method: 'POST', headers: { 'X-CSRFToken': _csrf() },
+    })
+    .then(r => r.json())
+    .then(d => {
+      _setStatus(document.getElementById('email-status'),
+        d.ok ? 'Exported to BP' : 'PIT export failed',
+        d.ok ? 'ok' : 'err');
+    });
+  };
+
+  // ── Pre-fill from sessionStorage (AI Panel → Comms) ─────────────
+  try {
+    const stored = sessionStorage.getItem('comms_prefill');
+    if (stored) {
+      sessionStorage.removeItem('comms_prefill');
+      const pf = JSON.parse(stored);
+      if (pf.channel === 'bp') {
+        switchTab('bp');
+        if (pf.label) document.getElementById('bp-label').value = pf.label;
+        if (pf.body) document.getElementById('bp-body').value = pf.body;
+      } else if (pf.channel === 'sms') {
+        switchTab('sms');
+        if (pf.body) document.getElementById('sms-body').value = pf.body;
+        updateSmsCounter();
+      } else {
+        if (pf.subject) document.getElementById('email-subject').value = pf.subject;
+        if (pf.body) {
+          emailBody.value = pf.body + (SIGNATURE && sigActive ? '\n\n---\n' + SIGNATURE : '');
+          schedulePreview();
+        }
+      }
+    }
+  } catch (_) {}
+
+  // ── File to Best Practice (ADR-093) ─────────────────────────────
+  window.fileToBp = function () {
+    const status = document.getElementById('bp-status');
+    const content = document.getElementById('bp-body').value.trim();
+    const label = document.getElementById('bp-label').value.trim();
+    if (!content) { _setStatus(status, 'Nothing to file', 'err'); return; }
+    _setStatus(status, 'Filing…');
+    _postJSON(`/clinical/comms/api/patient/${PATIENT_ID}/file-bp`, {content, label})
+      .then(d => _setStatus(status, d.ok ? 'Filed to BP ✓' : (d.error || 'Filing failed'), d.ok ? 'ok' : 'err'))
+      .catch(() => _setStatus(status, 'Filing failed', 'err'));
+  };
+
+  // ── Helpers ─────────────────────────────────────────────────────
+  function _csrf() {
+    const el = document.querySelector('meta[name="csrf-token"]') ||
+               document.querySelector('input[name="csrf_token"]');
+    return el ? (el.content || el.value) : '';
+  }
+
+  function _postJSON(url, payload) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': _csrf() },
+      body: JSON.stringify(payload),
+    }).then(r => r.json());
+  }
+
+  function _setStatus(el, msg, cls) {
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'comms-status' + (cls ? ' ' + cls : '');
+  }
+
+  // ── History actions (referenced from comms_message_row.html) ────
+  window.commsRetry = function(patientId, msgId) {
+    fetch(`/clinical/comms/api/patient/${patientId}/${msgId}/retry`, {
+      method: 'POST', headers: { 'X-CSRFToken': _csrf() },
+    }).then(r => r.json()).then(d => {
+      if (d.ok) htmx.trigger(document.body, 'commsHistoryRefresh');
+      else alert('Retry failed: ' + (d.error || 'Unknown error'));
+    });
+  };
+
+  window.commsRevoke = function(patientId, msgId) {
+    if (!confirm('Revoke this message?')) return;
+    fetch(`/clinical/comms/api/patient/${patientId}/${msgId}/revoke`, {
+      method: 'POST', headers: { 'X-CSRFToken': _csrf() },
+    }).then(() => htmx.trigger(document.body, 'commsHistoryRefresh'));
+  };
+
+  window.commsPit = function(patientId, msgId, btn) {
+    btn.disabled = true; btn.textContent = '…';
+    fetch(`/clinical/comms/api/patient/${patientId}/${msgId}/export-pit`, {
+      method: 'POST', headers: { 'X-CSRFToken': _csrf() },
+    }).then(r => r.json()).then(d => {
+      btn.textContent = d.ok ? 'BP ✓' : 'Failed';
+      if (d.ok) htmx.trigger(document.body, 'commsHistoryRefresh');
+    });
+  };
+
+})();
+</script>
+{% endblock %}

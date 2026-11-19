@@ -1,0 +1,17 @@
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+{% if not rows %}
+<p class="section-empty">No pathology results on file.</p>
+{% else %}
+<table class="data-table">
+  <thead><tr><th>Date</th><th>Test</th><th>Source</th></tr></thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td class="text-muted nowrap">{{ r.CollectionDate }}</td>
+      <td>{{ r.TestName }}</td>
+      <td class="text-xs text-muted">{{ 'Inbox' if r.IsInBox else 'Filed' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}

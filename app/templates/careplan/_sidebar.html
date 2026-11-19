@@ -1,0 +1,7 @@
+{# Shared left panel for care plan screens. Requires: patient (dict). #}
+<aside class="workspace-sidebar">
+  <div class="card" style="padding:0.6rem;">
+    {% include 'clinical/_demographics.html' %}
+  </div>
+  {% include 'clinical/_patient_tools.html' %}
+</aside>

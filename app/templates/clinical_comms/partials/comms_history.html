@@ -1,0 +1,7 @@
+{% if not history %}
+<p style="padding:0.75rem; font-size:var(--text-sm); color:var(--text-muted);">No messages sent yet.</p>
+{% else %}
+{% for msg in history %}
+{% include 'clinical_comms/partials/comms_message_row.html' %}
+{% endfor %}
+{% endif %}

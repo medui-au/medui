@@ -1,0 +1,18 @@
+{# The details card (ADR-125): your own on your name in the top bar, or, for an admin,
+   a doctor's on Setup → Users (ADR-128). person: the user it describes. #}
+<div class="details-card-name">{{ person.display_name or person.username }}</div>
+{% if person.bp_display_name and person.bp_display_name != person.display_name %}
+<div class="details-card-sub">In Best Practice: {{ person.bp_display_name }}</div>
+{% endif %}
+{% if card.unavailable %}
+<p class="details-card-note">Your Best Practice details couldn't be read just now.</p>
+{% elif card.lines %}
+<dl class="details-card-list">
+  {% for line in card.lines %}
+  <dt>{{ line.label }}</dt>
+  {% for value in line['values'] %}<dd>{{ value }}</dd>{% endfor %}
+  {% endfor %}
+</dl>
+<p class="details-card-note">From Best Practice, as at {{ card.as_at.strftime('%-I:%M %p').lower() }}.</p>
+{% endif %}
+{% if not lookup %}<div class="details-card-foot">Click your name for My settings.</div>{% endif %}

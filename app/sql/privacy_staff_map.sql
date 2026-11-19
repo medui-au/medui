@@ -1,0 +1,10 @@
+SELECT
+    [INTERNALID] AS patient_id,
+    SUBSTRING(
+        [OTHERNOTES],
+        CHARINDEX('=', [OTHERNOTES]) + 1,
+        CHARINDEX(']', [OTHERNOTES], CHARINDEX('=', [OTHERNOTES]))
+          - CHARINDEX('=', [OTHERNOTES]) - 1
+    ) AS bp_user
+FROM [BPSPATIENTS].[dbo].[PATIENTS]
+WHERE [OTHERNOTES] LIKE '%BP_USER=%]%';

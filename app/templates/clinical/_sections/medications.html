@@ -1,0 +1,40 @@
+{% if not rows %}
+<p class="section-empty">No current medications recorded.</p>
+{% else %}
+<table class="data-table">
+  <thead><tr><th>Drug</th><th>Dose / Instructions</th><th>Since</th></tr></thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td class="fw-500">
+        {{ r.DRUGNAME }}
+        {% if is_admin %}
+          {% if not mapped_pids.get(r.PRODUCTID) %}
+          <button class="map-btn"
+                  hx-get="{{ url_for('clinical.med_mapping_popup', patient_id=patient_id, product_id=r.PRODUCTID) }}?name={{ r.DRUGNAME | urlencode }}"
+                  hx-target="#med-mapping-dialog-body"
+                  hx-on::after-request="document.getElementById('med-mapping-dialog').showModal()"
+                  title="Map to generic name">+</button>
+          {% else %}
+          <button class="mapped-indicator"
+                  hx-get="{{ url_for('clinical.med_mapping_popup', patient_id=patient_id, product_id=r.PRODUCTID) }}?name={{ r.DRUGNAME | urlencode }}"
+                  hx-target="#med-mapping-dialog-body"
+                  hx-on::after-request="document.getElementById('med-mapping-dialog').showModal()"
+                  title="Mapped — click to edit">✓</button>
+          {% endif %}
+        {% endif %}
+      </td>
+      <td class="text-sm text-secondary">{{ r.DOSESTRING }}</td>
+      <td class="text-sm text-muted nowrap">{{ r.FIRSTYEAR }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if is_admin %}
+<dialog id="med-mapping-dialog">
+  <button class="dialog-close" onclick="document.getElementById('med-mapping-dialog').close()" aria-label="Close">×</button>
+  <div id="med-mapping-dialog-body"></div>
+</dialog>
+{% endif %}
+{% endif %}

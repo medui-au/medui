@@ -1,0 +1,323 @@
+{% extends 'base.html' %}
+{% block title %}Inbox — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+body, html { height: 100%; overflow: hidden; }
+
+.inbox-workspace {
+  display:    flex;
+  height:     calc(100vh - var(--topnav-height, 48px));
+  gap:        0;
+  overflow:   hidden;
+}
+
+/* ── Left: patient demographics ──────────────────────────────────── */
+.inbox-left {
+  width:        260px;
+  min-width:    200px;
+  flex-shrink:  0;
+  border-right: 1px solid var(--border-color);
+  background:   var(--bg-secondary);
+  overflow-y:   auto;
+  display:      flex;
+  flex-direction: column;
+}
+.inbox-panel-header {
+  padding:         0.35rem 0.6rem;
+  font-size:       0.72rem;
+  font-weight:     700;
+  text-transform:  uppercase;
+  letter-spacing:  0.05em;
+  color:           var(--text-muted);
+  background:      #eaf0fb;
+  border-bottom:   1px solid #bfcce0;
+  border-left:     4px solid var(--accent-primary);
+  flex-shrink:     0;
+}
+[data-theme="dark"] .inbox-panel-header {
+  background:      var(--bg-tertiary);
+  border-bottom-color: var(--border-color);
+}
+#demographics-panel { flex: 1; overflow-y: auto; }
+.demographics-empty {
+  padding:    1.5rem 0.75rem;
+  text-align: center;
+  color:      var(--text-muted);
+  font-size:  0.78rem;
+  font-style: italic;
+}
+
+/* ── Centre: document viewer ──────────────────────────────────────── */
+.inbox-viewer {
+  flex:          1;
+  display:       flex;
+  flex-direction: column;
+  overflow:      hidden;
+  border-right:  1px solid var(--border-color);
+  background:    var(--bg-primary);
+  min-width:     0;
+}
+.inbox-viewer-header {
+  padding:          0.35rem 0.75rem;
+  border-bottom:    1px solid var(--border-color);
+  display:          flex;
+  align-items:      center;
+  justify-content:  space-between;
+  gap:              0.75rem;
+  flex-shrink:      0;
+  background:       var(--bg-secondary);
+}
+.inbox-viewer-title {
+  font-size:      var(--text-sm);
+  font-weight:    600;
+  color:          var(--text-primary);
+  white-space:    nowrap;
+  overflow:       hidden;
+  text-overflow:  ellipsis;
+  flex:           1;
+}
+.viewer-placeholder {
+  flex:            1;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  color:           var(--text-muted);
+  font-size:       var(--text-sm);
+  font-style:      italic;
+}
+#viewer-iframe {
+  flex:    1;
+  border:  none;
+  width:   100%;
+  min-height: 0;
+  display: block;
+}
+
+/* ── Right: inbox list ────────────────────────────────────────────── */
+.inbox-list {
+  width:         280px;
+  flex-shrink:   0;
+  display:       flex;
+  flex-direction: column;
+  background:    var(--bg-secondary);
+  overflow:      hidden;
+}
+.inbox-list-header {
+  padding:       0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink:   0;
+  background:    #eaf0fb;
+  border-left:   4px solid var(--accent-primary);
+}
+[data-theme="dark"] .inbox-list-header { background: var(--bg-tertiary); }
+.inbox-list-header h2 {
+  font-size:       0.75rem;
+  font-weight:     700;
+  text-transform:  uppercase;
+  letter-spacing:  0.05em;
+  color:           var(--text-muted);
+  margin:          0 0 0.3rem;
+}
+.inbox-list-header select {
+  width:        100%;
+  font-size:    0.75rem;
+  padding:      0.22rem 0.4rem;
+  border:       1px solid var(--border-color);
+  border-radius: 0.25rem;
+  background:   var(--bg-primary);
+  color:        var(--text-primary);
+}
+.inbox-count {
+  font-size:     0.65rem;
+  color:         var(--text-muted);
+  padding:       0.2rem 0.6rem;
+  border-bottom: 1px solid var(--border-color);
+  background:    var(--bg-primary);
+  flex-shrink:   0;
+}
+.inbox-list-body { flex: 1; overflow-y: auto; }
+
+/* ── Inbox list items ─────────────────────────────────────────────── */
+.inbox-item {
+  padding:       0.35rem 0.6rem;
+  border-bottom: 1px solid var(--border-color);
+  cursor:        pointer;
+  font-size:     0.72rem;
+  line-height:   1.3;
+  transition:    background 0.1s;
+}
+.inbox-item:hover { background: var(--bg-hover, rgba(0,0,0,0.04)); }
+.inbox-item.active {
+  background:   rgba(13,110,253,0.07);
+  border-left:  3px solid var(--accent-primary);
+  padding-left: calc(0.6rem - 3px);
+}
+.inbox-date    { color: var(--text-muted); font-weight: 600; margin-right: 0.35rem; }
+.inbox-patient { color: var(--accent-primary); font-weight: 700; }
+.inbox-test    { color: var(--text-primary); font-weight: 500; margin-top: 0.1rem; }
+.inbox-doctor  { color: var(--text-muted); font-style: italic; font-size: 0.65rem; margin-top: 0.05rem; }
+.inbox-empty {
+  padding:    1.5rem;
+  text-align: center;
+  color:      var(--text-muted);
+  font-size:  var(--text-sm);
+  font-style: italic;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="inbox-workspace">
+
+  <!-- ── Left: patient demographics ──────────────────────────────── -->
+  <div class="inbox-left">
+    <div class="inbox-panel-header">Patient</div>
+    <div id="demographics-panel">
+      <div class="demographics-empty">Select a report to see patient details.</div>
+    </div>
+  </div>
+
+  <!-- ── Centre: document viewer ─────────────────────────────────── -->
+  <div class="inbox-viewer">
+    <div class="inbox-viewer-header">
+      <span id="viewer-title" class="inbox-viewer-title">Inbox Viewer</span>
+      <a id="open-patient-btn"
+         style="display:none; font-size:0.72rem; padding:0.15rem 0.45rem;
+                border:1px solid var(--border-color); border-radius:0.2rem;
+                color:var(--text-muted); text-decoration:none; white-space:nowrap;"
+         href="#">Open Patient</a>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; min-height:0; overflow:hidden;">
+      <div class="viewer-placeholder" id="viewer-placeholder">
+        Select an item from the inbox list to view the report.
+      </div>
+      <iframe id="viewer-iframe" src="about:blank" style="display:none; flex:1;"></iframe>
+    </div>
+  </div>
+
+  <!-- ── Right: inbox list ────────────────────────────────────────── -->
+  <div class="inbox-list">
+    <div class="inbox-list-header">
+      <h2>Inbox</h2>
+      <form method="GET" action="{{ url_for('inbox.index') }}">
+        <select name="provider_id" onchange="this.form.submit()">
+          <option value="all" {{ 'selected' if provider_id == 'all' }}>All Providers</option>
+          {% for p in providers %}
+          <option value="{{ p.USERID }}"
+                  {{ 'selected' if provider_id|string == p.USERID|string }}>
+            {{ p.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </form>
+    </div>
+
+    <div class="inbox-count">
+      {{ items | length }} item{{ 's' if items | length != 1 }}
+    </div>
+
+    <div class="inbox-list-body">
+      {% for item in items %}
+      <div class="inbox-item"
+           data-report-id="{{ item.report_id }}"
+           data-patient-id="{{ item.internal_id }}"
+           data-title="{{ item.patient_name | e }} — {{ item.test_name | e }}"
+           data-patient-url="{{ url_for('clinical.patient', patient_id=item.internal_id) if item.internal_id else '' }}"
+           onclick="loadInboxItem(this)">
+        <div>
+          <span class="inbox-date">{{ item.collection_date or '—' }}</span>
+          <span class="inbox-patient">{{ item.patient_name }}</span>
+        </div>
+        <div class="inbox-test">{{ item.test_name or '(no label)' }}</div>
+        {% if item.doctor_name %}
+        <div class="inbox-doctor">→ {{ item.doctor_name }}</div>
+        {% endif %}
+        {% if item.internal_id and item.report_id %}
+        <div style="margin-top:0.15rem;" onclick="event.stopPropagation()">
+            <a href="/clinical/patient/{{ item.internal_id }}/ai?auto=txt&doc_type=inbox&doc_id={{ item.report_id }}&label={{ item.test_name | urlencode }}"
+               target="_blank" rel="noopener"
+               style="font-size:0.63rem; color:var(--text-muted); text-decoration:none;"
+               title="Load document text into AI panel">[TXT]</a>
+            <a href="/clinical/patient/{{ item.internal_id }}/ai?auto=sum&doc_type=inbox&doc_id={{ item.report_id }}&label={{ item.test_name | urlencode }}"
+               target="_blank" rel="noopener"
+               style="font-size:0.63rem; color:var(--accent); text-decoration:none; margin-left:0.2rem;"
+               title="Summarise with AI">[SUM]</a>
+            <a href="/clinical/patient/{{ item.internal_id }}/ai?auto=exp&doc_type=inbox&doc_id={{ item.report_id }}&label={{ item.test_name | urlencode }}"
+               target="_blank" rel="noopener"
+               style="font-size:0.63rem; color:var(--accent); text-decoration:none; margin-left:0.2rem;"
+               title="Summarise with AI">[EXP]</a>
+            {% if item.content_size %}
+            <span style="font-size:0.63rem; color:var(--text-muted); margin-left:0.35rem;">{{ item.content_size | filesize }}</span>
+            {% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="inbox-empty">No pending items.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const REPORT_URL_BASE = {{ url_for('inbox.report_content', report_id=0) | tojson }};
+  const DEMO_URL_BASE   = {{ url_for('inbox.demographics',    patient_id=0) | tojson }};
+
+  let _currentPatientId = null;
+
+  const demoPanel      = document.getElementById('demographics-panel');
+  const viewerIframe   = document.getElementById('viewer-iframe');
+  const viewerPH       = document.getElementById('viewer-placeholder');
+  const viewerTitle    = document.getElementById('viewer-title');
+  const openPatientBtn = document.getElementById('open-patient-btn');
+
+  function loadInboxItem(el) {
+    document.querySelectorAll('.inbox-item').forEach(i => i.classList.remove('active'));
+    el.classList.add('active');
+
+    const reportId   = el.dataset.reportId;
+    const patientId  = el.dataset.patientId;
+    const title      = el.dataset.title;
+    const patientUrl = el.dataset.patientUrl;
+    const prevPid    = _currentPatientId;
+    _currentPatientId = patientId;
+
+    viewerTitle.textContent = title;
+
+    // Show report in iframe
+    viewerPH.style.display     = 'none';
+    viewerIframe.style.display = 'block';
+    viewerIframe.src = REPORT_URL_BASE.replace('/0', '/' + reportId);
+
+    // Open Patient button
+    if (patientUrl) {
+      openPatientBtn.href          = patientUrl;
+      openPatientBtn.style.display = '';
+    } else {
+      openPatientBtn.style.display = 'none';
+    }
+
+    // Reload demographics only when the patient changes
+    if (patientId && patientId !== prevPid) {
+      demoPanel.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--text-muted);font-size:0.75rem;">Loading…</div>';
+      fetch(DEMO_URL_BASE.replace('/0', '/' + patientId))
+        .then(r => r.text())
+        .then(html => {
+          demoPanel.innerHTML = html;
+          if (window.htmx) htmx.process(demoPanel);
+        })
+        .catch(() => {
+          demoPanel.innerHTML = '<div style="padding:0.75rem;color:var(--danger);font-size:0.75rem;">Could not load patient details.</div>';
+        });
+    }
+  }
+
+  window.loadInboxItem = loadInboxItem;
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% for q in queries %}
+<div class="qm-list-item {% if q.is_app_enabled %}qm-app-enabled{% endif %}"
+     onclick="loadEditor({{ q.id }})"
+     id="qli-{{ q.id }}"
+     style="padding:0.45rem 0.75rem; border-bottom:1px solid var(--border-color);
+            cursor:pointer; user-select:none;">
+    <div style="display:flex; align-items:center; gap:0.4rem;">
+        <span style="font-size:var(--text-sm); font-weight:600; flex:1;
+                     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            {{ q.name }}
+        </span>
+        <span style="font-size:0.65rem; padding:0.05rem 0.3rem; border-radius:0.2rem; flex-shrink:0;
+                     {% if q.database_target == 'postgres' %}background:var(--info);color:#fff;
+                     {% else %}background:var(--bg-secondary);color:var(--text-muted);border:1px solid var(--border-color);{% endif %}">
+            {{ 'PG' if q.database_target == 'postgres' else 'BP' }}
+        </span>
+        {% if q.is_app_enabled %}
+        <span data-app-badge="1"
+              style="font-size:0.6rem; padding:0.05rem 0.3rem; border-radius:0.2rem;
+                     background:var(--success); color:#fff; font-weight:700; flex-shrink:0;">APP</span>
+        {% endif %}
+    </div>
+    {% if q.description %}
+    <div style="font-size:0.68rem; color:var(--text-muted); white-space:nowrap;
+                overflow:hidden; text-overflow:ellipsis; margin-top:0.1rem;">
+        {{ q.description[:80] }}
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<p style="padding:1rem; color:var(--text-muted); font-size:var(--text-sm);">No queries found.</p>
+{% endfor %}
+
+<script>
+// Expose loadEditor globally once (idempotent define)
+if (!window._qmEditorLoaded) {
+    window._qmEditorLoaded = true;
+    window.loadEditor = function(queryId) {
+        document.querySelectorAll('.qm-list-item').forEach(function(el) {
+            el.style.background = '';
+        });
+        var item = document.getElementById('qli-' + queryId);
+        if (item) item.style.background = 'var(--accent-light, rgba(59,130,246,0.08))';
+
+        var area = document.getElementById('qm-editor-area');
+        area.innerHTML = '<div style="padding:1rem;color:var(--text-muted);font-size:var(--text-sm);">Loading…</div>';
+
+        fetch('{{ url_for("admin.query_edit", query_id=0) }}'.replace('/0', '/' + queryId), {
+            headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content }
+        })
+        .then(function(r) { return r.text(); })
+        .then(function(html) {
+            // Extract just the editor content block from the full page
+            var tmp = document.createElement('div');
+            tmp.innerHTML = html;
+            var block = tmp.querySelector('#qm-editor-content');
+            area.innerHTML = block ? block.outerHTML : html;
+            // Re-run any inline scripts
+            area.querySelectorAll('script').forEach(function(s) {
+                var ns = document.createElement('script');
+                ns.text = s.text;
+                document.body.appendChild(ns);
+            });
+            // Tell HTMX to initialise hx-* attributes on the injected content
+            if (window.htmx) { htmx.process(area); }
+        });
+    };
+}
+</script>

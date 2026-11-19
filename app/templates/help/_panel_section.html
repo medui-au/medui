@@ -1,0 +1,6 @@
+<h2 class="help-panel-title">{{ section.title }}</h2>
+<div class="help-body">{{ render(section.text) }}</div>
+<p class="help-panel-more">
+  <a href="{{ url_for('help.topic', topic_id=topic.id) }}#{{ section.id }}">More about {{ topic.title }} →</a>
+  · <a href="{{ url_for('help.index') }}">All help</a>
+</p>

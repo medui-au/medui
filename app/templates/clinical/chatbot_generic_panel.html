@@ -1,0 +1,1390 @@
+{% extends 'doctor/base.html' %}
+
+{% block title %}Doctor Chatbot — {{ app_name }}{% endblock %}
+
+{% block doctor_styles %}
+.doctor-content { overflow:hidden; min-height:0; display:flex; flex-direction:column; gap:0; background:var(--bg-primary); }
+.chat-toolbar { display:flex; align-items:center; gap:0.6rem; padding:0.4rem 0.75rem; border-bottom:1px solid var(--border-color); background:var(--bg-secondary); flex-shrink:0; }
+.chat-title   { flex:1; font-size:var(--text-sm); font-weight:600; color:var(--text-primary); }
+.chat-select  { font-size:0.72rem; padding:0.15rem 0.35rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); background:var(--bg-primary); color:var(--text-primary); max-width:260px; }
+.chat-transcript { flex:1; min-height:0; overflow-y:auto; padding:0.75rem; display:flex; flex-direction:column; gap:0.6rem; }
+.chat-turn    { max-width:80%; padding:0.5rem 0.7rem; border-radius:0.5rem; font-size:var(--text-sm); white-space:pre-wrap; line-height:1.4; }
+.chat-turn-user      { align-self:flex-end; background:var(--accent-primary); color:#fff; }
+.chat-turn-assistant { align-self:flex-start; background:var(--bg-secondary); color:var(--text-primary); border:1px solid var(--border-color); }
+.chat-turn-error     { align-self:flex-start; background:rgba(220,53,69,0.08); color:var(--danger); border:1px solid var(--danger); }
+.chat-turn-status    { align-self:flex-start; background:none; border:1px dashed var(--border-color); color:var(--text-muted); font-style:italic; font-size:0.78rem; padding:0.35rem 0.6rem; }
+.chat-turn-meta { display:flex; align-items:center; flex-wrap:wrap; gap:0.4rem; margin-top:0.35rem; font-size:0.65rem; opacity:0.85; }
+.chat-inner-tabs { display:flex; gap:0.75rem; margin-bottom:0.3rem; border-bottom:1px solid var(--border-color); }
+.chat-inner-tab { padding:0.1rem 0 0.25rem; font-size:0.65rem; font-weight:600; cursor:pointer; border:none; background:none; color:var(--text-muted); border-bottom:2px solid transparent; margin-bottom:-1px; }
+.chat-inner-tab:hover { color:var(--text-primary); }
+.chat-inner-tab.active { color:var(--accent-primary); border-bottom-color:var(--accent-primary); }
+.chat-inner-panel { display:none; }
+.chat-inner-panel.active { display:block; }
+.chat-rendered-iframe { width:100%; min-height:1.5rem; border:none; background:#fff; border-radius:0.3rem; }
+.chat-rendered-loading { font-size:0.7rem; color:var(--text-muted); font-style:italic; }
+.chat-edit-textarea { width:100%; min-height:5rem; resize:vertical; box-sizing:border-box; padding:0.4rem 0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); background:var(--bg-primary); color:var(--text-primary); font-size:var(--text-sm); font-family:inherit; line-height:1.4; }
+.chat-edit-revert-btn { display:block; margin-top:0.3rem; font-size:0.65rem; padding:0.05rem 0.3rem; border:1px solid currentColor; border-radius:0.2rem; background:none; color:var(--text-muted); cursor:pointer; }
+.chat-edit-revert-btn:hover { color:var(--text-primary); }
+.chat-download-btn, .chat-debug-btn, .chat-copy-btn, .chat-open-btn, .chat-print-btn, .chat-comms-btn { font-size:0.65rem; padding:0.05rem 0.3rem; border:1px solid currentColor; border-radius:0.2rem; background:none; color:inherit; cursor:pointer; }
+.chat-download-btn:hover, .chat-debug-btn:hover, .chat-copy-btn:hover, .chat-open-btn:hover, .chat-print-btn:hover, .chat-comms-btn:hover { opacity:0.8; }
+.chat-open-btn { border-color:var(--success); color:var(--success); }
+.chat-success-tick { display:inline-block; color:var(--success); font-size:0.8rem; font-weight:700; opacity:0; }
+.chat-success-tick.show { animation: chatTickPop 1.3s ease; }
+@keyframes chatTickPop {
+  0%   { opacity:0; transform:scale(0.5); }
+  25%  { opacity:1; transform:scale(1.2); }
+  40%  { opacity:1; transform:scale(1); }
+  75%  { opacity:1; transform:scale(1); }
+  100% { opacity:0; transform:scale(1); }
+}
+.chat-badge { font-size:0.62rem; padding:0.03rem 0.35rem; border-radius:0.6rem; font-weight:600; white-space:nowrap; }
+.chat-badge-local      { background:rgba(25,135,84,0.12); color:var(--success); }
+.chat-badge-cloud      { background:rgba(13,110,253,0.12); color:var(--accent-primary); }
+.chat-badge-redacted   { background:rgba(25,135,84,0.12); color:var(--success); }
+.chat-badge-rules      { background:rgba(255,193,7,0.15); color:var(--text-secondary); }
+.chat-noerasure-banner { margin:0 0 0.5rem; padding:0.35rem 0.6rem; font-size:0.75rem; border-radius:var(--radius-sm);
+                         background:rgba(255,193,7,0.12); border:1px solid rgba(255,193,7,0.45); color:var(--text-primary); }
+.chat-debug-panel { margin-top:0.4rem; padding:0.5rem 0.6rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); background:var(--bg-primary); font-size:0.68rem; max-width:100%; }
+.chat-debug-label { font-weight:700; text-transform:uppercase; letter-spacing:0.03em; color:var(--text-muted); font-size:0.6rem; margin-top:0.5rem; }
+.chat-debug-label:first-child { margin-top:0; }
+.chat-debug-pre { white-space:pre-wrap; word-break:break-word; font-family:monospace; font-size:0.68rem; margin:0.15rem 0 0; max-height:200px; overflow-y:auto; color:var(--text-primary); }
+.chat-input-bar { display:flex; gap:0.5rem; align-items:flex-end; padding:0.6rem 0.75rem; border-top:1px solid var(--border-color); background:var(--bg-secondary); flex-shrink:0; }
+.chat-textarea  { flex:1; resize:none; min-height:2.4rem; max-height:8rem; padding:0.4rem 0.6rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); background:var(--bg-primary); color:var(--text-primary); font-size:var(--text-sm); font-family:inherit; }
+.chat-empty     { flex:1; display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:var(--text-sm); font-style:italic; }
+.chat-footer    { padding:0.2rem 0.75rem 0.4rem; font-size:0.65rem; color:var(--text-muted); background:var(--bg-secondary); flex-shrink:0; display:flex; gap:0.9rem; }
+.chat-toolbtn   { font-size:0.72rem; padding:0.3rem 0.55rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); background:var(--bg-primary); color:var(--text-primary); cursor:pointer; white-space:nowrap; }
+.chat-toolbtn:hover { opacity:0.85; }
+
+/* ── Previous chats sidebar ──────────────────────────────────────────────── */
+.chat-session-row  { display:flex; align-items:center; gap:0.25rem; margin-bottom:0.2rem; }
+.chat-session-item { display:block; flex:1; min-width:0; padding:0.35rem 0.5rem; border-radius:var(--radius-sm);
+    border:1px solid transparent; text-decoration:none; color:var(--text-primary); }
+.chat-session-item:hover { background:var(--bg-secondary); }
+.chat-session-item.active { background:rgba(13,110,253,0.08); border-color:var(--accent-primary); }
+.chat-session-title { font-size:0.72rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chat-session-date  { font-size:0.62rem; color:var(--text-muted); margin-top:0.1rem; }
+.chat-session-empty { font-size:0.7rem; color:var(--text-muted); font-style:italic; padding:0.3rem 0; }
+.chat-session-list  { overflow-y:auto; flex:1; min-height:0; }
+.chat-session-delete-btn { flex-shrink:0; border:1px solid transparent; background:none; color:var(--text-muted);
+    font-size:0.75rem; line-height:1; padding:0.15rem 0.3rem; border-radius:0.2rem; cursor:pointer; }
+.chat-session-delete-btn:hover { color:var(--danger); border-color:var(--danger); }
+/* Inline confirm — replaces the row's own content in place so confirming a
+   delete never needs a native confirm() dialog (which appears centered on
+   screen, not near the click — an awkward mouse trip from a narrow sidebar). */
+.chat-session-confirm { display:none; align-items:center; gap:0.35rem; flex:1; min-width:0;
+    font-size:0.65rem; color:var(--text-primary); padding:0.3rem 0.4rem;
+    background:rgba(220,53,69,0.06); border:1px solid var(--danger); border-radius:var(--radius-sm); }
+.chat-session-confirm span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chat-session-confirm-yes, .chat-session-confirm-no { flex-shrink:0; font-size:0.62rem; padding:0.1rem 0.4rem;
+    border-radius:0.2rem; border:1px solid currentColor; background:none; cursor:pointer; }
+.chat-session-confirm-yes { color:var(--danger); }
+.chat-session-confirm-no  { color:var(--text-muted); }
+
+/* ── Save / Insert prompt modals ─────────────────────────────────────────── */
+.chat-modal { display:none; position:fixed; inset:0; z-index:9000; background:rgba(0,0,0,0.45); align-items:center; justify-content:center; }
+.chat-modal.open { display:flex; }
+.chat-modal-box { background:var(--bg-primary); border:1px solid var(--border-color); border-radius:0.5rem; padding:1.25rem; max-width:440px; width:90%; box-shadow:0 8px 32px rgba(0,0,0,0.25); }
+.chat-modal-box h4 { font-size:0.85rem; font-weight:700; margin:0 0 0.9rem; }
+.chat-modal-input { width:100%; padding:0.4rem 0.55rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); background:var(--bg-secondary); color:var(--text-primary); font-size:var(--text-sm); font-family:inherit; box-sizing:border-box; }
+.chat-modal-actions { margin-top:1rem; text-align:right; display:flex; gap:0.5rem; justify-content:flex-end; }
+.chat-saved-prompts-list { max-height:50vh; overflow-y:auto; margin-top:0.4rem; }
+.chat-saved-prompts-empty { font-size:0.75rem; color:var(--text-muted); font-style:italic; padding:0.5rem 0; }
+.saved-prompt-row { display:flex; align-items:center; gap:0.5rem; padding:0.5rem 0.3rem; border-bottom:1px solid var(--border-color); cursor:pointer; }
+.saved-prompt-row:hover { background:var(--bg-secondary); }
+.saved-prompt-main { flex:1; min-width:0; }
+.saved-prompt-desc { font-size:0.78rem; font-weight:600; color:var(--text-primary); }
+.saved-prompt-preview { font-size:0.7rem; color:var(--text-muted); margin-top:0.1rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.saved-prompt-delete { flex-shrink:0; border:none; background:none; color:var(--danger); font-size:0.85rem; cursor:pointer; padding:0.2rem 0.35rem; line-height:1; }
+.saved-prompt-delete:hover { opacity:0.7; }
+{% endblock %}
+
+{% block doctor_content %}
+<div class="chat-toolbar">
+  <span class="chat-title">💬 Doctor Chatbot</span>
+  {% if ai_models %}
+  <select id="chat-model-override" class="chat-select" data-pref-kind="generic">
+    <option value="">{{ 'Default model — ' + default_model_label if default_model_label else 'Default model' }}</option>
+    {% for m in ai_models %}
+    <option value="{{ m.id }}" {% if m.id == remembered_model_id %}selected{% endif %}>
+      {{ m.display_name or m.model_id }}
+      {% if m.provider %}({{ 'local' if m.provider.is_local else 'cloud' }}){% endif %}
+    </option>
+    {% endfor %}
+  </select>
+  {% if model_fallback_note %}
+  <span class="chat-model-note" style="font-size:0.68rem; color:var(--warning, #b45309);">
+    The local model you used last is no longer available — the default (cloud) model is selected.
+  </span>
+  {% endif %}
+  <script>
+  // Remember the model chosen here for next time (step 7, plans/TGA/05).
+  document.getElementById('chat-model-override')?.addEventListener('change', e => {
+    fetch('{{ url_for('chatbot.save_model_pref') }}', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''},
+      body: JSON.stringify({kind: e.target.dataset.prefKind, model_id: e.target.value || null}),
+    }).catch(() => {});
+  });
+  </script>
+  {% endif %}
+  {{ help('chatbots.general') }}
+  {% if session %}
+  <a href="{{ url_for('chatbot.new_session', session_id=session.id) }}"
+     class="btn btn-outline" style="font-size:0.7rem; padding:0.15rem 0.5rem;">New Conversation</a>
+  {% endif %}
+</div>
+
+{% if not pipeline %}
+<div class="chat-empty">No active generic Chatbot pipeline configured — an admin needs to create one in Pipeline Designer (classifier: "chatbot_generic").</div>
+{% else %}
+{% set ai_notice = ai_notice_for(pipeline.id if pipeline else None, 'chat_general') %}{% include 'components/ai_draft_notice.html' %}
+{% include 'components/ai_scope_warning.html' %}
+{% if erasure_mode == 'warn' %}
+<div class="chat-noerasure-banner" id="chat-noerasure-banner">⚠ No AI erasure step: messages get rule-based redaction only before they go to the AI service. Don't type patient names, dates of birth or other identifiers.{{ help('chatbots.no-erasure') }}</div>
+{% elif erasure_mode == 'off' %}
+<div class="chat-noerasure-banner" id="chat-noerasure-banner">The general chatbot needs the PII Erasure workflow, which isn't active, so messages can't be sent. Ask an administrator.</div>
+{% endif %}
+<script src="{{ url_for('static', filename='js/presend_review.js') }}"></script>
+<div class="chat-transcript" id="chat-transcript">
+  {% if not messages %}
+  <div class="chat-empty" id="chat-placeholder">General reference questions about conditions, medicines and guidelines. Don't enter a patient's details or presentation: for a patient, use the AI assistant or the patient chatbot, which work from their record.</div>
+  {% endif %}
+  {% for m in messages %}
+  {% set _b = message_badges.get(m.id, {}) %}<div class="chat-turn chat-turn-{{ m.role }}" data-message-id="{{ m.id }}"{% if m.role == 'assistant' and _b.model_is_local is sameas false %} data-sent="1"{% endif %}{% if m.role == 'assistant' and current_user.is_admin and m.pipeline_run_id %} data-debug="1"{% endif %}>
+    {% if m.role == 'assistant' %}
+    <div class="chat-inner-tabs">
+      <button type="button" class="chat-inner-tab active" onclick="switchChatInner(this, 'raw')">Raw</button>
+      <button type="button" class="chat-inner-tab" onclick="switchChatInner(this, 'rendered')">Rendered</button>
+      <button type="button" class="chat-inner-tab" onclick="switchChatInner(this, 'edit')">Edit</button>
+    </div>
+    <div class="chat-inner-panel chat-raw-panel active">{{ m.content }}</div>
+    <div class="chat-inner-panel chat-rendered-panel"></div>
+    <div class="chat-inner-panel chat-edit-panel">
+      <textarea class="chat-edit-textarea">{{ m.content }}</textarea>
+      <button type="button" class="chat-edit-revert-btn" onclick="revertChatEdit(this)">Revert to original</button>
+    </div>
+    {% set b = message_badges.get(m.id, {}) %}
+    <div class="chat-turn-meta">
+      {% if b.model_is_local is not none %}
+      <span class="chat-badge {{ 'chat-badge-local' if b.model_is_local else 'chat-badge-cloud' }}">
+        {{ '🏠 Local' if b.model_is_local else '☁ Cloud' }}
+      </span>
+      {% endif %}
+      {% if b.is_redacted is not none and erasure_mode != 'erasure' %}
+      <span class="chat-badge chat-badge-rules" title="No AI erasure step: your question had rule-based redaction only.">Rule-based redaction only</span>
+      {% elif b.is_redacted is not none %}
+      <span class="chat-badge chat-badge-redacted" title="This reply's own prompt isn't token-redacted — protection happens upstream, in the local PII-erasure pass on your question. Check the Raw tab on your own turn above to see exactly what was erased.">
+        🔒 Local AI PII Check Done - read history to confirm
+      </span>
+      {% endif %}
+      <button type="button" class="chat-copy-btn" onclick="copyReply(this)" title="Copy to clipboard">Copy</button>
+      <span class="chat-success-tick">✓</span>
+      <button type="button" class="chat-download-btn" onclick="downloadReply({{ m.id }}, this)">Download</button>
+      <button type="button" class="chat-print-btn" onclick="printReply(this)" title="Print (rendered)">Print 🖨</button>
+      <button type="button" class="chat-comms-btn" onclick="replyToComms(this, 'bp')" title="File to a patient's Best Practice record — choose the patient in Comms">BP →</button>
+      <button type="button" class="chat-comms-btn" onclick="replyToComms(this, 'email')" title="Email to a patient — choose the patient in Comms">Email</button>
+      {% if current_user.is_admin %}
+      {% endif %}
+    </div>
+    {% else %}
+    {{ m.content }}
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<div class="chat-input-bar">
+  <textarea id="chat-input" class="chat-textarea" placeholder="Ask a general question: a condition, medicine or guideline…"
+            onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); sendMessage();}"></textarea>
+  <button class="dictation-btn"
+          data-dictate-for="chat-input"
+          data-dictate-url="{{ url_for('voice.dictate') }}"
+          data-worklet-url="{{ url_for('static', filename='js/audio-processor.js') }}"
+          title="Dictate into prompt"
+          aria-label="Dictate into prompt"
+          aria-pressed="false"
+          type="button">🎤</button>
+  <button type="button" id="chat-save-prompt-btn" class="chat-toolbtn" onclick="openSavePromptModal()" title="Save current text as a reusable prompt">💾 Save</button>
+  <button type="button" id="chat-insert-prompt-btn" class="chat-toolbtn" onclick="openInsertPromptModal()" title="Insert a saved prompt">📋 Insert</button>
+  <button type="button" id="chat-send-btn" class="btn btn-primary" onclick="sendMessage()"{% if erasure_mode == 'off' %} disabled{% endif %}>Send</button>
+</div>
+<div class="chat-footer" id="chat-footer">
+  <span id="chat-footer-tokens">{{ 'Tokens: ' + '{:,}'.format(totals.tokens_input) + ' in / ' + '{:,}'.format(totals.tokens_output) + ' out' + (' (' + '{:,}'.format(totals.cached_tokens) + ' cached)' if totals.cached_tokens else '') if totals else 'Tokens: 0 in / 0 out' }}</span>
+  <span id="chat-footer-cost">{{ 'Cost: $' + '%.4f'|format(totals.cost) if totals and totals.cost is not none else 'Cost: n/a' }}</span>
+</div>
+
+<div id="chat-save-modal" class="chat-modal" role="dialog" aria-modal="true" aria-labelledby="chat-save-modal-title"
+     onclick="if(event.target===this)closeSavePromptModal()">
+  <div class="chat-modal-box">
+    <h4 id="chat-save-modal-title">Save Prompt</h4>
+    <input type="text" id="chat-save-desc" class="chat-modal-input" maxlength="200"
+           placeholder="e.g. Summarise recent pathology trends"
+           onkeydown="if(event.key==='Enter'){event.preventDefault(); saveCurrentPrompt();}">
+    <div class="chat-modal-actions">
+      <button type="button" class="btn btn-outline" style="font-size:0.78rem;" onclick="closeSavePromptModal()">Cancel</button>
+      <button type="button" id="chat-save-modal-confirm" class="btn btn-primary" style="font-size:0.78rem;" onclick="saveCurrentPrompt()">Save</button>
+      <span class="chat-success-tick" id="chat-save-modal-tick">✓</span>
+    </div>
+  </div>
+</div>
+
+{% if erasure_mode == 'warn' %}
+<div id="chat-noerasure-modal" class="chat-modal" role="dialog" aria-modal="true" aria-labelledby="chat-noerasure-modal-title">
+  <div class="chat-modal-box">
+    <h4 id="chat-noerasure-modal-title">Before you send: no AI erasure step</h4>
+    <p style="font-size:0.8rem; line-height:1.5; margin:0 0 0.5rem;">
+      This practice has no PII Erasure workflow, so a local model does not remove identifiers from your
+      message first. Before it goes to the AI service it gets rule-based redaction only, which can miss
+      names and other details typed in free text.
+    </p>
+    <p style="font-size:0.8rem; line-height:1.5; margin:0;">
+      Ask general questions only. Don't type patient names, dates of birth, addresses, Medicare or other
+      record numbers. You'll be asked once per chat.
+    </p>
+    <div class="chat-modal-actions">
+      <button type="button" class="btn btn-outline" style="font-size:0.78rem;" id="chat-noerasure-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" style="font-size:0.78rem;" id="chat-noerasure-confirm">I understand — send</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div id="chat-insert-modal" class="chat-modal" role="dialog" aria-modal="true" aria-labelledby="chat-insert-modal-title"
+     onclick="if(event.target===this)closeInsertPromptModal()">
+  <div class="chat-modal-box">
+    <h4 id="chat-insert-modal-title">Insert Saved Prompt</h4>
+    <div id="chat-insert-list" class="chat-saved-prompts-list"></div>
+    <div class="chat-modal-actions">
+      <button type="button" class="btn btn-outline" style="font-size:0.78rem;" onclick="closeInsertPromptModal()">Close</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block doctor_filters %}
+<div class="filter-label">Previous Chats</div>
+<input type="text" id="chat-session-search" class="filter-input" placeholder="Search chats…" name="q"
+       hx-get="{{ url_for('chatbot.generic_sessions') }}"
+       hx-trigger="keyup changed delay:300ms, load"
+       hx-target="#chat-session-list" hx-swap="innerHTML" hx-include="this">
+<hr class="filter-sep">
+<div id="chat-session-list" class="chat-session-list"></div>
+{% endblock %}
+
+{% block doctor_scripts %}
+<script>
+(function () {
+  const IS_ADMIN   = {{ 'true' if current_user.is_admin else 'false' }};
+  const CSRF       = document.querySelector('meta[name="csrf-token"]')?.content || '';
+  const MESSAGE_URL   = `/clinical/chatbot/generic/message`;
+  const CONTINUE_URL  = `/clinical/chatbot/generic/message/continue`;
+  const DIRECT_URL    = `/clinical/chatbot/generic/message/direct`;
+  // 'erasure' | 'warn' | 'off', decided by the server (ADR-098).
+  const ERASURE_MODE  = '{{ erasure_mode }}';
+  const ACK_KEY       = 'medui.genericNoErasureAck.{{ session.id if session else "" }}';
+  const WARMUP_URL    = `/clinical/chatbot/generic/warmup`;
+  const STREAM_URL    = id => `/pipeline/run/${id}/stream`;
+  const DOWNLOAD_URL  = id => `/clinical/chatbot/message/${id}/download`;
+  const FILE_URL      = id => `/clinical/chatbot/file/${id}/download`;
+  const DEBUG_URL     = id => `/clinical/chatbot/message/${id}/debug`;
+  const RENDER_MD_URL = `/clinical/chatbot/render-markdown`;
+  const PROMPTS_URL   = `/clinical/chatbot/prompts`;
+  const PROMPT_URL    = id => `/clinical/chatbot/prompts/${id}`;
+  const SESSIONS_URL  = `{{ url_for('chatbot.generic_sessions') }}`;
+
+  const transcript = document.getElementById('chat-transcript');
+  const input      = document.getElementById('chat-input');
+  const sendBtn    = document.getElementById('chat-send-btn');
+  let completeUrl  = null;  // set once we know the active session id
+
+  // The chatbot_generic system prompt instructs the model to reply with a
+  // single JSON object {"Title": ..., "Response": ...} on every turn — Title
+  // tracks the conversation's subject (for the sidebar list), Response is the
+  // actual answer, in whatever format (markdown/HTML/etc) was actually asked
+  // for. Strip a leading/trailing ```json fence first since models commonly
+  // add one despite being told not to. Falls back to showing the raw text
+  // verbatim with no title if parsing fails — an older/smaller local model
+  // not following the format shouldn't make the chat unusable, just untitled.
+  function parseChatbotReply(raw) {
+    let text = (raw || '').trim();
+    const fenceMatch = text.match(/^```(?:json)?\s*\n([\s\S]*?)\n?```$/i);
+    if (fenceMatch) text = fenceMatch[1].trim();
+
+    const tryParse = (candidate) => {
+      try {
+        const obj = JSON.parse(candidate);
+        if (obj && typeof obj.Response === 'string') {
+          return { response: obj.Response, title: typeof obj.Title === 'string' ? obj.Title.trim() : null };
+        }
+      } catch (_) { /* not valid JSON */ }
+      return null;
+    };
+
+    let result = tryParse(text);
+    if (result) return result;
+
+    // Models occasionally append (or prepend) a stray character around an
+    // otherwise well-formed JSON object — e.g. a trailing "'" as if the
+    // whole thing were itself wrapped in quotes somewhere in training data.
+    // Retry against just the substring between the first '{' and last '}'
+    // before giving up and showing the raw text verbatim.
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start !== -1 && end > start) {
+      result = tryParse(text.slice(start, end + 1));
+      if (result) return result;
+    }
+
+    // Last resort (ADR-073): the envelope is there but isn't strict JSON —
+    // usually real line breaks inside the Response string, which JSON.parse
+    // refuses. Take each value from its key to where the envelope says it
+    // ends, and undo JSON's escapes by hand. Raw line breaks and stray quotes
+    // inside the text are kept as they are.
+    result = extractEnvelope(start !== -1 && end > start ? text.slice(start, end + 1) : text);
+    if (result) return result;
+
+    return { response: raw, title: null };
+  }
+
+  function unescapeJsonString(s) {
+    return s.replace(/\\(u[0-9a-fA-F]{4}|.)/g, (_, e) =>
+      e.length === 5 ? String.fromCharCode(parseInt(e.slice(1), 16))
+        : ({ n: '\n', t: '\t', r: '\r', b: '\b', f: '\f' })[e] ?? e);
+  }
+
+  function extractEnvelope(obj) {
+    // A value runs from `"Key": "` to the closing quote that is followed by
+    // `, "OtherKey"` or by the final `}` (a few stray characters allowed
+    // before it: two replies ended `…)." word}`).
+    const value = (key, other) => {
+      const open = new RegExp('"' + key + '"\\s*:\\s*"').exec(obj);
+      if (!open) return null;
+      const from = open.index + open[0].length;
+      const close = new RegExp('"\\s*(?:,\\s*"' + other + '"\\s*:|[^"{}]{0,24}}\\s*$)', 'g');
+      close.lastIndex = from;
+      const m = close.exec(obj);
+      return m ? unescapeJsonString(obj.slice(from, m.index)) : null;
+    };
+    const response = value('Response', 'Title');
+    if (response === null) return null;
+    const title = value('Title', 'Response');
+    return { response, title: title ? title.trim() : null };
+  }
+
+  function refreshSessionList() {
+    const searchInput = document.getElementById('chat-session-search');
+    const q = searchInput ? searchInput.value.trim() : '';
+    if (window.htmx) {
+      htmx.ajax('GET', SESSIONS_URL + (q ? '?q=' + encodeURIComponent(q) : ''),
+        { target: '#chat-session-list', swap: 'innerHTML' });
+    }
+  }
+
+  // Toggles a sidebar row between its normal state (title/date + delete icon)
+  // and an inline "Delete this chat? Yes / Cancel" prompt in the same spot —
+  // deliberately not a native confirm() dialog, which pops up centered on
+  // screen rather than near the click.
+  window.toggleDeleteConfirm = function (sessionId) {
+    const row = document.getElementById('chat-session-row-' + sessionId);
+    if (!row) return;
+    const link    = row.querySelector('.chat-session-item');
+    const delBtn  = row.querySelector('.chat-session-delete-btn');
+    const confirm = document.getElementById('chat-session-confirm-' + sessionId);
+    if (!confirm) return;
+    const showingConfirm = confirm.style.display !== 'none';
+    if (link)   link.style.display   = showingConfirm ? '' : 'none';
+    if (delBtn) delBtn.style.display = showingConfirm ? '' : 'none';
+    confirm.style.display = showingConfirm ? 'none' : 'flex';
+  };
+
+  // Running session totals — seeded from the server-rendered footer, incremented
+  // per turn as each SSE 'complete' event arrives (no page reload needed).
+  let totalTokensIn  = {{ totals.tokens_input if totals else 0 }};
+  let totalTokensOut = {{ totals.tokens_output if totals else 0 }};
+  let totalCached    = {{ totals.cached_tokens if totals else 0 }};
+  let totalCost      = {{ totals.cost if totals and totals.cost is not none else 'null' }};
+
+  function updateFooter() {
+    const tokEl  = document.getElementById('chat-footer-tokens');
+    const costEl = document.getElementById('chat-footer-cost');
+    if (tokEl) {
+      let txt = `Tokens: ${totalTokensIn.toLocaleString()} in / ${totalTokensOut.toLocaleString()} out`;
+      if (totalCached) txt += ` (${totalCached.toLocaleString()} cached)`;
+      tokEl.textContent = txt;
+    }
+    if (costEl) costEl.textContent = totalCost != null ? `Cost: $${totalCost.toFixed(4)}` : 'Cost: n/a';
+  }
+
+  function addToTotals(aiResponses) {
+    (aiResponses || []).forEach(r => {
+      totalTokensIn  += r.tokens_input || 0;
+      totalTokensOut += r.tokens_output || 0;
+      totalCached    += r.cached_tokens || 0;
+      if (r.cost != null) totalCost = (totalCost || 0) + r.cost;
+    });
+    updateFooter();
+  }
+
+  function scrollToBottom() {
+    if (transcript) transcript.scrollTop = transcript.scrollHeight;
+  }
+
+  function buildChatInnerTabs(text) {
+    const frag = document.createDocumentFragment();
+
+    const tabs = document.createElement('div');
+    tabs.className = 'chat-inner-tabs';
+    const rawTab = document.createElement('button');
+    rawTab.type = 'button';
+    rawTab.className = 'chat-inner-tab active';
+    rawTab.dataset.tab = 'raw';
+    rawTab.textContent = 'Raw';
+    rawTab.onclick = () => switchChatInner(rawTab, 'raw');
+    const renderedTab = document.createElement('button');
+    renderedTab.type = 'button';
+    renderedTab.className = 'chat-inner-tab';
+    renderedTab.dataset.tab = 'rendered';
+    renderedTab.textContent = 'Rendered';
+    renderedTab.onclick = () => switchChatInner(renderedTab, 'rendered');
+    const editTab = document.createElement('button');
+    editTab.type = 'button';
+    editTab.className = 'chat-inner-tab';
+    editTab.dataset.tab = 'edit';
+    editTab.textContent = 'Edit';
+    editTab.onclick = () => switchChatInner(editTab, 'edit');
+    tabs.appendChild(rawTab);
+    tabs.appendChild(renderedTab);
+    tabs.appendChild(editTab);
+
+    const rawPanel = document.createElement('div');
+    rawPanel.className = 'chat-inner-panel chat-raw-panel active';
+    rawPanel.textContent = text;
+
+    const renderedPanel = document.createElement('div');
+    renderedPanel.className = 'chat-inner-panel chat-rendered-panel';
+
+    const editPanel = document.createElement('div');
+    editPanel.className = 'chat-inner-panel chat-edit-panel';
+    const editTextarea = document.createElement('textarea');
+    editTextarea.className = 'chat-edit-textarea';
+    editTextarea.value = text;
+    editTextarea.addEventListener('input', () => {
+      clearChatRenderedCache(editPanel.closest('.chat-turn'));
+      autoResizeChatEdit(editTextarea);
+    });
+    editPanel.appendChild(editTextarea);
+    const revertBtn = document.createElement('button');
+    revertBtn.type = 'button';
+    revertBtn.className = 'chat-edit-revert-btn';
+    revertBtn.textContent = 'Revert to original';
+    revertBtn.onclick = () => revertChatEdit(revertBtn);
+    editPanel.appendChild(revertBtn);
+
+    frag.appendChild(tabs);
+    frag.appendChild(rawPanel);
+    frag.appendChild(renderedPanel);
+    frag.appendChild(editPanel);
+    return frag;
+  }
+
+  function addTurn(role, text) {
+    const ph = document.getElementById('chat-placeholder');
+    if (ph) ph.remove();
+    const div = document.createElement('div');
+    div.className = 'chat-turn chat-turn-' + role;
+    if (role === 'assistant') {
+      div.appendChild(buildChatInnerTabs(text));
+    } else {
+      div.textContent = text;
+    }
+    transcript.appendChild(div);
+    if (role === 'assistant') {
+      // Default a freshly-arrived reply to the Rendered tab rather than Raw —
+      // routed through switchChatInner() itself (not just toggling classes)
+      // so its own width-lock logic still runs, same as a manual tab click.
+      const renderedTabBtn = div.querySelector('.chat-inner-tab[data-tab="rendered"]');
+      if (renderedTabBtn) switchChatInner(renderedTabBtn, 'rendered');
+    }
+    scrollToBottom();
+    return div;
+  }
+
+  // Transient placeholder shown while stage 1 (PII erasure, invisible to the
+  // user otherwise) is running — removed the moment stage 2 takes over.
+  function addStatusTurn(text) {
+    const ph = document.getElementById('chat-placeholder');
+    if (ph) ph.remove();
+    const div = document.createElement('div');
+    div.className = 'chat-turn chat-turn-status';
+    div.id = 'chat-status-turn';
+    div.textContent = text;
+    transcript.appendChild(div);
+    scrollToBottom();
+    return div;
+  }
+
+  function removeStatusTurn() {
+    const el = document.getElementById('chat-status-turn');
+    if (el) el.remove();
+  }
+
+  function addAssistantMeta(turnEl, messageId, badgeInfo, aiDebug, rawText) {
+    badgeInfo = badgeInfo || {};
+    const meta = document.createElement('div');
+    meta.className = 'chat-turn-meta';
+
+    if (badgeInfo.model_is_local !== null && badgeInfo.model_is_local !== undefined) {
+      const b = document.createElement('span');
+      b.className = 'chat-badge ' + (badgeInfo.model_is_local ? 'chat-badge-local' : 'chat-badge-cloud');
+      b.textContent = badgeInfo.model_is_local ? '🏠 Local' : '☁ Cloud';
+      meta.appendChild(b);
+    }
+    if (badgeInfo.is_redacted !== null && badgeInfo.is_redacted !== undefined && ERASURE_MODE !== 'erasure') {
+      const b = document.createElement('span');
+      b.className = 'chat-badge chat-badge-rules';
+      b.title = 'No AI erasure step: your question had rule-based redaction only.';
+      b.textContent = 'Rule-based redaction only';
+      meta.appendChild(b);
+    } else if (badgeInfo.is_redacted !== null && badgeInfo.is_redacted !== undefined) {
+      const b = document.createElement('span');
+      b.className = 'chat-badge chat-badge-redacted';
+      b.title = "This reply's own prompt isn't token-redacted — protection happens upstream, "
+              + 'in the local PII-erasure pass on your question. Check the Raw tab on your own '
+              + 'turn above to see exactly what was erased.';
+      b.textContent = '🔒 Local AI PII Check Done - read history to confirm';
+      meta.appendChild(b);
+    }
+
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'chat-copy-btn';
+    copyBtn.title = 'Copy to clipboard';
+    copyBtn.textContent = 'Copy';
+    copyBtn.onclick = () => copyReply(copyBtn);
+    meta.appendChild(copyBtn);
+
+    const copyTick = document.createElement('span');
+    copyTick.className = 'chat-success-tick';
+    copyTick.textContent = '✓';
+    meta.appendChild(copyTick);
+
+    insertOpenButton(meta, rawText);
+
+    const dlBtn = document.createElement('button');
+    dlBtn.type = 'button';
+    dlBtn.className = 'chat-download-btn';
+    dlBtn.textContent = 'Download';
+    dlBtn.onclick = () => downloadReply(messageId, dlBtn);
+    meta.appendChild(dlBtn);
+
+    const printBtn = document.createElement('button');
+    printBtn.type = 'button';
+    printBtn.className = 'chat-print-btn';
+    printBtn.title = 'Print (rendered)';
+    printBtn.textContent = 'Print 🖨';
+    printBtn.onclick = () => printReply(printBtn);
+    meta.appendChild(printBtn);
+
+    [['bp', 'BP →', "File to a patient's Best Practice record — choose the patient in Comms"],
+     ['email', 'Email', 'Email to a patient — choose the patient in Comms']].forEach(([channel, label, title]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chat-comms-btn';
+      b.title = title;
+      b.textContent = label;
+      b.onclick = () => replyToComms(b, channel);
+      meta.appendChild(b);
+    });
+
+    if (IS_ADMIN) {
+      // Debug is the last inner tab, beside Raw / Rendered / Edit / Sent (ADR-091).
+      attachDebugTab(turnEl, messageId, aiDebug);
+    }
+
+    // Privacy at a glance for administrators (the pre-send check's verdict on this
+    // turn's prompt as sent); the full card is in Debug.
+    if (IS_ADMIN && aiDebug && aiDebug.privacy_check !== undefined) {
+      const pc = aiDebug.privacy_check;
+      const b = document.createElement('span');
+      b.className = 'chat-privacy-badge';
+      let label, colour;
+      if (!pc) { label = 'Privacy: not checked'; colour = 'var(--text-muted)'; }
+      else if (pc.skipped || pc.screening) { label = 'Privacy: local'; colour = 'var(--text-muted)'; }
+      else if (pc.top_tier === null || pc.top_tier === undefined) { label = 'Privacy: clear'; colour = 'var(--success)'; }
+      else {
+        const n = (pc.hits || []).length || (pc.findings || []).reduce((t, f) => t + f.count, 0);
+        label = `Privacy: ⚠ ${n} hit${n === 1 ? '' : 's'}`; colour = pc.top_tier <= 1 ? 'var(--danger)' : 'var(--warning, #d97706)';
+      }
+      b.textContent = label;
+      b.title = 'Pre-send privacy check — open Debug for detail';
+      b.style.cssText = `font-size:0.62rem; padding:0.05rem 0.3rem; border:1px solid ${colour}; color:${colour}; border-radius:0.2rem;`;
+      meta.appendChild(b);
+    }
+
+    turnEl.appendChild(meta);
+  }
+
+  // Administrators: a Debug tab on the reply, loaded when first opened.
+  window.attachDebugTab = attachDebugTab;
+  function attachDebugTab(turnEl, messageId, prefetched) {
+    if (!turnEl) return;
+    PresendReview.attachTab(turnEl, 'Debug', panel => {
+      panel.classList.add('chat-debug-panel');
+      if (prefetched) { renderDebug(panel, prefetched); return; }
+      panel.textContent = 'Loading…';
+      fetch(DEBUG_URL(messageId))
+        .then(r => r.json())
+        .then(d => renderDebug(panel, d))
+        .catch(() => { panel.textContent = 'Failed to load debug info.'; });
+    });
+  }
+
+  function renderDebug(panel, d) {
+    panel.innerHTML = '';
+    const addBlock = (label, text) => {
+      const h = document.createElement('div');
+      h.className = 'chat-debug-label';
+      h.textContent = label;
+      const pre = document.createElement('pre');
+      pre.className = 'chat-debug-pre';
+      pre.textContent = text || '(empty)';
+      panel.appendChild(h);
+      panel.appendChild(pre);
+    };
+
+    if (d.error) { panel.textContent = d.error; return; }
+    const warn = document.createElement('div');
+    warn.className = 'psr-banner blocking';
+    warn.textContent = 'Administrators only. Includes the text before redaction — this is not what was sent (see Sent).';
+    panel.appendChild(warn);
+
+    const responseLines = (d.ai_responses || []).map(r => {
+      const parts = [`Model: ${r.model_used}`, `Tokens: ${r.tokens_input} in / ${r.tokens_output} out`];
+      if (r.cached_tokens) parts.push(`Cached: ${r.cached_tokens}`);
+      if (r.cache_write_tokens) parts.push(`Cache write: ${r.cache_write_tokens}`);
+      if (r.cost != null) parts.push(`Cost: $${r.cost.toFixed(6)}`);
+      if (r.latency_ms != null) parts.push(`Latency: ${r.latency_ms}ms`);
+      return parts.join('  ·  ');
+    }).join('\n');
+
+    if (responseLines) addBlock('Response', responseLines);
+    addBlock('System prompt', d.system_prompt);
+    addBlock('Prompt (before redaction)', d.pre_redaction_prompt);
+
+    // Privacy check (MedUI's pre-send check). Absent means it could not be obtained —
+    // shown as "not checked", never as clean.
+    if (d.privacy_check === undefined) {
+      // run predates the check; say nothing
+    } else if (d.privacy_check === null) {
+      addBlock('Privacy check', 'Not checked — the pre-send check didn\'t run or failed.');
+    } else if (d.privacy_check.screening) {
+        const sc = d.privacy_check.screening;
+        const groups = Object.entries(sc.matches || {});
+        const total = groups.reduce((n, [, items]) => n + items.length, 0);
+        let text = total
+            ? `${total} possible PII match(es) found by the screening model:\n\n` +
+              groups.map(([c, items]) => `${c}:\n` + items.map(i =>
+                  `  ${i.value}${i.in_prompt ? '' : '   (not in prompt)'}`).join('\n')).join('\n\n')
+            : 'No PII matches found.';
+        text += '\n\nPII screening (local model).';
+        addBlock('Privacy check', text);
+    } else if (d.privacy_check.skipped) {
+      addBlock('Privacy check', 'Not needed — local model; nothing was sent outside the practice.');
+    } else {
+      const pc = d.privacy_check;
+      const tier = pc.top_tier;
+      const headline = tier === null || tier === undefined
+        ? 'Clear — nothing found in the prompt as sent.'
+        : (tier <= 1
+            ? `CONFIRMED identifier present (tier ${tier}).`
+            : `${(pc.findings || []).reduce((n, f) => n + f.count, 0)} possible identifier(s) (tier ${tier}).`);
+      const detail = (pc.findings || [])
+        .map(f => `  tier ${f.tier}  ${f.type.replace(/_/g, ' ')} ×${f.count}` +
+                  (f.coverage === 'outside_rules' ? '  (rendering not covered by redaction rules)' : ''))
+        .join('\n');
+      addBlock('Privacy check',
+        `${headline}\n${detail}\n\nDetector ${pc.detector_version} · ${pc.scanned_ms}ms`);
+      // Each hit can become a future redaction (ADR-049).
+      const runId = d.run_id || d.run_db_id;
+      if ((pc.hits || []).length && runId) {
+        const a = document.createElement('a');
+        a.href = `/admin/privacy-hits/${runId}`;
+        a.target = '_blank'; a.rel = 'noopener';
+        a.textContent = `Review ${pc.hits.length} hit(s) — add to future redactions →`;
+        a.style.cssText = 'display:inline-block; margin:0.2rem 0 0.6rem; font-size:0.78rem;';
+        panel.appendChild(a);
+      }
+    }
+
+  }
+
+  // ── Two-stage send: stage 1 (PII erasure, invisible) then stage 2 (the
+  // visible, streamed answer). Two separate pipeline runs, not one 2-step
+  // pipeline — see chatbot/routes.py's comment on why: a shared run would
+  // let the model dropdown (meant only for stage 2) redirect stage 1 too.
+
+  let _lastSend = {};   // for Cancel at review (ADR-091)
+  function sendMessage() {
+    const text = (input.value || '').trim();
+    if (!text) return;
+    if (ERASURE_MODE === 'off') return;
+    if (ERASURE_MODE === 'warn') {
+      if (noErasureAcked()) sendDirect(text);
+      else document.getElementById('chat-noerasure-modal').classList.add('open');
+      return;
+    }
+
+    const userTurnEl = addTurn('user', text);
+    _lastSend = {text, userTurnEl, sessionId: null};
+    input.value = '';
+    input.disabled = true;
+    sendBtn.disabled = true;
+    addStatusTurn('🔒 Erasing PII…');
+
+    fetch(MESSAGE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ message: text }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) {
+        removeStatusTurn();
+        addTurn('error', data.error);
+        input.disabled = false;
+        sendBtn.disabled = false;
+        return;
+      }
+      completeUrl = `/clinical/chatbot/session/${data.session_id}/complete`;
+      _lastSend.sessionId = data.session_id;
+      subscribeStage1SSE(data.run_id, data.session_id, userTurnEl);
+    })
+    .catch(err => {
+      removeStatusTurn();
+      addTurn('error', String(err));
+      input.disabled = false;
+      sendBtn.disabled = false;
+    });
+  }
+
+  // ── Without an AI erasure step (ADR-098): warn once per chat, then send the
+  // typed text straight to stage 2, which applies the rule-based redaction.
+  // The server checks the mode itself and needs `acknowledged` on every send.
+  function noErasureAcked() {
+    try { return sessionStorage.getItem(ACK_KEY) === '1'; } catch (_) { return false; }
+  }
+  if (ERASURE_MODE === 'warn') {
+    const modal = document.getElementById('chat-noerasure-modal');
+    document.getElementById('chat-noerasure-cancel').addEventListener('click', () => modal.classList.remove('open'));
+    document.getElementById('chat-noerasure-confirm').addEventListener('click', () => {
+      modal.classList.remove('open');
+      try { sessionStorage.setItem(ACK_KEY, '1'); } catch (_) {}
+      const text = (input.value || '').trim();
+      if (text) sendDirect(text);
+    });
+  }
+
+  function sendDirect(text) {
+    const overrideSel = document.getElementById('chat-model-override');
+    const modelOverride = overrideSel && overrideSel.value ? parseInt(overrideSel.value) : null;
+    const userTurnEl = addTurn('user', text);
+    _lastSend = {text, userTurnEl, sessionId: null};
+    input.value = '';
+    input.disabled = true;
+    sendBtn.disabled = true;
+
+    fetch(DIRECT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ message: text, acknowledged: true, model_id_override: modelOverride, review_capable: true }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) {
+        addTurn('error', data.error);
+        input.disabled = false;
+        sendBtn.disabled = false;
+        return;
+      }
+      completeUrl = `/clinical/chatbot/session/${data.session_id}/complete`;
+      _lastSend.sessionId = data.session_id;
+      subscribeSSE(data.run_id);
+    })
+    .catch(err => {
+      addTurn('error', String(err));
+      input.disabled = false;
+      sendBtn.disabled = false;
+    });
+  }
+
+  function subscribeStage1SSE(runId, sessionId, userTurnEl) {
+    const es = new EventSource(STREAM_URL(runId));
+
+    es.addEventListener('complete', ev => {
+      const d = JSON.parse(ev.data);
+      es.close();
+      const erasedText = (d.output || '').trim();
+      removeStatusTurn();
+      if (!erasedText) {
+        addTurn('error', 'PII erasure step returned no text.');
+        input.disabled = false;
+        sendBtn.disabled = false;
+        return;
+      }
+      // Swap the optimistically-shown raw text for the erased version — this
+      // is the only version that ever gets stored (see routes.py), so the
+      // displayed turn should match what history will show after a reload,
+      // and it's a useful, visible confirmation of what erasure actually did.
+      if (userTurnEl) userTurnEl.textContent = erasedText;
+      startStage2(sessionId, runId);
+    });
+
+    es.addEventListener('step_error', ev => {
+      const d = JSON.parse(ev.data);
+      es.close();
+      removeStatusTurn();
+      addTurn('error', 'PII erasure failed: ' + (d.message || 'Pipeline step failed'));
+      input.disabled = false;
+      sendBtn.disabled = false;
+    });
+
+    es.addEventListener('error', ev => {
+      let d = {}; try { d = JSON.parse(ev.data); } catch (_) {}
+      removeStatusTurn();
+      addTurn('error', 'PII erasure error: ' + (d.message || 'Pipeline error'));
+      input.disabled = false;
+      sendBtn.disabled = false;
+    });
+
+    es.onerror = () => {
+      if (es.readyState === EventSource.CLOSED) return;
+      removeStatusTurn();
+      addTurn('error', 'Connection lost during PII erasure step');
+      input.disabled = false;
+      sendBtn.disabled = false;
+      es.close();
+    };
+  }
+
+  // Stage 2 is given stage 1's run, not its text: the server reads the erased
+  // text from that run itself (ADR-053).
+  function startStage2(sessionId, stage1RunId) {
+    const overrideSel = document.getElementById('chat-model-override');
+    const modelOverride = overrideSel && overrideSel.value ? parseInt(overrideSel.value) : null;
+
+    fetch(CONTINUE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ session_id: sessionId, stage1_run_id: stage1RunId, model_id_override: modelOverride, review_capable: true }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) {
+        addTurn('error', data.error);
+        input.disabled = false;
+        sendBtn.disabled = false;
+        return;
+      }
+      subscribeSSE(data.run_id);
+    })
+    .catch(err => {
+      addTurn('error', String(err));
+      input.disabled = false;
+      sendBtn.disabled = false;
+    });
+  }
+
+  function subscribeSSE(runId) {
+    const es = new EventSource(STREAM_URL(runId));
+    let runDbId = null;
+
+    // Pre-send review (ADR-091): the reply bubble opens on "Sending" and waits for Send.
+    let pendingTurnEl = null;
+    es.addEventListener('review', ev => {
+      const d = JSON.parse(ev.data);
+      if (!pendingTurnEl) pendingTurnEl = PresendReview.pendingTurn(transcript);
+      PresendReview.mountReview(pendingTurnEl, {runId, data: d, csrf: CSRF});
+      scrollToBottom();
+    });
+    es.addEventListener('cancelled', ev => {
+      if (pendingTurnEl) { pendingTurnEl.remove(); pendingTurnEl = null; }
+      // Nothing was sent: take the message back out of the conversation and
+      // put it back in the box to reword.
+      if (_lastSend.userTurnEl) _lastSend.userTurnEl.remove();
+      addTurn('error', 'Cancelled — nothing was sent to the AI.');
+      if (_lastSend.text) input.value = _lastSend.text;
+      if (_lastSend.sessionId) {
+        fetch(`/clinical/chatbot/session/${_lastSend.sessionId}/withdraw`, {
+          method: 'POST', headers: {'X-CSRFToken': CSRF},
+        }).catch(() => {});
+      }
+    });
+
+    es.addEventListener('complete', ev => {
+      const d = JSON.parse(ev.data);
+      runDbId = d.run_db_id || null;
+      const parsed = parseChatbotReply(d.output || '(no response)');
+      const output = parsed.response;
+      const turnEl = addTurn('assistant', output);
+      // Out-of-scope warning on this reply (ADR-087)
+      if (d.scope && d.scope.legality) turnEl.insertBefore(aiLegalityNote(), turnEl.firstChild);
+      if (d.scope && d.scope.model_flagged) turnEl.insertBefore(aiScopeWarning(), turnEl.firstChild);
+      if (pendingTurnEl) { pendingTurnEl.remove(); pendingTurnEl = null; }
+      // What went to the AI for this reply (ADR-091)
+      if (!d.model_is_local && d.ai_debug && d.ai_debug.current_prompt) {
+        PresendReview.attachSent(turnEl, d.ai_debug.current_prompt, d.review, d.ai_debug.system_prompt);
+      }
+
+      addToTotals(d.ai_debug && d.ai_debug.ai_responses);
+
+      fetch(completeUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({ content: output, run_db_id: runDbId, title: parsed.title }),
+      })
+      .then(r => r.json())
+      .then(d2 => {
+        if (d2.message_id) {
+          addAssistantMeta(turnEl, d2.message_id,
+            { is_redacted: d.is_redacted, model_is_local: d.model_is_local },
+            Object.assign({}, d.ai_debug, { privacy_check: d.privacy_check, run_id: runDbId }), output);
+        }
+        refreshSessionList();
+      })
+      .catch(() => {});
+    });
+
+    es.addEventListener('step_error', ev => {
+      const d = JSON.parse(ev.data);
+      addTurn('error', d.message || 'Pipeline step failed');
+    });
+
+    es.addEventListener('error', ev => {
+      let d = {}; try { d = JSON.parse(ev.data); } catch (_) {}
+      addTurn('error', d.message || 'Pipeline error');
+    });
+
+    es.addEventListener('done', () => {
+      es.close();
+      input.disabled = false;
+      sendBtn.disabled = false;
+      input.focus();
+    });
+
+    es.onerror = () => {
+      if (es.readyState === EventSource.CLOSED) return;
+      addTurn('error', 'Connection lost');
+      input.disabled = false;
+      sendBtn.disabled = false;
+      es.close();
+    };
+  }
+
+  window.sendMessage = sendMessage;
+
+  window.downloadReply = function (messageId, btnEl) {
+    const turnEl = btnEl.closest('.chat-turn');
+    fetch(DOWNLOAD_URL(messageId), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ format: 'txt', content: getReplyText(turnEl) }),
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.file_id) window.location.href = FILE_URL(d.file_id);
+    })
+    .catch(() => {});
+  };
+
+  // Reply text only — strips the meta row (badges/buttons) and any open debug
+  // panel out of a cloned turn element before reading its text.
+  function getReplyText(turnEl) {
+    // The Edit tab is always the effective source for every tool button —
+    // it's seeded from the raw text, so until a doctor actually edits it,
+    // this is identical to Raw. Once edited, everything (Copy/Print/
+    // Download/the Rendered preview) picks it up automatically, without
+    // depending on which tab happens to be visually active.
+    const editTextarea = turnEl.querySelector('.chat-edit-textarea');
+    if (editTextarea) return editTextarea.value.trim();
+
+    const rawPanel = turnEl.querySelector('.chat-raw-panel');
+    if (rawPanel) return rawPanel.textContent.trim();
+
+    const clone = turnEl.cloneNode(true);
+    const meta = clone.querySelector('.chat-turn-meta');
+    if (meta) meta.remove();
+    const debugPanel = clone.querySelector('.chat-debug-panel');
+    if (debugPanel) debugPanel.remove();
+    return clone.textContent.trim();
+  }
+
+  function extractHtmlDoc(text) {
+    if (!text) return null;
+    const fenceRe = /```(\w*)\n([\s\S]*?)```/g;
+    let m;
+    while ((m = fenceRe.exec(text)) !== null) {
+      const lang = (m[1] || '').toLowerCase();
+      const body = m[2].trim();
+      if (lang === 'html' || /^<!DOCTYPE html/i.test(body) || /^<html[\s>]/i.test(body)) {
+        return body;
+      }
+    }
+    const bare = text.match(/<!DOCTYPE html[\s\S]*<\/html>/i) || text.match(/<html[\s>][\s\S]*<\/html>/i);
+    return bare ? bare[0] : null;
+  }
+
+  function openHtmlReply(html) {
+    const blob = new Blob([html], { type: 'text/html' });
+    const url  = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+
+  function insertOpenButton(meta, text) {
+    const html = extractHtmlDoc(text);
+    if (!html) return;
+    const openBtn = document.createElement('button');
+    openBtn.type = 'button';
+    openBtn.className = 'chat-open-btn';
+    openBtn.title = 'Open as an HTML page in a new tab';
+    openBtn.textContent = 'Open ↗';
+    openBtn.onclick = () => openHtmlReply(html);
+    const anchor = meta.querySelector('.chat-download-btn');
+    if (anchor) meta.insertBefore(openBtn, anchor);
+    else meta.appendChild(openBtn);
+  }
+
+  window.switchChatInner = function (tabBtnEl, tab) {
+    const turnEl = tabBtnEl.closest('.chat-turn');
+
+    if (!turnEl.style.width) {
+      turnEl.style.width = turnEl.getBoundingClientRect().width + 'px';
+    }
+
+    turnEl.querySelectorAll('.chat-inner-tab').forEach(el => el.classList.remove('active'));
+    tabBtnEl.classList.add('active');
+    turnEl.querySelector('.chat-raw-panel').classList.toggle('active', tab === 'raw');
+    turnEl.querySelector('.chat-rendered-panel').classList.toggle('active', tab === 'rendered');
+    const editPanel = turnEl.querySelector('.chat-edit-panel');
+    if (editPanel) {
+      editPanel.classList.toggle('active', tab === 'edit');
+      if (tab === 'edit') autoResizeChatEdit(editPanel.querySelector('.chat-edit-textarea'));
+    }
+    if (tab === 'rendered') renderChatPreview(turnEl);
+  };
+
+  function autoResizeChatEdit(textarea) {
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+  }
+
+  function clearChatRenderedCache(turnEl) {
+    const panel = turnEl && turnEl.querySelector('.chat-rendered-panel');
+    if (panel) delete panel.dataset.rendered;
+  }
+
+  window.revertChatEdit = function (btnEl) {
+    const turnEl = btnEl.closest('.chat-turn');
+    const rawPanel = turnEl.querySelector('.chat-raw-panel');
+    const textarea = turnEl.querySelector('.chat-edit-textarea');
+    if (rawPanel && textarea) {
+      textarea.value = rawPanel.textContent.trim();
+      clearChatRenderedCache(turnEl);
+      autoResizeChatEdit(textarea);
+    }
+  };
+
+  function writeChatIframe(panel, htmlDoc) {
+    panel.innerHTML = '';
+    const iframe = document.createElement('iframe');
+    iframe.className = 'chat-rendered-iframe';
+    iframe.setAttribute('sandbox', 'allow-same-origin');
+    iframe.title = 'Rendered reply';
+    panel.appendChild(iframe);
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open();
+    doc.write(htmlDoc);
+    doc.close();
+    iframe.style.height = Math.max(doc.body ? doc.body.scrollHeight : 0, 40) + 'px';
+  }
+
+  function renderChatPreview(turnEl) {
+    const panel = turnEl.querySelector('.chat-rendered-panel');
+    if (panel.dataset.rendered === '1') return;
+
+    const text = getReplyText(turnEl);
+    const htmlDoc = extractHtmlDoc(text);
+    if (htmlDoc) {
+      writeChatIframe(panel, htmlDoc);
+      panel.dataset.rendered = '1';
+      return;
+    }
+
+    panel.innerHTML = '<div class="chat-rendered-loading">Rendering…</div>';
+    fetch(RENDER_MD_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ text: text }),
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.html) writeChatIframe(panel, d.html);
+      else panel.innerHTML = '<div class="chat-rendered-loading">Nothing to render.</div>';
+      panel.dataset.rendered = '1';
+    })
+    .catch(() => { panel.innerHTML = '<div class="chat-rendered-loading">Failed to render.</div>'; });
+  }
+
+  const PRINT_STYLE = '<style>' +
+    'body{font-family:sans-serif;font-size:13px;line-height:1.6;padding:2rem;max-width:820px;margin:0 auto;color:#000;}' +
+    'h1,h2,h3,h4{margin:1rem 0 0.4rem;}p{margin:0.5rem 0;}' +
+    'table{border-collapse:collapse;width:100%;margin:0.6rem 0;}' +
+    'th,td{border:1px solid #999;padding:0.3rem 0.5rem;text-align:left;vertical-align:top;}' +
+    'th{background:#eee;}' +
+    'pre{background:#f4f4f4;padding:0.6rem;overflow-x:auto;white-space:pre-wrap;}' +
+    'code{font-family:monospace;}' +
+    '@media print{body{padding:0;}}' +
+    '</style>';
+
+  function openPrintWindow(title, bodyHtml) {
+    const win = window.open('', '_blank', 'width=820,height=700');
+    if (!win) { alert('Pop-up blocked — allow pop-ups to print.'); return; }
+    win.document.write(
+      '<!DOCTYPE html><html><head><title>' + title + '</title>' + PRINT_STYLE + '</head>' +
+      '<body>' + bodyHtml + '</body></html>'
+    );
+    win.document.close();
+    win.focus();
+    win.print();
+    win.close();
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  function printFullDoc(htmlDoc) {
+    const win = window.open('', '_blank', 'width=820,height=700');
+    if (!win) { alert('Pop-up blocked — allow pop-ups to print.'); return; }
+    win.document.write(htmlDoc);
+    win.document.close();
+    win.focus();
+    win.print();
+    win.close();
+  }
+
+  window.printReply = function (btnEl) {
+    const turnEl = btnEl.closest('.chat-turn');
+    const text = getReplyText(turnEl);
+    if (!text) { alert('No content to print.'); return; }
+
+    const htmlDoc = extractHtmlDoc(text);
+    if (htmlDoc) { printFullDoc(htmlDoc); return; }
+
+    btnEl.disabled = true;
+    fetch(RENDER_MD_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ text: text }),
+    })
+    .then(r => r.json())
+    .then(d => {
+      btnEl.disabled = false;
+      if (d.html) printFullDoc(d.html);
+      else openPrintWindow('Chat Reply', '<pre>' + escapeHtml(text) + '</pre>');
+    })
+    .catch(() => {
+      btnEl.disabled = false;
+      openPrintWindow('Chat Reply', '<pre>' + escapeHtml(text) + '</pre>');
+    });
+  };
+
+  window.openSavePromptModal = function () {
+    if (!(input.value || '').trim()) { alert('Nothing to save — type a prompt in the box first.'); return; }
+    document.getElementById('chat-save-desc').value = '';
+    document.getElementById('chat-save-modal').classList.add('open');
+    document.getElementById('chat-save-desc').focus();
+  };
+
+  window.closeSavePromptModal = function () {
+    document.getElementById('chat-save-modal').classList.remove('open');
+  };
+
+  window.saveCurrentPrompt = function () {
+    const description = document.getElementById('chat-save-desc').value.trim();
+    if (!description) { alert('Please enter a short description.'); return; }
+    const promptText = (input.value || '').trim();
+    if (!promptText) { closeSavePromptModal(); return; }
+
+    const btn = document.getElementById('chat-save-modal-confirm');
+    fetch(PROMPTS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ description: description, prompt_text: promptText }),
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.error) { alert('Save failed: ' + d.error); return; }
+      flashTick(btn);
+      setTimeout(closeSavePromptModal, 500);
+    })
+    .catch(() => alert('Save failed — please try again.'));
+  };
+
+  function firstWords(text, n) {
+    const words = (text || '').trim().split(/\s+/);
+    const truncated = words.length > n;
+    return words.slice(0, n).join(' ') + (truncated ? '…' : '');
+  }
+
+  function renderSavedPromptsList(prompts) {
+    const list = document.getElementById('chat-insert-list');
+    list.innerHTML = '';
+    if (!prompts.length) {
+      const empty = document.createElement('div');
+      empty.className = 'chat-saved-prompts-empty';
+      empty.textContent = 'No saved prompts yet — use Save to add one.';
+      list.appendChild(empty);
+      return;
+    }
+    prompts.forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'saved-prompt-row';
+
+      const main = document.createElement('div');
+      main.className = 'saved-prompt-main';
+      main.onclick = () => insertSavedPrompt(p.prompt_text);
+
+      const desc = document.createElement('div');
+      desc.className = 'saved-prompt-desc';
+      desc.textContent = p.description;
+      main.appendChild(desc);
+
+      const preview = document.createElement('div');
+      preview.className = 'saved-prompt-preview';
+      preview.textContent = firstWords(p.prompt_text, 10);
+      main.appendChild(preview);
+
+      row.appendChild(main);
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'saved-prompt-delete';
+      delBtn.title = 'Delete';
+      delBtn.textContent = '🗑';
+      delBtn.onclick = (ev) => { ev.stopPropagation(); deleteSavedPrompt(p.id, row); };
+      row.appendChild(delBtn);
+
+      list.appendChild(row);
+    });
+  }
+
+  window.openInsertPromptModal = function () {
+    const list = document.getElementById('chat-insert-list');
+    list.innerHTML = '<div class="chat-saved-prompts-empty">Loading…</div>';
+    document.getElementById('chat-insert-modal').classList.add('open');
+    fetch(PROMPTS_URL)
+      .then(r => r.json())
+      .then(d => renderSavedPromptsList(d.prompts || []))
+      .catch(() => { list.innerHTML = '<div class="chat-saved-prompts-empty">Failed to load saved prompts.</div>'; });
+  };
+
+  window.closeInsertPromptModal = function () {
+    document.getElementById('chat-insert-modal').classList.remove('open');
+  };
+
+  window.insertSavedPrompt = function (text) {
+    const current = input.value || '';
+    input.value = current.trim() ? current.replace(/\s*$/, '\n') + text : text;
+    closeInsertPromptModal();
+    input.focus();
+  };
+
+  window.deleteSavedPrompt = function (id, rowEl) {
+    if (!confirm('Delete this saved prompt?')) return;
+    fetch(PROMPT_URL(id), { method: 'DELETE', headers: { 'X-CSRFToken': CSRF } })
+      .then(r => r.json())
+      .then(d => {
+        if (d.ok) {
+          rowEl.remove();
+          if (!document.querySelector('#chat-insert-list .saved-prompt-row')) {
+            renderSavedPromptsList([]);
+          }
+        }
+      })
+      .catch(() => {});
+  };
+
+  document.addEventListener('keydown', ev => {
+    if (ev.key !== 'Escape') return;
+    closeSavePromptModal();
+    closeInsertPromptModal();
+  });
+
+  function flashTick(btnEl) {
+    const tick = btnEl.nextElementSibling;
+    if (!tick || !tick.classList.contains('chat-success-tick')) return;
+    tick.classList.remove('show');
+    void tick.offsetWidth;
+    tick.classList.add('show');
+  }
+
+  // To a patient via Comms, as the Library does (ADR-093, ADR-100): this chat has
+  // no patient, so the reply (as edited) is handed over and the patient is chosen there.
+  window.replyToComms = function (btnEl, channel) {
+    const text = getReplyText(btnEl.closest('.chat-turn'));
+    if (!text) { alert('No content to send.'); return; }
+    try {
+      sessionStorage.setItem('comms_prefill', JSON.stringify(
+        channel === 'bp' ? { channel: 'bp', body: text, label: 'General chat reply' }
+                         : { channel: 'email', body: text,
+                             subject: 'Email from {{ practice_name | default("The Practice") | e }}' }));
+    } catch (_) {}
+    window.open('/clinical/comms/', '_blank');
+  };
+
+  window.copyReply = function (btnEl) {
+    const turnEl = btnEl.closest('.chat-turn');
+    const text = getReplyText(turnEl);
+    navigator.clipboard.writeText(text).then(() => flashTick(btnEl)).catch(() => {});
+  };
+
+  document.querySelectorAll('.chat-turn-assistant').forEach(turnEl => {
+    const meta = turnEl.querySelector('.chat-turn-meta');
+    if (meta) insertOpenButton(meta, getReplyText(turnEl));
+
+    const editTextarea = turnEl.querySelector('.chat-edit-textarea');
+    if (editTextarea) {
+      editTextarea.addEventListener('input', () => {
+        clearChatRenderedCache(turnEl);
+        autoResizeChatEdit(editTextarea);
+      });
+    }
+  });
+
+  scrollToBottom();
+
+  // Fire-and-forget: start loading the PII-erasure model into VRAM now,
+  // rather than waiting for the first message. Failures are silent by
+  // design (see routes.py) — this is purely a latency optimisation.
+  if (ERASURE_MODE === 'erasure') {
+    fetch(WARMUP_URL, { method: 'POST', headers: { 'X-CSRFToken': CSRF } }).catch(() => {});
+  }
+})();
+</script>
+
+<script>
+// Older replies: a "Sent" tab that loads what went to the AI when opened (ADR-091).
+document.querySelectorAll('.chat-turn-assistant[data-sent="1"][data-message-id]').forEach(t => {
+  PresendReview.attachSent(t, () => fetch(`/clinical/chatbot/message/${t.dataset.messageId}/sent`).then(r => r.json()));
+});
+document.querySelectorAll('.chat-turn-assistant[data-debug="1"][data-message-id]').forEach(t => {
+  if (window.attachDebugTab) window.attachDebugTab(t, t.dataset.messageId);
+});
+</script>
+{% endblock %}

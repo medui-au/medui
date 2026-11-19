@@ -1,0 +1,324 @@
+{% extends 'base.html' %}
+{% block title %}PatientJSON — {{ patient.get('SURNAME','') | upper }}, {{ patient.get('FIRSTNAME','') }} — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+/* ── PatientJSON dashboard ────────────────────────────────────────── */
+.pj-controls {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+}
+.pj-controls label { font-size: var(--text-sm); font-weight: 600; margin-right: 0.25rem; }
+.pj-controls select, .pj-controls input[type=checkbox] { cursor: pointer; }
+
+.pj-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+    align-items: start;
+}
+
+.pj-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-primary);
+    overflow: hidden;
+}
+.pj-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.6rem;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    user-select: none;
+}
+.pj-card-header:hover { background: var(--border-color); }
+.pj-card-icon  { font-size: 1rem; flex-shrink: 0; }
+.pj-card-title { font-size: 0.8rem; font-weight: 700; color: var(--text-primary); }
+.pj-card-desc  { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.05rem; }
+.pj-deid-badge {
+    margin-left: auto;
+    font-size: 0.6rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.2rem;
+    background: var(--info);
+    color: #fff;
+    font-weight: 700;
+    opacity: 0.75;
+    white-space: nowrap;
+}
+.pj-card-body  { padding: 0; }
+.pj-load-strip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+}
+
+.pj-output {
+    margin: 0;
+    padding: 0.6rem;
+    font-size: 0.72rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+    border-top: 1px solid var(--border-color);
+    max-height: 340px;
+    overflow-y: auto;
+}
+.pj-output.pj-json { color: var(--accent-primary); }
+.pj-output.pj-markdown { white-space: normal; }
+.pj-output.pj-markdown pre { white-space: pre-wrap; }
+
+/* ── Bundle section ───────────────────────────────────────────────── */
+.pj-bundle-section {
+    margin-top: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-primary);
+    overflow: hidden;
+}
+.pj-bundle-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+.pj-bundle-header h3 { font-size: 0.8rem; font-weight: 700; margin: 0; }
+.pj-bundle-body { padding: 0.6rem; }
+.pj-bundle-output {
+    margin-top: 0.6rem;
+    border-top: 1px solid var(--border-color);
+    padding-top: 0.6rem;
+    min-height: 2rem;
+}
+
+/* ── htmx loading indicator ──────────────────────────────────────── */
+.htmx-indicator { display: none; }
+.htmx-request .htmx-indicator { display: inline; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="workspace">
+
+    {# ── Left sidebar ─────────────────────────────────────────────────── #}
+    <aside class="workspace-sidebar">
+        <div class="card" style="padding:0.6rem;">
+            {% include 'clinical/_demographics.html' %}
+        </div>
+        {% include 'clinical/_patient_tools.html' %}
+    </aside>
+
+    {# ── Main content ─────────────────────────────────────────────────── #}
+    <section class="workspace-main" style="padding:0.75rem; overflow-y:auto;">
+
+        {# ── Global controls ────────────────────────────────────────────── #}
+        <form id="pj-controls" class="pj-controls">
+            <span style="font-size:0.78rem; font-weight:700; color:var(--text-muted);
+                         text-transform:uppercase; letter-spacing:0.04em;">PatientJSON</span>
+
+            <label for="pj-fmt">Format</label>
+            <select id="pj-fmt" name="fmt" onchange="pjRefreshAll()">
+                <option value="text">Plain Text</option>
+                <option value="markdown">Markdown</option>
+                <option value="json">JSON</option>
+            </select>
+
+            <label style="display:flex; align-items:center; gap:0.35rem; cursor:pointer;">
+                <input type="checkbox" id="pj-deid" name="deidentify" value="1" onchange="pjRefreshAll()">
+                De-identify
+            </label>
+
+            <span style="color:var(--text-muted); font-size:0.7rem; margin-left:auto;">
+                Click any block header to load · Change controls to reload all open blocks
+            </span>
+        </form>
+
+        {# ── Atomic block grid ──────────────────────────────────────────── #}
+        <div class="pj-grid" id="pj-block-grid">
+            {% for name, meta in block_meta.items() %}
+            <div class="pj-card" id="pj-card-{{ name }}">
+
+                <div class="pj-card-header"
+                     onclick="pjToggleBlock('{{ name }}')"
+                     title="Click to load {{ meta.label }}">
+                    <span class="pj-card-icon">{{ meta.icon }}</span>
+                    <div>
+                        <div class="pj-card-title">{{ meta.label }}</div>
+                        <div class="pj-card-desc">{{ meta.desc }}</div>
+                    </div>
+                    {% if meta.deid %}
+                    <span class="pj-deid-badge">de-id</span>
+                    {% endif %}
+                </div>
+
+                <div class="pj-card-body" id="pj-block-{{ name }}"
+                     data-loaded="0">
+                    <div class="pj-load-strip">
+                        <span class="text-muted htmx-indicator" style="font-size:0.7rem;" id="pj-spinner-{{ name }}">
+                            Loading…
+                        </span>
+                    </div>
+                </div>
+
+            </div>
+            {% endfor %}
+        </div>
+
+        {# ── Bundle section ─────────────────────────────────────────────── #}
+        {% if bundles %}
+        <div class="pj-bundle-section">
+            <div class="pj-bundle-header">
+                <h3>🗂 Bundles</h3>
+                <select id="pj-bundle-select" style="font-size:var(--text-sm);">
+                    {% for b in bundles %}
+                    <option value="{{ b.name }}">{{ b.name }}{% if b.description %} — {{ b.description[:60] }}{% endif %}</option>
+                    {% endfor %}
+                </select>
+                <button type="button" class="btn btn-primary" style="padding:0.25rem 0.75rem; font-size:var(--text-sm);"
+                        onclick="pjLoadBundle()">Load Bundle</button>
+                <a href="{{ url_for('admin.bundles') }}" class="btn btn-outline"
+                   style="padding:0.25rem 0.6rem; font-size:var(--text-sm);">Manage</a>
+            </div>
+            <div class="pj-bundle-body">
+                <div id="pj-bundle-output" class="pj-bundle-output">
+                    <span style="color:var(--text-muted); font-size:var(--text-sm);">Select a bundle and click Load.</span>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="pj-bundle-section">
+            <div class="pj-bundle-header">
+                <h3>🗂 Bundles</h3>
+                <span style="font-size:var(--text-sm); color:var(--text-muted);">No bundles defined yet.</span>
+                <a href="{{ url_for('admin.bundle_new') }}" class="btn btn-outline"
+                   style="padding:0.25rem 0.6rem; font-size:var(--text-sm);">Create Bundle</a>
+            </div>
+        </div>
+        {% endif %}
+
+    </section>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    'use strict';
+
+    var BASE_BLOCK_URL = '{{ url_for("clinical.api_patient_json_block", patient_id=patient.patient_id, block_name="__BLOCK__") }}';
+    var BASE_BUNDLE_URL = '{{ url_for("clinical.api_patient_json_bundle", patient_id=patient.patient_id, bundle_name="__BUNDLE__") }}';
+
+    function getControls() {
+        return {
+            fmt:        document.getElementById('pj-fmt').value,
+            deidentify: document.getElementById('pj-deid').checked ? '1' : '0',
+        };
+    }
+
+    function buildUrl(template, name, controls) {
+        return template.replace('__BLOCK__', name).replace('__BUNDLE__', name)
+            + '?fmt=' + encodeURIComponent(controls.fmt)
+            + '&deidentify=' + controls.deidentify;
+    }
+
+    window.pjToggleBlock = function (name) {
+        var container = document.getElementById('pj-block-' + name);
+        var isLoaded  = container.dataset.loaded === '1';
+        var hasOutput = container.querySelector('.pj-output');
+
+        if (hasOutput && isLoaded) {
+            // Already loaded — toggle visibility
+            hasOutput.style.display = hasOutput.style.display === 'none' ? '' : 'none';
+            return;
+        }
+        pjFetchBlock(name);
+    };
+
+    function pjFetchBlock(name) {
+        var controls  = getControls();
+        var url       = buildUrl(BASE_BLOCK_URL, name, controls);
+        var container = document.getElementById('pj-block-' + name);
+        var spinner   = document.getElementById('pj-spinner-' + name);
+        var strip     = container.querySelector('.pj-load-strip');
+
+        if (spinner) spinner.style.display = 'inline';
+
+        fetch(url, { headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content } })
+            .then(function (r) { return r.text(); })
+            .then(function (html) {
+                // Remove old output if any
+                var old = container.querySelector('.pj-output, .pj-markdown');
+                if (old) old.remove();
+                container.insertAdjacentHTML('beforeend', html);
+                container.dataset.loaded = '1';
+                container.dataset.fmt    = controls.fmt;
+                container.dataset.deid   = controls.deidentify;
+            })
+            .catch(function () {
+                container.insertAdjacentHTML('beforeend',
+                    '<p style="color:var(--danger);padding:0.5rem;font-size:var(--text-sm);">Load failed.</p>');
+            })
+            .finally(function () {
+                if (spinner) spinner.style.display = 'none';
+            });
+    }
+
+    window.pjRefreshAll = function () {
+        var controls = getControls();
+        document.querySelectorAll('.pj-card-body').forEach(function (container) {
+            if (container.dataset.loaded === '1') {
+                var name = container.id.replace('pj-block-', '');
+                // Only reload if format or deid changed
+                if (container.dataset.fmt !== controls.fmt || container.dataset.deid !== controls.deidentify) {
+                    container.dataset.loaded = '0';
+                    var old = container.querySelector('.pj-output');
+                    if (old) old.remove();
+                    pjFetchBlock(name);
+                }
+            }
+        });
+        // Re-render bundle if loaded
+        var bundleOut = document.getElementById('pj-bundle-output');
+        if (bundleOut && bundleOut.dataset.bundleName) {
+            pjFetchBundle(bundleOut.dataset.bundleName);
+        }
+    };
+
+    function pjFetchBundle(bundleName) {
+        var controls = getControls();
+        var url      = buildUrl(BASE_BUNDLE_URL, bundleName, controls);
+        var out      = document.getElementById('pj-bundle-output');
+        out.innerHTML = '<span style="color:var(--text-muted);font-size:var(--text-sm);">Loading…</span>';
+        out.dataset.bundleName = bundleName;
+
+        fetch(url, { headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content } })
+            .then(function (r) { return r.text(); })
+            .then(function (html) { out.innerHTML = html; })
+            .catch(function () {
+                out.innerHTML = '<p style="color:var(--danger);font-size:var(--text-sm);">Bundle load failed.</p>';
+            });
+    }
+
+    window.pjLoadBundle = function () {
+        var sel = document.getElementById('pj-bundle-select');
+        if (!sel) return;
+        pjFetchBundle(sel.value);
+    };
+
+})();
+</script>
+{% endblock %}

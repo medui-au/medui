@@ -1,0 +1,174 @@
+{% extends 'doctor/base.html' %}
+
+{% block doctor_styles %}
+.doctor-content { overflow: hidden; min-height: 0; }
+
+.chat-msg { padding:0.4rem 0.65rem; border-top:1px solid var(--border-color); font-size:var(--text-sm); line-height:1.5; white-space:pre-wrap; word-break:break-word; }
+.chat-msg-user { background:var(--bg-secondary); }
+.chat-msg-assistant { background:var(--bg-primary); }
+.chat-msg-error { background:rgba(220,53,69,0.08); color:#dc3545; }
+.chat-msg-role { font-weight:700; font-size:0.65rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); margin-bottom:0.15rem; }
+{% endblock %}
+
+{% block doctor_content %}
+
+<div class="doctor-content-header">
+    <h2>Chat History</h2>
+    <p>
+        {{ filter_start.strftime('%d/%m/%Y') }} – {{ filter_end.strftime('%d/%m/%Y') }}
+        <span style="color:var(--text-muted);">
+            · {{ sessions|length }} session{{ 's' if sessions|length != 1 }}
+        </span>
+    </p>
+</div>
+
+<div style="flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:0.5rem;">
+    {% for s in sessions %}
+    {% set pname = patient_names.get(s.patient_id, 'Patient ' ~ s.patient_id) if s.patient_id else 'General' %}
+    {% set msgs = session_messages.get(s.id, []) %}
+    <div style="border:1px solid var(--border-color); border-radius:0.4rem; overflow:hidden; flex-shrink:0;">
+
+        <!-- Row header -->
+        <div class="chat-toggle"
+             data-id="{{ s.id }}"
+             style="display:flex; justify-content:space-between; align-items:center;
+                    padding:0.35rem 0.65rem; background:var(--bg-secondary);
+                    border-bottom:1px solid var(--border-color); gap:0.75rem; flex-wrap:wrap;
+                    cursor:pointer;">
+            <div style="display:flex; gap:0.75rem; align-items:center;
+                        flex-wrap:wrap; font-size:0.72rem;">
+                <span style="font-weight:700; color:var(--accent-primary);">
+                    {{ s.created_at | localdt }}
+                </span>
+                {% if is_admin %}
+                {% set doc_user = doctor_users | selectattr('id', 'equalto', s.user_id) | first %}
+                <span style="color:var(--text-muted);">
+                    {{ doc_user.display_name if doc_user else 'User ' ~ s.user_id }}
+                </span>
+                {% endif %}
+                {% if s.patient_id %}
+                <a href="{{ url_for('clinical.patient', patient_id=s.patient_id) }}"
+                   style="font-weight:600; color:var(--accent-primary); text-decoration:none;"
+                   onclick="event.stopPropagation();">
+                    {{ pname }}
+                </a>
+                {% else %}
+                <span style="font-weight:600; color:var(--text-secondary);">{{ pname }}</span>
+                {% endif %}
+                {% if s.title %}
+                <span style="color:var(--text-muted); font-style:italic;">{{ s.title }}</span>
+                {% endif %}
+                <span style="padding:0.1rem 0.4rem; border-radius:0.25rem;
+                             background:{{ 'var(--bg-secondary)' if s.is_archived else 'var(--success)' }};
+                             color:{{ 'var(--text-muted)' if s.is_archived else '#fff' }};
+                             border:{{ '1px solid var(--border-color)' if s.is_archived else 'none' }};
+                             font-size:0.65rem; font-weight:700;">
+                    {{ 'Archived' if s.is_archived else 'Active' }}
+                </span>
+                <span style="color:var(--text-muted);">
+                    {{ msgs|length }} message{{ 's' if msgs|length != 1 }}
+                </span>
+            </div>
+            {% if not s.is_archived %}
+            <a href="{{ url_for('chatbot.index', patient_id=s.patient_id) if s.patient_id else url_for('chatbot.generic_index') }}"
+               style="padding:0.2rem 0.5rem; font-size:0.68rem;
+                      border:1px solid var(--border-color); border-radius:0.3rem;
+                      background:var(--bg-primary); color:var(--text-primary);
+                      text-decoration:none;"
+               onclick="event.stopPropagation();"
+               title="Open this conversation">
+                Continue →
+            </a>
+            {% endif %}
+        </div>
+
+        <!-- Thread (collapsed by default) -->
+        <div class="chat-thread" id="chat-{{ s.id }}" style="display:none;">
+            {% for m in msgs %}
+            <div class="chat-msg chat-msg-{{ m.role }}">
+                <div class="chat-msg-role">{{ m.role }} · {{ m.created_at | localdt }}</div>
+                {{ m.content }}
+            </div>
+            {% else %}
+            <div class="chat-msg" style="color:var(--text-muted);">No messages in this session.</div>
+            {% endfor %}
+        </div>
+
+    </div>
+    {% else %}
+    <div style="text-align:center; color:var(--text-muted); padding:2rem;
+                font-size:var(--text-sm);">
+        No chat sessions found for this selection.
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
+
+
+{% block doctor_filters %}
+<form method="GET" action="{{ url_for('doctor.chats') }}" id="chatsForm">
+
+    {% if is_admin %}
+    <span class="filter-label">Doctor</span>
+    <select name="doctor_id" class="filter-select">
+        <option value="">All Doctors</option>
+        {% for u in doctor_users %}
+        <option value="{{ u.id }}"
+                {{ 'selected' if filter_user_id|string == u.id|string }}>
+            {{ u.display_name or u.username }}
+        </option>
+        {% endfor %}
+    </select>
+    <hr class="filter-sep">
+    {% endif %}
+
+    <span class="filter-label">Patient</span>
+    <select name="patient_id" class="filter-select">
+        <option value="">All Patients</option>
+        {% for p in patient_options %}
+        <option value="{{ p.patient_id }}"
+                {{ 'selected' if filter_patient_id|string == p.patient_id|string }}>
+            {{ p.name }} ({{ p.patient_id }})
+        </option>
+        {% endfor %}
+    </select>
+
+    <hr class="filter-sep">
+    <span class="filter-label">From</span>
+    <input type="date" name="start_date" class="filter-input"
+           value="{{ filter_start.isoformat() }}">
+
+    <span class="filter-label">To</span>
+    <input type="date" name="end_date" class="filter-input"
+           value="{{ filter_end.isoformat() }}">
+
+    <hr class="filter-sep">
+    <button type="submit" class="btn btn-primary"
+            style="width:100%; font-size:var(--text-sm);">Apply</button>
+    <a href="{{ url_for('doctor.chats') }}"
+       style="display:block; text-align:center; margin-top:0.4rem;
+              font-size:0.7rem; color:var(--text-muted);">Clear filters</a>
+
+    <hr class="filter-sep">
+    <p style="font-size:0.68rem; color:var(--text-muted); margin:0; line-height:1.4;">
+        Click any session to expand its transcript. Chats are private per user.
+    </p>
+
+</form>
+{% endblock %}
+
+
+{% block doctor_scripts %}
+<script>
+(function () {
+    document.querySelectorAll('.chat-toggle').forEach(el => {
+        el.addEventListener('click', function () {
+            const thread = document.getElementById('chat-' + this.dataset.id);
+            if (!thread) return;
+            thread.style.display = thread.style.display === 'none' ? 'block' : 'none';
+        });
+    });
+}());
+</script>
+{% endblock %}

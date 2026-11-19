@@ -1,0 +1,17 @@
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+{% if not rows %}
+<p class="section-empty">No past history recorded.</p>
+{% else %}
+<table class="data-table">
+  <thead><tr><th>Year</th><th>Condition</th><th>Detail</th></tr></thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td class="text-muted nowrap">{{ r.YR or '—' }}</td>
+      <td class="fw-500">{{ r.ItemText }}</td>
+      <td class="text-sm text-secondary">{{ r.DiagDetail if r.DiagDetail and r.DiagDetail.strip() else '' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}

@@ -1,0 +1,101 @@
+{% extends 'governance/base.html' %}
+
+{% block title %}Clinical Governance Register{% endblock %}
+
+{% block gov_main %}
+
+<div class="gov-list" id="register-list-panel" style="width:340px;">
+    <div class="gov-list-header">
+        <h3>All Governance Items{{ help('governance.register') }}</h3>
+        <button type="button" class="btn btn-sm btn-outline" onclick="openRegisterReport()">
+            🖨 Print Report
+        </button>
+    </div>
+
+    <form id="register-filter-form" style="padding:0.5rem 0.75rem;border-bottom:1px solid var(--border-color);"
+          hx-get="{{ url_for('governance.register_list') }}"
+          hx-trigger="change, input delay:400ms"
+          hx-target="#register-rows"
+          hx-swap="innerHTML">
+        <input class="filter-input" name="search" placeholder="Search ref / title…"
+               value="{{ filters.get('search','') }}" style="margin-bottom:0.35rem;">
+        <select class="filter-select" name="record_type" style="margin-bottom:0.35rem;">
+            <option value="">All types</option>
+            <option value="adverse_event" {{ 'selected' if filters.get('record_type') == 'adverse_event' }}>Adverse Events</option>
+            <option value="complaint" {{ 'selected' if filters.get('record_type') == 'complaint' }}>Complaints</option>
+        </select>
+        <select class="filter-select" name="status_group" style="margin-bottom:0.35rem;">
+            <option value="">Open &amp; Closed</option>
+            <option value="open" {{ 'selected' if filters.get('status_group') == 'open' }}>Open only</option>
+            <option value="closed" {{ 'selected' if filters.get('status_group') == 'closed' }}>Closed only</option>
+        </select>
+        <select class="filter-select" name="severity" style="margin-bottom:0.35rem;">
+            <option value="">All severities</option>
+            {% for s in severities %}
+            <option value="{{ s.value }}" {{ 'selected' if filters.get('severity') == s.value }}>
+                {{ s.value.replace('_',' ').title() }}
+            </option>
+            {% endfor %}
+        </select>
+        <div style="font-size:0.68rem; color:var(--text-muted); margin:-0.2rem 0 0.35rem;">
+            Severity applies to Adverse Events only — Complaints have no severity grade.
+        </div>
+        <div style="display:flex; gap:0.35rem;">
+            <select class="filter-select" name="sort" style="flex:1;">
+                <option value="date" {{ 'selected' if filters.get('sort','date') == 'date' }}>Sort: Date</option>
+                <option value="severity" {{ 'selected' if filters.get('sort') == 'severity' }}>Sort: Severity</option>
+                <option value="status" {{ 'selected' if filters.get('sort') == 'status' }}>Sort: Status</option>
+            </select>
+            <select class="filter-select" name="dir" style="width:auto;">
+                <option value="desc" {{ 'selected' if filters.get('dir','desc') == 'desc' }}>&#8595;</option>
+                <option value="asc" {{ 'selected' if filters.get('dir') == 'asc' }}>&#8593;</option>
+            </select>
+        </div>
+    </form>
+
+    <div class="gov-list-body" id="register-rows">
+        {% include 'governance/register/partials/list.html' %}
+    </div>
+</div>
+
+<div class="gov-detail" id="register-detail-panel"
+     {% if selected_type and selected_id %}
+     hx-get="{{ url_for('governance.register_detail', record_type=selected_type, record_id=selected_id) }}"
+     hx-trigger="load"
+     hx-swap="innerHTML"
+     {% endif %}>
+    <div class="gov-detail-empty">Select an item to view details</div>
+</div>
+
+{% endblock %}
+
+{% block gov_sidebar %}
+<span class="gov-sidebar-label">About This View</span>
+<div style="font-size:0.72rem; line-height:1.6; color:var(--text-muted);">
+    Combines the Adverse Events and Complaints registers into one browsable,
+    read-only feed. To take action on an item, open its full record.
+</div>
+<hr class="filter-sep">
+<span class="gov-sidebar-label">Redaction</span>
+<div style="font-size:0.72rem; line-height:1.6; color:var(--text-muted);">
+    <span class="badge-status badge-redacted">REDACTED</span>
+    marks items linked to a patient — identifying text is automatically
+    scrubbed on this page.
+</div>
+{% endblock %}
+
+{% block gov_scripts %}
+<script>
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail.target.id === 'register-detail-panel') {
+        evt.detail.target.scrollTop = 0;
+    }
+});
+
+function openRegisterReport() {
+    var form = document.getElementById('register-filter-form');
+    var params = new URLSearchParams(new FormData(form));
+    window.open("{{ url_for('governance.register_report') }}?" + params.toString(), '_blank');
+}
+</script>
+{% endblock %}

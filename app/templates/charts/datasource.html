@@ -1,0 +1,253 @@
+{% extends 'charts/_viz_base.html' %}
+
+{# ── Data grid tab ────────────────────────────────────────────────────────── #}
+{% block tab_grid %}
+{% if result.error %}
+<div class="alert alert-danger">{{ result.error }}</div>
+{% elif not result.rows %}
+<p class="text-muted" style="padding:var(--space-4) 0;">No data returned.</p>
+{% else %}
+<div style="margin-bottom:var(--space-2); display:flex; align-items:center; gap:var(--space-3);">
+    <span class="text-sm text-muted">{{ result.row_count }} row{{ 's' if result.row_count != 1 }}</span>
+    <button class="btn btn-outline" style="padding:0.2rem 0.6rem; font-size:var(--text-xs);"
+            onclick="exportCsv()">↓ Export CSV</button>
+</div>
+<div class="table-container">
+    <table data-sortable id="ds-grid" style="width:100%;">
+        <thead>
+            <tr>
+                {% for col in result.columns %}
+                <th>{{ col }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in result.rows %}
+            <tr>
+                {% for col in result.columns %}
+                {% if col.upper() == 'INTERNALID' and row[col] %}
+                <td><a href="{{ url_for('clinical.patient', patient_id=row[col]|int) }}"
+                       target="_blank"
+                       style="font-family:var(--font-mono);">{{ row[col]|int }}</a></td>
+                {% else %}
+                <td>{{ row[col] if row[col] is not none else '' }}</td>
+                {% endif %}
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}
+
+{# ── Chart tab — only rendered when chart_config is set ──────────────────── #}
+{% if chart_config %}
+{% block tab_chart %}
+{% if result.error %}
+<div class="alert alert-danger">{{ result.error }}</div>
+{% else %}
+<div style="max-width:900px; margin:var(--space-4) auto;">
+    <canvas id="ds-chart"></canvas>
+</div>
+{% endif %}
+{% endblock %}
+{% endif %}
+
+{# ── AI Analytics tab — only shown when [DATA] pipelines are configured ─── #}
+{% if pipelines %}
+{% block tab_analytics %}
+<div style="max-width:700px;">
+    <p class="text-sm text-muted" style="margin-bottom:var(--space-3);">
+        Select a pipeline to analyse this dataset. The full result set is passed
+        as CSV input via <code>{{ '{{input.raw_data}}' }}</code>.
+    </p>
+    <div style="display:flex; gap:var(--space-3); align-items:flex-end; margin-bottom:var(--space-4);">
+        <div style="flex:1;">
+            <label class="form-label-xs">Pipeline</label>
+            <select id="analysisPipeline" class="form-control-xs" style="width:100%;">
+                <option value="">— select —</option>
+                {% for p in pipelines %}
+                <option value="{{ p.id }}">{{ p.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button id="analyseBtn" class="btn btn-primary"
+                style="padding:0.3rem 0.9rem; font-size:var(--text-sm);"
+                onclick="runAnalysis()" disabled>Analyse</button>
+    </div>
+
+    <div id="analysis-status" style="display:none;" class="text-sm text-muted"
+         style="margin-bottom:var(--space-2);">Running…</div>
+
+    <div id="analysis-steps" style="margin-bottom:var(--space-3);"></div>
+
+    <div id="analysis-output" style="display:none;">
+        <div class="card-header" style="margin-bottom:var(--space-2);">Analysis Output</div>
+        <div id="analysis-result"
+             style="white-space:pre-wrap; font-size:var(--text-sm); line-height:1.6;
+                    padding:var(--space-3); background:var(--bg-secondary);
+                    border:1px solid var(--border-color); border-radius:var(--radius);">
+        </div>
+    </div>
+    <div id="analysis-error" class="alert alert-danger" style="display:none;"></div>
+</div>
+{% endblock %}
+{% endif %}
+
+{# ── Page-specific scripts ────────────────────────────────────────────────── #}
+{% block viz_head %}
+{% if chart_config %}
+<script src="{{ url_for('static', filename='vendor/chartjs-4.6.1/chart.umd.min.js') }}"></script>
+{% endif %}
+{% endblock %}
+
+{% block viz_scripts %}
+<script>
+(function () {
+    'use strict';
+
+    var CSRF       = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    var ANALYSE_URL = {{ analyse_url | tojson }};
+
+    /* ── CSV export ─────────────────────────────────────────────────────── */
+    window.exportCsv = function () {
+        var table = document.getElementById('ds-grid');
+        if (!table) return;
+        var rows = [];
+        var headers = Array.from(table.querySelectorAll('thead th'))
+                          .map(function (th) { return '"' + th.textContent.trim().replace(/"/g, '""') + '"'; });
+        rows.push(headers.join(','));
+        table.querySelectorAll('tbody tr').forEach(function (tr) {
+            var cells = Array.from(tr.querySelectorAll('td'))
+                            .map(function (td) { return '"' + td.textContent.trim().replace(/"/g, '""') + '"'; });
+            rows.push(cells.join(','));
+        });
+        var blob = new Blob([rows.join('\r\n')], { type: 'text/csv' });
+        var a    = document.createElement('a');
+        a.href   = URL.createObjectURL(blob);
+        a.download = {{ (source.key ~ '.csv') | tojson }};
+        a.click();
+    };
+
+    {% if chart_config and not result.error and result.rows %}
+    /* ── Chart.js ───────────────────────────────────────────────────────── */
+    var chartConfig = {{ chart_config_json | safe }};
+    var rows        = {{ result.rows | tojson }};
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var ctx = document.getElementById('ds-chart');
+        if (!ctx || !chartConfig.x_col) return;
+
+        var xCol  = chartConfig.x_col;
+        var yCols = Array.isArray(chartConfig.y_cols) ? chartConfig.y_cols : [chartConfig.y_cols];
+        var labels = rows.map(function (r) { return r[xCol]; });
+
+        var palette = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899'];
+        var datasets = yCols.map(function (col, i) {
+            return {
+                label:           col,
+                data:            rows.map(function (r) { return r[col]; }),
+                borderColor:     palette[i % palette.length],
+                backgroundColor: palette[i % palette.length] + '33',
+                tension:         0.3,
+                fill:            false,
+            };
+        });
+
+        new Chart(ctx, {
+            type: chartConfig.type || 'line',
+            data: { labels: labels, datasets: datasets },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: !!chartConfig.title,
+                        text:    chartConfig.title || '',
+                    },
+                    legend: { position: 'top' },
+                },
+                scales: {
+                    x: { title: { display: !!chartConfig.x_label, text: chartConfig.x_label || '' } },
+                    y: { title: { display: !!chartConfig.y_label, text: chartConfig.y_label || '' } },
+                },
+            },
+        });
+    });
+    {% endif %}
+
+    {% if pipelines %}
+    /* ── AI analytics ───────────────────────────────────────────────────── */
+    var pipelineSel = document.getElementById('analysisPipeline');
+    var analyseBtn  = document.getElementById('analyseBtn');
+    var statusEl    = document.getElementById('analysis-status');
+    var stepsEl     = document.getElementById('analysis-steps');
+    var outputEl    = document.getElementById('analysis-output');
+    var resultEl    = document.getElementById('analysis-result');
+    var errorEl     = document.getElementById('analysis-error');
+    var activeEs    = null;
+
+    if (pipelineSel) {
+        pipelineSel.addEventListener('change', function () {
+            analyseBtn.disabled = !pipelineSel.value;
+        });
+    }
+
+    window.runAnalysis = function () {
+        if (!pipelineSel || !pipelineSel.value) return;
+        if (activeEs) { activeEs.close(); activeEs = null; }
+
+        analyseBtn.disabled = true;
+        statusEl.style.display  = 'block';
+        stepsEl.innerHTML       = '';
+        outputEl.style.display  = 'none';
+        resultEl.textContent    = '';
+        errorEl.style.display   = 'none';
+
+        fetch(ANALYSE_URL, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body:    JSON.stringify({ pipeline_id: parseInt(pipelineSel.value) }),
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.error) { showError(data.error); return; }
+            statusEl.textContent = 'Streaming…';
+            activeEs = new EventSource(data.stream_url);
+            activeEs.onmessage = function (e) {
+                var msg = JSON.parse(e.data);
+                if (msg.type === 'step') {
+                    var li = document.createElement('div');
+                    li.className   = 'text-xs text-muted';
+                    li.textContent = '▸ ' + msg.label;
+                    stepsEl.appendChild(li);
+                } else if (msg.type === 'output') {
+                    outputEl.style.display = 'block';
+                    resultEl.textContent   = msg.content;
+                } else if (msg.type === 'done') {
+                    activeEs.close(); activeEs = null;
+                    statusEl.style.display = 'none';
+                    analyseBtn.disabled = false;
+                } else if (msg.type === 'error') {
+                    showError(msg.message);
+                }
+            };
+            activeEs.onerror = function () {
+                showError('Stream connection lost.');
+            };
+        })
+        .catch(function (e) { showError(e.message); });
+    };
+
+    function showError(msg) {
+        statusEl.style.display = 'none';
+        errorEl.style.display  = 'block';
+        errorEl.textContent    = msg;
+        analyseBtn.disabled    = false;
+        if (activeEs) { activeEs.close(); activeEs = null; }
+    }
+    {% endif %}
+
+}());
+</script>
+{% endblock %}

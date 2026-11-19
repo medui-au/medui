@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Care Plan — {{ patient.get('SURNAME','') | upper }}, {{ patient.get('FIRSTNAME','') }} — {{ app_name }}{% endblock %}
+{% block head %}{% include 'careplan/_styles.html' %}{% endblock %}
+{% block content %}
+<div class="workspace">
+  {% include 'careplan/_sidebar.html' %}
+  <section class="workspace-main">
+    <div class="cp-head">
+      <a href="{{ url_for('careplan.patient_plan', patient_id=plan.patient_id) }}" class="cp-muted">← Care Plan</a>
+      <span class="cp-status">{{ plan.status.value }}</span>
+      {% if plan.filed_document %}
+      <a class="btn btn-outline btn-sm" href="{{ url_for('careplan.print_plan', plan_id=plan.id) }}" target="_blank">Print</a>
+      {% endif %}
+      {% if plan.status.value == 'filed' %}
+      {% set export_url = url_for('careplan.export', plan_id=plan.id) %}
+      <button class="btn btn-outline btn-sm" data-cp-send="copy" data-export-url="{{ export_url }}" title="Copy the plan (formatted and plain text)">Copy</button>
+      <button class="btn btn-outline btn-sm" data-cp-send="email" data-export-url="{{ export_url }}" title="Email the plan to the patient from Comms">Email</button>
+      <button class="btn btn-outline btn-sm" data-cp-send="bp" data-export-url="{{ export_url }}" title="File the plan in the patient's Best Practice record from Comms">BP →</button>
+      {% endif %}
+      {% if plan.status.value == 'filed' %}
+      <button class="btn btn-outline btn-sm" onclick="voidPlan()">Void…</button>
+      {% endif %}
+      <span class="cp-muted">SHA-256 {{ (plan.filed_sha256 or '')[:12] }}</span>
+    </div>
+    {% if plan.status.value == 'void' %}<p class="cp-warn">Voided: {{ plan.void_reason }}</p>{% endif %}
+    <div class="card" style="padding:0.75rem;">{{ plan.filed_document | safe }}</div>
+    {% if plan.values %}
+    <h3 style="font-size:0.9rem; margin-top:0.8rem;">Values used</h3>
+    <table class="cp-list">
+      <thead><tr><th>Result</th><th>Value</th><th>Date</th><th>Source</th></tr></thead>
+      <tbody>
+      {% for v in plan.values %}
+        <tr><td>{{ v.label or v.token_key }}</td><td>{{ v.value_text or '—' }} {{ v.unit or '' }}</td>
+            <td>{{ v.result_date.strftime('%d/%m/%Y') if v.result_date else '' }}</td>
+            <td>{{ 'typed by the doctor' if v.status == 'manual' else ('LOINC ' ~ (v.loinc_code or '') ~ ('' if v.status == 'found' else ' · ' ~ v.status)) }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/careplan_send.js') }}"></script>
+<script>
+function voidPlan() {
+  const reason = prompt('Reason for voiding this plan (it stays in the record, marked void):');
+  if (!reason) return;
+  fetch({{ url_for('careplan.void', plan_id=plan.id) | tojson }}, {method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':document.querySelector('meta[name="csrf-token"]').content},
+    body: JSON.stringify({reason})}).then(r => r.json()).then(d => { if (d.error) alert(d.error); else location.href = d.url; });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,176 @@
+<div class="pm-editor" id="pm-editor-content">
+    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.25rem;">
+        <h3 style="font-size:0.88rem; font-weight:700; margin:0; flex:1;">{{ up.name }}</h3>
+        {% if up.show_in_assistant %}
+        <span style="font-size:0.65rem; background:var(--info); color:#fff;
+                     padding:0.05rem 0.35rem; border-radius:0.2rem;">IN ASSIST</span>
+        {% endif %}
+    </div>
+    <div style="font-size:0.68rem; color:var(--text-muted); margin-bottom:1rem;">
+        Created {{ up.created_at.strftime('%d %b %Y %H:%M') if up.created_at }}
+        {% if up.system_prompt_name %}
+        · System: <em>{{ up.system_prompt_name }}</em>
+        {% else %}
+        · System: <em style="color:var(--text-muted);">(global default)</em>
+        {% endif %}
+    </div>
+
+    <form id="usr-edit-form-{{ up.id }}"
+          hx-post="{{ url_for('prompt_manager.user_save', prompt_id=up.id) }}"
+          hx-target="#pm-usr-save-status"
+          hx-swap="innerHTML"
+          hx-include="[name='csrf_token']">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
+            <div>
+                <label class="pm-field-lbl">Name <span style="color:var(--danger)">*</span></label>
+                <input type="text" name="name" value="{{ up.name }}" required class="pm-input">
+            </div>
+            <div>
+                <label class="pm-field-lbl">System prompt binding</label>
+                <select name="system_prompt_name" class="pm-input">
+                    <option value="">— (global default) —</option>
+                    {% for sp in system_prompts %}
+                    <option value="{{ sp.name }}"
+                            {{ 'selected' if up.system_prompt_name == sp.name }}>
+                        {{ sp.name }}{% if sp.is_default %} ★{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
+            <div>
+                <label class="pm-field-lbl">Description</label>
+                <input type="text" name="description" value="{{ up.description or '' }}"
+                       class="pm-input" placeholder="What this prompt does">
+            </div>
+            <div>
+                <label class="pm-field-lbl">Classifier</label>
+                <input type="text" name="classifier" value="{{ up.classifier or '' }}"
+                       class="pm-input" placeholder="e.g. ai_panel, scribe"
+                       list="classifier-options-editor">
+                <datalist id="classifier-options-editor">
+                    {% for cls in all_classifiers %}<option value="{{ cls }}">{% endfor %}
+                </datalist>
+            </div>
+        </div>
+
+        <div style="margin-bottom:0.75rem;">
+            <div style="display:flex; align-items:baseline; gap:0.6rem; margin-bottom:0.25rem;">
+                <label class="pm-field-lbl" style="margin-bottom:0;">Prompt text <span style="color:var(--danger)">*</span></label>
+                <details id="pm-tok-ref" style="font-size:0.68rem;">
+                    <summary style="cursor:pointer; color:var(--accent); user-select:none; list-style:none;">
+                        ❓ Template variable reference
+                    </summary>
+                    <div style="position:relative;">
+                    <div style="background:var(--bg-secondary); border:1px solid var(--border-color);
+                                border-radius:var(--radius-sm); padding:0.6rem 0.75rem; margin-top:0.3rem;
+                                font-size:0.72rem; z-index:10; position:relative;">
+                        <p style="margin:0 0 0.45rem; color:var(--text-muted); font-size:0.68rem; line-height:1.4;">
+                            Syntax: <code style="font-family:var(--font-mono,monospace); background:var(--bg-primary);
+                                           padding:0.05rem 0.25rem; border-radius:0.2rem;">&#123;&#123;namespace.key&#125;&#125;</code>
+                            — dot separator, double curly braces. Click any token to insert at cursor.
+                        </p>
+                        <table style="border-collapse:collapse; width:100%; margin-bottom:0.45rem;">
+                            <thead>
+                                <tr style="border-bottom:1px solid var(--border-color);">
+                                    <th style="padding:0.15rem 0.75rem 0.15rem 0; text-align:left; font-size:0.67rem; white-space:nowrap;">Token</th>
+                                    <th style="padding:0.15rem 0; text-align:left; font-size:0.67rem;">When it resolves to…</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set tok_rows = [
+                                    ('{{input.user_prompt}}',      'User\'s typed query from the AI Panel textarea'),
+                                    ('{{data.blocks}}',            'Assembled patient data — set by DataAssemblyNode (bundle or block list)'),
+                                    ('{{results.final_output}}',   'Output from a prior inference step (chained pipelines)'),
+                                    ('{{metadata.pipeline_id}}',   'Pipeline ID of the current run'),
+                                    ('{{metadata.run_db_id}}',     'Database row ID of the current run'),
+                                ] %}
+                                {% for tok, desc in tok_rows %}
+                                <tr style="border-bottom:1px solid var(--border-color);">
+                                    <td style="padding:0.18rem 0.75rem 0.18rem 0; white-space:nowrap;">
+                                        <button type="button"
+                                                onclick='pmInsertToken({{ tok | tojson }})'
+                                                style="font-family:var(--font-mono,monospace); font-size:0.68rem;
+                                                       background:var(--bg-primary); border:1px solid var(--border-color);
+                                                       border-radius:0.2rem; padding:0.05rem 0.3rem; cursor:pointer;
+                                                       color:var(--accent);">{{ tok }}</button>
+                                    </td>
+                                    <td style="padding:0.18rem 0; font-size:0.68rem; color:var(--text-secondary);">{{ desc }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <p style="margin:0; font-size:0.65rem; color:var(--danger);">
+                            ✗ Not supported:
+                            <code style="font-family:var(--font-mono,monospace);">&#123;&#123;bundle:name:format&#125;&#125;</code> &nbsp;
+                            <code style="font-family:var(--font-mono,monospace);">&#123;&#123;key&#125;&#125;</code> (no namespace) &nbsp;
+                            <code style="font-family:var(--font-mono,monospace);">&#123;key&#125;</code> (single brace)
+                        </p>
+                    </div>
+                    </div>
+                </details>
+            </div>
+            <textarea name="prompt_text" id="pm-prompt-textarea" required class="pm-textarea" rows="14">{{ up.prompt_text }}</textarea>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
+            <div>
+                <label class="pm-field-lbl">Default model</label>
+                <select name="default_model_id" class="pm-input">
+                    <option value="">— (system default) —</option>
+                    {% for m in ai_models %}
+                    <option value="{{ m.id }}"
+                            {{ 'selected' if up.default_model_id == m.id }}>
+                        {{ m.provider.name }} — {{ m.display_name or m.model_id }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="pm-field-lbl">Temperature</label>
+                <input type="number" name="temperature" step="0.1" min="0" max="2"
+                       value="{{ up.temperature if up.temperature is not none else '' }}"
+                       class="pm-input" placeholder="(provider default)">
+            </div>
+            <div>
+                <label class="pm-field-lbl">Max tokens</label>
+                <input type="number" name="max_tokens" step="1" min="1"
+                       value="{{ up.max_tokens if up.max_tokens is not none else '' }}"
+                       class="pm-input" placeholder="(provider default)">
+            </div>
+            <div style="display:flex; align-items:flex-end; padding-bottom:0.15rem;">
+                <label style="font-size:0.75rem; display:flex; align-items:center; gap:0.35rem; cursor:pointer;">
+                    <input type="checkbox" name="show_in_assistant" value="1"
+                           id="ue-assist-{{ up.id }}" {{ 'checked' if up.show_in_assistant }}>
+                    Show in AI assist
+                </label>
+            </div>
+        </div>
+
+    </form>
+
+    <div style="display:flex; gap:0.5rem; align-items:center; margin-top:1rem;">
+        <button type="submit" form="usr-edit-form-{{ up.id }}"
+                class="btn btn-primary" style="font-size:0.78rem;">Save</button>
+        <button type="button" class="btn btn-outline" style="font-size:0.78rem;"
+                onclick="clearEditor()">Cancel</button>
+        <span id="pm-usr-save-status" style="font-size:0.75rem; margin-left:0.5rem;"></span>
+        <span style="flex:1;"></span>
+        <form method="post"
+              hx-post="{{ url_for('prompt_manager.user_delete', prompt_id=up.id) }}"
+              hx-target="#usr-list" hx-swap="innerHTML"
+              hx-include="[name='csrf_token']"
+              hx-on:htmx:after-request="if(event.detail.successful){clearEditor();}"
+              onsubmit="return confirm('Delete \'{{ up.name | e }}\'?')"
+              style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline"
+                    style="font-size:0.68rem; padding:0.15rem 0.45rem;
+                           border-color:var(--danger); color:var(--danger);">Delete</button>
+        </form>
+    </div>
+</div>

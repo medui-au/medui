@@ -1,0 +1,2 @@
+{% from "clinical/macros/clinical_components.html" import render_clinical_table %}
+{{ render_clinical_table(rows, columns, empty_msg=empty_msg|default('No records found.'), strikethrough_key=strikethrough_key|default(None)) }}

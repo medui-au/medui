@@ -1,0 +1,253 @@
+{# Top navigation bar.
+   Variables read from context: current_user, current_patient_id (optional), app_name, practice_name (optional)
+#}
+
+{%- if current_patient_id is defined and current_patient_id -%}
+  {%- set _pid = current_patient_id -%}
+{%- elif patient is defined and patient and patient.patient_id is defined -%}
+  {%- set _pid = patient.patient_id -%}
+{%- else -%}
+  {%- set _pid = none -%}
+{%- endif -%}
+{%- set _pname = practice_name if practice_name is defined and practice_name else (app_name or 'MedUI') -%}
+
+<nav class="topnav" role="navigation" aria-label="Main navigation">
+
+    {# Brand #}
+    <a href="{{ url_for('main.index') }}" class="topnav-brand">{{ _pname }}</a>
+
+    {# Main menu #}
+    <ul class="topnav-menu" id="topnavMenu">
+
+        <li class="topnav-item">
+            <a href="{{ url_for('main.index') }}"
+               class="topnav-link{% if request.path == '/' %} active{% endif %}">Home</a>
+        </li>
+
+        {# Reception — stub #}
+        <li class="topnav-item">
+            <a href="#" class="topnav-link" onclick="return false;" title="Coming soon">Reception</a>
+        </li>
+
+        {# User Data #}
+        <li class="topnav-item" id="nav-userdata">
+            <button class="topnav-link" aria-haspopup="true" aria-expanded="false"
+                    onclick="toggleDropdown('nav-userdata')">User Data ▾</button>
+            <ul class="dropdown-menu" role="menu">
+                <li><a class="dropdown-item" href="{{ url_for('inbox.index') }}">All Inboxes</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('inbox.outliers') }}">Results Outside Range</a></li>
+                {# Library: general documents, never linked to a patient (ADR-093) #}
+                <li><a class="dropdown-item" href="{{ url_for('doc_library.index') }}">Library</a></li>
+                <li class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{{ url_for('my_settings.index') }}">⚙ My Settings</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('my_settings.usage') }}">My Usage</a></li>
+            </ul>
+        </li>
+
+        {# Patient Data #}
+        <li class="topnav-item" id="nav-patientdata">
+            <button class="topnav-link" aria-haspopup="true" aria-expanded="false"
+                    onclick="toggleDropdown('nav-patientdata')">Patient Data ▾</button>
+            <ul class="dropdown-menu" role="menu">
+                <li><a class="dropdown-item" href="{{ url_for('clinical.search') }}">Patient Search</a></li>
+                {% if _pid %}
+                <li class="dropdown-divider"></li>
+                <li class="dropdown-header">Current Patient ({{ _pid }})</li>
+                <li><a class="dropdown-item" href="{{ url_for('clinical.patient', patient_id=_pid) }}">Demographics / Summary</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('clinical.patient_json_dashboard', patient_id=_pid) }}">{ } PatientJSON</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('clinical.pathatom_dashboard', patient_id=_pid) }}">Atomized Pathology</a></li>
+                <li><button type="button" class="dropdown-item" style="background:none; border:none; width:100%; text-align:left; cursor:pointer; font:inherit;"
+                            onclick="openResultsRollupModal({{ _pid }})">📄 Results Rollup</button></li>
+                <li class="dropdown-divider"></li>
+                {% if config.AI_ENABLED and current_user.can_use_ai %}
+                <li><a class="dropdown-item" href="{{ url_for('clinical.ai_panel', patient_id=_pid) }}">🤖 AI Assistant</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('clinical.ai_panel', patient_id=_pid, tab='output') }}">📋 Enter New Report</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('voice.scribe') }}?patient_id={{ _pid }}">✍️ Scribe</a></li>
+                {% endif %}
+                {% if current_user.has_level(5) %}
+                <li><a class="dropdown-item" href="{{ url_for('careplan.patient_plan', patient_id=_pid) }}">🗂️ Care Plan</a></li>
+                {% endif %}
+                {% if config.AI_ENABLED and current_user.can_use_ai %}
+                <li><a class="dropdown-item" href="{{ url_for('chatbot.index', patient_id=_pid) }}">💬 Chat With Records</a></li>
+                {% endif %}
+                {% if config.AI_ENABLED and topnav_pipelines and current_user.can_use_ai %}
+                <li class="dropdown-divider"></li>
+                <li class="dropdown-header">Quick AI Reports</li>
+                {% for p in topnav_pipelines %}
+{% if config.AI_ENABLED %}                <li><a class="dropdown-item" href="{{ url_for('clinical.ai_panel', patient_id=_pid, run_pipeline=p.id) }}">⚡ {{ p.name }}</a></li>{% endif %}
+                {% endfor %}
+                {% endif %}
+                {% endif %}
+            </ul>
+        </li>
+
+        {# Daysheet #}
+        <li class="topnav-item">
+            <a href="{{ url_for('schedule.daysheet') }}"
+               class="topnav-link{% if request.path.startswith('/schedule') %} active{% endif %}">Daysheet</a>
+        </li>
+
+        {# Doctor Data #}
+        <li class="topnav-item" id="nav-doctordata">
+            <button class="topnav-link" aria-haspopup="true" aria-expanded="false"
+                    onclick="toggleDropdown('nav-doctordata')">Doctor Data ▾</button>
+            <ul class="dropdown-menu" role="menu">
+                <li><a class="dropdown-item" href="{{ url_for('doctor.billings') }}">Billings</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('doctor.progress_notes') }}">Progress Notes</a></li>
+{% if config.AI_ENABLED %}                <li><a class="dropdown-item" href="{{ url_for('doctor.transcripts') }}">Transcripts</a></li>{% endif %}
+                <li><a class="dropdown-item" href="{{ url_for('doctor.sms') }}">SMS Messages</a></li>
+{% if config.AI_ENABLED %}                <li><a class="dropdown-item" href="{{ url_for('doctor.chats') }}">Chats</a></li>{% endif %}
+                <li><a class="dropdown-item" href="{{ url_for('doctor.links') }}">Links</a></li>
+                {% if current_user.has_level(5) %}
+                <li><a class="dropdown-item" href="{{ url_for('careplan.recipes') }}">Care Plan Recipes</a></li>
+                {% endif %}
+                <li><a class="dropdown-item" href="{{ url_for('doctor.quality') }}">Quality</a></li>
+                {% if current_user.has_level(5) and criterion_review_enabled() %}
+                <li><a class="dropdown-item" href="{{ url_for('doctor.criterion_review') }}">Criterion Review</a></li>
+                {% endif %}
+                {% if config.AI_ENABLED and current_user.can_use_ai %}
+                <li><a class="dropdown-item" href="{{ url_for('chatbot.generic_index') }}">💬 Chatbot</a></li>
+                {% endif %}
+                <li class="dropdown-divider"></li>
+                {% if current_user.is_admin %}
+                <li><a class="dropdown-item" href="{{ url_for('doctor.usage') }}">Application Usage</a></li>
+                {% endif %}
+                {% if config.AI_ENABLED and current_user.can_use_ai %}
+                <li><a class="dropdown-item" href="{{ url_for('voice.quick_scribe') }}">● Quick Scribe</a></li>
+                {% endif %}
+            </ul>
+        </li>
+
+        {# Governance #}
+        <li class="topnav-item" id="nav-governance">
+            <button class="topnav-link" aria-haspopup="true" aria-expanded="false"
+                    onclick="toggleDropdown('nav-governance')">Governance ▾</button>
+            <ul class="dropdown-menu" role="menu">
+                <li><a class="dropdown-item" href="{{ url_for('governance.complaints_index') }}">Complaints Register</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('governance.ae_index') }}">Adverse Events Register</a></li>
+            </ul>
+        </li>
+
+        {# Charts #}
+        <li class="topnav-item" id="nav-charts">
+            <button class="topnav-link" aria-haspopup="true" aria-expanded="false"
+                    onclick="toggleDropdown('nav-charts')">Charts ▾</button>
+            <ul class="dropdown-menu" role="menu">
+                <li><a class="dropdown-item" href="{{ url_for('charts.scatter') }}">Patient Scatter</a></li>
+                {% for ds in topnav_datasources %}
+                <li><a class="dropdown-item"
+                       href="{{ url_for('charts.datasource_view', source_id=ds.id) }}">{{ ds.display_name }}</a></li>
+                {% endfor %}
+                <li role="separator" style="border-top:1px solid var(--border-subtle); margin:0.25rem 0;"></li>
+                <li><a class="dropdown-item" href="{{ url_for('charts.browse') }}">All Data Sources →</a></li>
+            </ul>
+        </li>
+
+        {# Admin #}
+        {% if current_user.is_authenticated and current_user.has_level(7) %}
+        <li class="topnav-item" id="nav-admin">
+            <button class="topnav-link" aria-haspopup="true" aria-expanded="false"
+                    onclick="toggleDropdown('nav-admin')">Admin ▾</button>
+            <ul class="dropdown-menu" role="menu">
+                <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}">Admin Dashboard</a></li>
+                {% if current_user.is_admin %}
+                <li><a class="dropdown-item" href="{{ url_for('setup.index') }}">Application Setup</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('setup.index') }}#ai-providers">AI Providers &amp; Models</a></li>
+                {% endif %}
+{% if config.AI_ENABLED %}                <li><a class="dropdown-item" href="{{ url_for('pipeline_run.designer') }}">Pipeline Designer</a></li>{% endif %}
+{% if config.AI_ENABLED %}                <li><a class="dropdown-item" href="{{ url_for('prompt_manager.index') }}">Prompt Manager</a></li>{% endif %}
+                <li><a class="dropdown-item" href="{{ url_for('admin.query_manager') }}">Query Manager</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('admin.bundles') }}">Data Bundles</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('admin.mappings') }}">Mappings</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('admin.observation_anomalies') }}">Observation Anomalies</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('admin.flagged_ai') }}">Flagged AI Requests</a></li>
+                {% if current_user.is_admin and privacy_review_enabled() %}
+                <li><a class="dropdown-item" href="{{ url_for('admin.privacy_review') }}">Privacy Review</a></li>
+                {% endif %}
+            </ul>
+        </li>
+        {% endif %}
+
+    </ul>{# /topnav-menu #}
+
+    {# Right side #}
+    <div class="topnav-right">
+        {% if current_user.is_authenticated %}
+        {# Your details card (ADR-125): loaded from BP the first time it opens. #}
+        <div class="user-info-wrap"
+             hx-get="{{ url_for('my_settings.details_card') }}"
+             hx-trigger="mouseenter once, focusin once"
+             hx-target="find .details-card" hx-swap="innerHTML">
+            <a class="user-info" href="{{ url_for('my_settings.index') }}"
+               style="color:inherit; text-decoration:none;" aria-describedby="details-card"
+               onkeydown="if (event.key === 'Escape') this.blur();">
+                {{ current_user.display_name or current_user.username }} ⚙
+            </a>
+            <div class="details-card" id="details-card" role="tooltip">
+                <div class="details-card-note">Loading your details…</div>
+            </div>
+        </div>
+        {% endif %}
+        {% if current_user.is_authenticated %}
+        <a class="topnav-link" href="{{ url_for('help.index') }}" title="Help">Help</a>
+        {% endif %}
+        <button class="topnav-link theme-btn" id="theme-toggle-btn"
+                aria-label="Toggle dark mode" title="Toggle theme">🌓</button>
+        <a href="{{ url_for('auth.logout') }}" class="btn btn-outline"
+           style="padding:0.25rem 0.75rem; font-size:0.8rem;">Sign out</a>
+    </div>
+
+</nav>
+
+<script>
+(function () {
+    'use strict';
+
+    function closeAll() {
+        document.querySelectorAll('.topnav-item.open').forEach(function (el) {
+            el.classList.remove('open');
+            var btn = el.querySelector('button');
+            if (btn) btn.setAttribute('aria-expanded', 'false');
+        });
+    }
+
+    window.toggleDropdown = function (id) {
+        var item    = document.getElementById(id);
+        var isOpen  = item.classList.contains('open');
+        closeAll();
+        if (!isOpen) {
+            item.classList.add('open');
+            var btn = item.querySelector('button');
+            if (btn) btn.setAttribute('aria-expanded', 'true');
+        }
+    };
+
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.topnav-item')) closeAll();
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeAll();
+    });
+
+    // Theme toggle — same server persist as base.html
+    var themeBtn = document.getElementById('theme-toggle-btn');
+    if (themeBtn) {
+        themeBtn.addEventListener('click', function () {
+            var html    = document.documentElement;
+            var current = html.getAttribute('data-theme') || 'light';
+            var next    = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            var csrf = document.querySelector('meta[name="csrf-token"]');
+            if (!csrf) return;
+            var form = new FormData();
+            form.append('theme', next);
+            fetch('{{ url_for("auth.set_theme") }}', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrf.content },
+                body: form,
+            });
+        });
+    }
+})();
+</script>

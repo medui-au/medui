@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Data Sources — {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="viz-page">
+
+    <div class="viz-header">
+        <h2>{{ page_title }}</h2>
+        <p>{{ page_subtitle }}</p>
+    </div>
+
+    {% if not sources %}
+    <p class="text-muted">No data sources available. Add some in
+        <a href="{{ url_for('setup.index') }}">Setup → Data Sources</a>.</p>
+    {% else %}
+
+    {# Group by source_type for visual organisation #}
+    {% set seen_types = namespace(types=[]) %}
+    {% for ds in sources %}
+        {% if ds.source_type not in seen_types.types %}
+            {% set seen_types.types = seen_types.types + [ds.source_type] %}
+        {% endif %}
+    {% endfor %}
+
+    {% for stype in seen_types.types %}
+    <div style="margin-bottom: var(--space-6);">
+        <div style="font-size:var(--text-xs); font-weight:600; text-transform:uppercase;
+                    letter-spacing:0.08em; color:var(--text-muted);
+                    margin-bottom:var(--space-3); padding-bottom:var(--space-1);
+                    border-bottom:1px solid var(--border-subtle);">
+            {{ stype }}
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr));
+                    gap:var(--space-3);">
+            {% for ds in sources if ds.source_type == stype %}
+            <a href="{{ url_for('charts.datasource_view', source_id=ds.id) }}"
+               style="text-decoration:none; color:inherit;">
+                <div class="card" style="cursor:pointer; transition:box-shadow 0.15s;"
+                     onmouseover="this.style.boxShadow='var(--shadow-md)'"
+                     onmouseout="this.style.boxShadow=''">
+                    <div class="card-header" style="display:flex; align-items:center; gap:var(--space-2);">
+                        <span style="flex:1; font-size:var(--text-sm); font-weight:600;">{{ ds.display_name }}</span>
+                        <span style="font-size:0.65rem; font-family:var(--font-mono);
+                                     padding:0.05rem 0.35rem; border-radius:0.2rem;
+                                     background:var(--bg-tertiary); border:1px solid var(--border-subtle);
+                                     color:var(--text-muted);">{{ ds.location_type_label }}</span>
+                    </div>
+                    <div style="padding:var(--space-2) var(--space-3) var(--space-3);">
+                        {% if ds.description %}
+                        <p style="font-size:var(--text-sm); color:var(--text-secondary); margin:0;">
+                            {{ ds.description }}
+                        </p>
+                        {% else %}
+                        <p style="font-size:var(--text-sm); color:var(--text-muted); margin:0;
+                                  font-style:italic;">No description.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+    {% endif %}
+</div>
+{% endblock %}

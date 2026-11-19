@@ -1,0 +1,53 @@
+{# HTMX partial: daysheet table. Requires: rows (list), bpsdb_userid (str). #}
+{% if rows %}
+<div style="overflow-x:auto;">
+  <table style="width:100%; border-collapse:collapse; font-size:var(--text-sm); line-height:1.2;">
+    <thead style="position:sticky; top:0; background:var(--bg-secondary); z-index:1;">
+      <tr style="border-bottom:2px solid var(--border-color);">
+        <th style="padding:0.25rem 0.4rem; text-align:left; white-space:nowrap;">Time</th>
+        <th style="padding:0.25rem 0.4rem; text-align:left;">Dr</th>
+        <th style="padding:0.25rem 0.4rem; text-align:left;">Patient</th>
+        <th style="padding:0.25rem 0.4rem; text-align:left;">DOB</th>
+        <th style="padding:0.25rem 0.4rem; text-align:left;">Item</th>
+        <th style="padding:0.25rem 0.4rem; text-align:right;">Fee</th>
+        <th style="padding:0.25rem 0.4rem; text-align:left;">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      {% set own_row = (bpsdb_userid and bpsdb_userid == row.get('provider_id', '') | string) %}
+      <tr class="{{ row.get('row_class', '') }}{% if own_row %} own-provider{% endif %}"
+          data-provider-id="{{ row.get('provider_id', '') }}"
+          style="border-bottom:1px solid var(--border-color);">
+        <td style="padding:0.2rem 0.4rem; white-space:nowrap; vertical-align:top;">{{ row.get('DateofService', '') }}</td>
+        <td style="padding:0.2rem 0.4rem; vertical-align:top; font-weight:{% if own_row %}700{% else %}normal{% endif %};">
+          {{ row.get('UserName', '') }}
+        </td>
+        <td style="padding:0.2rem 0.4rem; vertical-align:top; white-space:nowrap;">
+          {% if row.get('internalid') %}
+            <a href="{{ url_for('clinical.patient', patient_id=row.get('internalid')) }}"
+               style="color:var(--accent-primary); text-decoration:none;">
+              {{ row.get('patient_name', '—') }}
+            </a>
+          {% else %}
+            {{ row.get('patient_name', '—') }}
+          {% endif %}
+        </td>
+        <td style="padding:0.2rem 0.4rem; vertical-align:top; white-space:nowrap;">
+          {{ row.get('dob', '') | clinical_date }}
+        </td>
+        <td style="padding:0.2rem 0.4rem; vertical-align:top; font-weight:700;">{{ row.get('mbs_item', '') }}</td>
+        <td style="padding:0.2rem 0.4rem; vertical-align:top; text-align:right; white-space:nowrap;">
+          ${{ "{:.2f}".format((row.get('fee') or 0) | float) }}
+        </td>
+        <td style="padding:0.2rem 0.4rem; vertical-align:top; color:var(--text-muted); font-size:0.72rem;">
+          {{ row.get('service_status', '') }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+  <p style="margin:0; padding:0.75rem; font-size:var(--text-sm); color:var(--text-muted);">No attendances recorded.</p>
+{% endif %}

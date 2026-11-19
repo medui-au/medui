@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% block title %}Observation anomalies — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+.oa-wrap   { max-width:1150px; margin:0 auto; padding:1rem 1.25rem; }
+.oa-wrap h1 { font-size:1.1rem; margin:0 0 0.25rem 0; }
+.oa-intro  { font-size:var(--text-sm); color:var(--text-muted); margin:0 0 0.75rem 0; max-width:820px; }
+.oa-counts { display:flex; flex-wrap:wrap; gap:0.5rem; margin:0 0 1rem 0; font-size:var(--text-sm); }
+.oa-chip   { border:1px solid var(--border-color); border-radius:999px; padding:0.15rem 0.6rem; }
+.oa-table  { width:100%; border-collapse:collapse; font-size:var(--text-sm); }
+.oa-table th, .oa-table td { text-align:left; vertical-align:top; padding:0.4rem 0.5rem;
+                             border-bottom:1px solid var(--border-color); }
+.oa-table th { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); }
+.oa-value  { font-family:var(--font-mono, monospace); white-space:pre; background:var(--bg-subtle, rgba(0,0,0,0.04));
+             padding:0 0.25rem; border-radius:3px; }
+.oa-note   { font-size:0.72rem; color:var(--text-muted); }
+.oa-err    { color:var(--danger, #b91c1c); }
+.oa-toggle { font-size:var(--text-sm); margin:0 0 0.75rem 0; }
+.oa-link   { color:var(--accent-primary); text-decoration:none; }
+.oa-link:hover { text-decoration:underline; }
+.oa-h2     { font-size:1rem; margin:2rem 0 0.25rem 0; }
+.oa-newpt td { border-top:2px solid var(--border-color); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="oa-wrap">
+  <h1>Observation anomalies</h1>
+  <p class="oa-intro">
+    Measurements in Best Practice whose value isn't a plain number. BP doesn't check height,
+    weight, head circumference, BMI or blood pressure when they're entered, so a value like
+    <span class="oa-value">72kg</span> is stored as typed. Any query that reads it as a number then
+    fails for that patient, including the one that loads their identifiers for redaction, which
+    blocks their cloud AI pipelines until the value is corrected in BP. Values are shown between the
+    shaded edges exactly as stored, so stray spaces are visible. Blood pressure is entered as one
+    field but stored as two rows, systolic and diastolic. Below: observations
+    <a href="#misfiled">filed under the wrong code</a>.
+  </p>
+
+  {% if error %}
+    <p class="oa-err">Best Practice could not be read: {{ error }}</p>
+  {% elif not rows %}
+    <p>No anomalies: every value in these measurements is a plain number.</p>
+  {% else %}
+    <div class="oa-counts">
+      <span class="oa-chip"><strong>{{ rows|length }}</strong> rows, {{ patients }} patients</span>
+      {% for name, n in counts|dictsort %}<span class="oa-chip">{{ name }}: {{ n }}</span>{% endfor %}
+    </div>
+    {% if placeholders %}
+    <p class="oa-toggle">
+      <label><input type="checkbox" id="oa-hide-placeholder"> Hide BP's own
+      <span class="oa-value">**.*</span> BMI placeholder ({{ placeholders }} rows)</label>
+      <span class="oa-note">— what BP writes when it can't calculate a BMI, rather than a typing slip.</span>
+    </p>
+    {% endif %}
+    <table class="oa-table">
+      <thead><tr>
+        <th>Patient</th><th>InternalId</th><th>Measurement</th><th>Value</th>
+        <th>Observed</th><th>Entered by</th><th>Record</th>
+      </tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr{% if r.bp_placeholder %} class="oa-placeholder"{% endif %}>
+          <td><a class="oa-link" href="{{ url_for('clinical.patient', patient_id=r.patient_id) }}" target="_blank" rel="noopener">{{ r.patient }}</a></td>
+          <td>{{ r.patient_id }}</td>
+          <td>{{ r.measurement }}{% if r.filed_as %}<div class="oa-note">filed as {{ r.filed_as }}</div>{% endif %}</td>
+          <td><span class="oa-value">{{ r.value_raw }}</span>{% if r.bp_placeholder %}<div class="oa-note">BP placeholder</div>{% endif %}</td>
+          <td>{{ r.obs_date.strftime('%d/%m/%Y') if r.obs_date else '' }}</td>
+          <td>{{ r.entered_by }}</td>
+          <td>{{ r.record_id }}{% if r.deleted %}<div class="oa-note">deleted in BP</div>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  {% if not error %}
+  <h2 class="oa-h2" id="misfiled">Observations filed under the wrong code</h2>
+  <p class="oa-intro">
+    Rows whose name isn't Best Practice's own name for their code: a pulse filed as diastolic,
+    a heart rhythm filed as weight. Nearly all were created by an import of another practice's
+    records (created by user 0, one batch per patient). Anything that reads observations by code,
+    {{ app_name }} included, takes them for the measurement the code means. Deleting one in BP (record
+    status 3) removes it from {{ app_name }} at once, and from this list.
+  </p>
+  {% if not misfiled %}
+    <p>None: every observation carries BP's own name for its code.</p>
+  {% else %}
+    <div class="oa-counts">
+      <span class="oa-chip"><strong>{{ misfiled|length }}</strong> rows, {{ misfiled_patients }} patients</span>
+      <span class="oa-chip">imported: {{ misfiled_imported }}</span>
+      <span class="oa-chip">entered in BP: {{ misfiled|length - misfiled_imported }}</span>
+    </div>
+    <table class="oa-table">
+      <thead><tr>
+        <th>Patient</th><th>InternalId</th><th>Filed under</th><th>Name on the row</th><th>Value</th>
+        <th>Observed</th><th>Created</th><th>Record</th>
+      </tr></thead>
+      <tbody>
+      {% for r in misfiled %}
+        {% set first = loop.first or misfiled[loop.index0 - 1].patient_id != r.patient_id %}
+        <tr{% if first and not loop.first %} class="oa-newpt"{% endif %}>
+          <td>{% if first %}<a class="oa-link" href="{{ url_for('clinical.patient', patient_id=r.patient_id) }}" target="_blank" rel="noopener">{{ r.patient }}</a>{% endif %}</td>
+          <td>{% if first %}{{ r.patient_id }}{% endif %}</td>
+          <td>{{ r.datacode }} <span class="oa-note">{{ r.code_means }}</span></td>
+          <td><strong>{{ r.dataname }}</strong></td>
+          <td><span class="oa-value">{{ r.value_raw }}</span></td>
+          <td>{{ r.obs_date.strftime('%d/%m/%Y') if r.obs_date else '' }}</td>
+          <td>{{ r.created.strftime('%d/%m/%Y') if r.created else '' }}
+              <div class="oa-note">{% if r.imported %}import{% else %}{{ r.entered_by or 'entered in BP' }}{% endif %}</div></td>
+          <td>{{ r.record_id }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+  {% endif %}
+</div>
+<script>
+(function () {
+  var box = document.getElementById('oa-hide-placeholder');
+  if (!box) return;
+  box.addEventListener('change', function () {
+    document.querySelectorAll('tr.oa-placeholder').forEach(function (tr) {
+      tr.style.display = box.checked ? 'none' : '';
+    });
+  });
+})();
+</script>
+{% endblock %}

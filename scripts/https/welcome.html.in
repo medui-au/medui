@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MedUI: set up this computer</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1d2330; --muted:#5b6576; --accent:#1f6feb; --ok:#1a7f37; --line:#d8dde5; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14171c; --card:#1d2128; --text:#e6e9ee; --muted:#9aa4b2; --accent:#58a6ff; --ok:#3fb950; --line:#2f3540; }
+  }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width:640px; margin:2.5rem auto; padding:0 16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:1.4rem 1.5rem; margin-bottom:1rem; }
+  h1 { font-size:1.35rem; margin:0 0 .4rem; }
+  h2 { font-size:1rem; margin:0 0 .5rem; }
+  p, li { color:var(--muted); }
+  .btn { display:inline-block; background:var(--accent); color:#fff; text-decoration:none; padding:.6rem 1.1rem; border-radius:7px; font-weight:600; }
+  code, .thumb { font-family:ui-monospace, Consolas, monospace; font-size:.9em; }
+  .thumb { display:block; word-break:break-all; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:.5rem .7rem; color:var(--text); margin:.4rem 0 .2rem; }
+  #checking { color:var(--muted); }
+  #trusted { display:none; color:var(--ok); font-weight:600; }
+  #setup { display:none; }
+  ol { padding-left:1.2rem; }
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1>MedUI</h1>
+    <p id="checking">Checking whether this computer is set up…</p>
+    <p id="trusted">This computer is set up. Opening MedUI…</p>
+    <div id="setup">
+      <p>MedUI runs on this practice's own network and uses a certificate from the practice, so
+         each computer needs to trust it once. After that, MedUI opens at
+         <a href="@@URL@@"><code>@@URL@@</code></a> with a padlock, and the microphone works.</p>
+    </div>
+  </div>
+
+  <div class="card" id="windows" style="display:none">
+    <h2>Windows</h2>
+    <p><a class="btn" href="/setup-medui.cmd" download>Download the setup for this PC</a></p>
+    <ol>
+      <li>Open the downloaded <code>setup-medui.cmd</code>. If Windows says it protected your PC, choose
+          <em>More info</em>, then <em>Run anyway</em>.</li>
+      <li>Approve the administrator prompt (to set up MedUI for everyone who uses this PC). Without
+          approval it sets up only your own Windows account.</li>
+      <li>Check the thumbprint it shows against the one below, then answer <em>y</em>.</li>
+    </ol>
+  </div>
+
+  <div class="card" id="check" style="display:none">
+    <h2>Check before you trust it</h2>
+    <p>The certificate's thumbprint. It should match what your IT or practice manager has (it was
+       shown when MedUI was set up). If it doesn't, stop and ask them.</p>
+    <span class="thumb">@@THUMB@@</span>
+    <p>It may only vouch for: <code>@@NAMES@@</code>. It can't be used for any other website.</p>
+  </div>
+
+  <div class="card" id="other" style="display:none">
+    <h2>Other computers and browsers</h2>
+    <ul>
+      <li><strong>Firefox:</strong> after the Windows setup, set <code>security.enterprise_roots.enabled</code>
+          to <code>true</code> in <code>about:config</code>, or import the certificate in Firefox's settings.</li>
+      <li><strong>Mac:</strong> download <a href="/medui-root.cer">the certificate</a>, open it in Keychain Access,
+          add it to the System keychain and set it to <em>Always Trust</em>.</li>
+      <li><strong>iPad or iPhone:</strong> download <a href="/medui-root.cer">the certificate</a>, install the profile in
+          Settings, then turn on full trust in <em>General › About › Certificate Trust Settings</em>.</li>
+      <li><strong>Practices with a Windows domain:</strong> IT can trust it for every PC at once with Group Policy.</li>
+    </ul>
+  </div>
+</main>
+<script>
+// Reaching MedUI over HTTPS only succeeds once this computer trusts the certificate; an
+// untrusted certificate makes the request fail. Then go straight on to MedUI.
+(function () {
+  var target = '@@URL@@';
+  var show = function (id) { document.getElementById(id).style.display = 'block'; };
+  var hide = function (id) { document.getElementById(id).style.display = 'none'; };
+  var setup = function () { hide('checking'); ['setup', 'windows', 'check', 'other'].forEach(show); };
+  var timer = setTimeout(setup, 6000);
+  fetch(target + '/health', { mode: 'no-cors', cache: 'no-store' })
+    .then(function () { clearTimeout(timer); hide('checking'); show('trusted'); location.replace(target + '/'); })
+    .catch(function () { clearTimeout(timer); setup(); });
+})();
+</script>
+</body>
+</html>

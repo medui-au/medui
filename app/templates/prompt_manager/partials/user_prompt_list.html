@@ -1,0 +1,36 @@
+{% for up in user_prompts %}
+<div class="pm-list-item"
+     data-id="usr-{{ up.id }}"
+     onclick="loadUserEditor({{ up.id }})"
+     style="padding:0.4rem 0.75rem; border-bottom:1px solid var(--border-color); cursor:pointer; user-select:none;">
+    <div style="display:flex; align-items:center; gap:0.4rem;">
+        <span style="font-size:var(--text-sm); font-weight:500; flex:1;
+                     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            {{ up.name }}
+        </span>
+        {% if up.classifier %}
+        <span style="font-size:0.6rem; background:var(--accent); color:#fff;
+                     padding:0.05rem 0.3rem; border-radius:0.2rem; white-space:nowrap;">
+            {{ up.classifier }}</span>
+        {% endif %}
+        {% if up.show_in_assistant %}
+        <span style="font-size:0.6rem; background:var(--info); color:#fff;
+                     padding:0.05rem 0.3rem; border-radius:0.2rem;">ASSIST</span>
+        {% endif %}
+        {% if up.system_prompt_name %}
+        <span style="font-size:0.6rem; color:var(--text-muted); white-space:nowrap; overflow:hidden;
+                     text-overflow:ellipsis; max-width:70px;" title="{{ up.system_prompt_name }}">
+            ⬡ {{ up.system_prompt_name }}
+        </span>
+        {% endif %}
+    </div>
+    {% if up.description %}
+    <div style="font-size:0.65rem; color:var(--text-muted); white-space:nowrap;
+                overflow:hidden; text-overflow:ellipsis; margin-top:0.1rem;">
+        {{ up.description }}
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<p style="padding:0.75rem; color:var(--text-muted); font-size:var(--text-sm);">No user prompts yet.</p>
+{% endfor %}

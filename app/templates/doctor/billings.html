@@ -1,0 +1,152 @@
+{% extends 'doctor/base.html' %}
+
+{% block doctor_content %}
+
+<div class="doctor-content-header">
+    <h2>Billings</h2>
+    <p>{{ display_name }} · {{ start_date.strftime('%d/%m/%Y') }} – {{ end_date.strftime('%d/%m/%Y') }}</p>
+</div>
+
+<!-- Summary cards -->
+<div class="doctor-cards">
+    <div class="doctor-card">
+        <div class="doctor-card-label">Total Billings</div>
+        <div class="doctor-card-value">${{ '{:,.2f}'.format(summary.total_fees or 0) }}</div>
+    </div>
+    <div class="doctor-card">
+        <div class="doctor-card-label">Items Claimed</div>
+        <div class="doctor-card-value">{{ summary.total_items or 0 }}</div>
+    </div>
+    <div class="doctor-card">
+        <div class="doctor-card-label">Visits</div>
+        <div class="doctor-card-value">{{ summary.total_visits or 0 }}</div>
+    </div>
+</div>
+
+<!-- MBS item breakdown -->
+<div style="border:1px solid var(--border-color); border-radius:0.5rem; overflow:hidden; flex-shrink:0;">
+    <div style="display:flex; justify-content:space-between; align-items:center;
+                padding:0.45rem 0.75rem; background:var(--bg-secondary);
+                border-bottom:1px solid var(--border-color);">
+        <span style="font-size:0.75rem; font-weight:700;">MBS Item Breakdown</span>
+        <span style="font-size:0.68rem; color:var(--text-muted);">{{ items|length }} item{{ 's' if items|length != 1 }}</span>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="doctor-table">
+            <thead>
+                <tr>
+                    <th>Item No</th>
+                    <th>Description</th>
+                    <th class="text-center">Count</th>
+                    <th class="text-right">Total Fee</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td style="font-weight:600; font-family:monospace;">{{ item.mbs_item }}</td>
+                    <td style="color:var(--text-muted); font-size:0.72rem;">{{ item.description or '—' }}</td>
+                    <td class="text-center">{{ item.item_count }}</td>
+                    <td class="text-right" style="font-family:monospace;">${{ '{:,.2f}'.format(item.total_fee or 0) }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="text-align:center; color:var(--text-muted); padding:1.5rem;">
+                        No billing activity found for this period.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+
+
+{% block doctor_filters %}
+<form method="GET" action="{{ url_for('doctor.billings') }}" id="billingsForm">
+
+    {% if is_admin %}
+    <span class="filter-label">Doctor</span>
+    <select name="doctor_id" class="filter-select" onchange="this.form.submit()">
+        <option value="">All Doctors</option>
+        {% for d in doctors %}
+        <option value="{{ d.bpsdb_userid }}"
+                {{ 'selected' if selected_doctor_id|string == d.bpsdb_userid|string }}>
+            {{ d.full_name }}
+        </option>
+        {% endfor %}
+    </select>
+    <hr class="filter-sep">
+    {% endif %}
+
+    <span class="filter-label">Period</span>
+    <select name="period" id="periodSelect" class="filter-select">
+        <option value="today"      {{ 'selected' if period == 'today'      }}>Today</option>
+        <option value="2days"      {{ 'selected' if period == '2days'      }}>Last 2 Days</option>
+        <option value="7days"      {{ 'selected' if period == '7days'      }}>Last 7 Days</option>
+        <option value="month"      {{ 'selected' if period == 'month'      }}>This Month</option>
+        <option value="last_month" {{ 'selected' if period == 'last_month' }}>Last Month</option>
+        <option value="year"       {{ 'selected' if period == 'year'       }}>This Year</option>
+        <option value="last_year"  {{ 'selected' if period == 'last_year'  }}>Last Year</option>
+        <option value="custom"     {{ 'selected' if period == 'custom'     }}>Custom Range</option>
+    </select>
+
+    <hr class="filter-sep">
+    <span class="filter-label">From</span>
+    <input type="date" name="date_from" id="dateFrom" class="filter-input"
+           value="{{ start_date.isoformat() }}">
+
+    <span class="filter-label">To</span>
+    <input type="date" name="date_to" id="dateTo" class="filter-input"
+           value="{{ end_date.isoformat() }}">
+
+    <hr class="filter-sep">
+    <button type="submit" class="btn btn-primary"
+            style="width:100%; font-size:var(--text-sm);">Apply</button>
+
+</form>
+{% endblock %}
+
+
+{% block doctor_scripts %}
+<script>
+(function () {
+    const form      = document.getElementById('billingsForm');
+    const periodSel = document.getElementById('periodSelect');
+    const dateFrom  = document.getElementById('dateFrom');
+    const dateTo    = document.getElementById('dateTo');
+
+    function fmt(d) { return d.toISOString().slice(0, 10); }
+
+    periodSel.addEventListener('change', function () {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        let s = new Date(today), e = new Date(today);
+
+        switch (this.value) {
+            case 'today':      break;
+            case '2days':      s.setDate(today.getDate() - 1); break;
+            case '7days':      s.setDate(today.getDate() - 6); break;
+            case 'month':      s.setDate(1); break;
+            case 'last_month':
+                e.setDate(0);
+                s = new Date(e); s.setDate(1); break;
+            case 'year':       s.setMonth(0, 1); break;
+            case 'last_year':
+                s = new Date(today.getFullYear() - 1, 0, 1);
+                e = new Date(today.getFullYear() - 1, 11, 31); break;
+            case 'custom':     return;
+        }
+        dateFrom.value = fmt(s);
+        dateTo.value   = fmt(e);
+        form.submit();
+    });
+
+    [dateFrom, dateTo].forEach(input => {
+        input.addEventListener('change', () => { periodSel.value = 'custom'; });
+    });
+}());
+</script>
+{% endblock %}

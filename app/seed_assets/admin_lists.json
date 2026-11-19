@@ -1,0 +1,116 @@
+{
+ "identifier_labels": {
+  "label": "Identifier labels",
+  "description": "Labels written before another service's identifier for the patient (UR, URN, Accession…). The value after a label becomes [ID Removed]. See docs/redaction-lists.md.",
+  "columns": [
+   "label",
+   "shape",
+   "active",
+   "note"
+  ],
+  "rows": [
+   {
+    "label": "UR",
+    "shape": "",
+    "active": "true",
+    "note": "Hospital UR number (UR / UR No / UR Number)"
+   },
+   {
+    "label": "URN",
+    "shape": "",
+    "active": "true",
+    "note": "Hospital unit record number"
+   },
+   {
+    "label": "MRN",
+    "shape": "",
+    "active": "true",
+    "note": "Medical record number"
+   },
+   {
+    "label": "Medical Record Number",
+    "shape": "",
+    "active": "true",
+    "note": ""
+   },
+   {
+    "label": "Hospital No",
+    "shape": "",
+    "active": "true",
+    "note": ""
+   },
+   {
+    "label": "Hospital Number",
+    "shape": "",
+    "active": "true",
+    "note": ""
+   },
+   {
+    "label": "Patient ID",
+    "shape": "",
+    "active": "true",
+    "note": "Lab and imaging patient IDs, e.g. ss-nnnn"
+   },
+   {
+    "label": "Patient No",
+    "shape": "",
+    "active": "true",
+    "note": ""
+   },
+   {
+    "label": "Accession",
+    "shape": "",
+    "active": "true",
+    "note": "I-MED and other radiology (Accession / Accession No / Accession Number)"
+   },
+   {
+    "label": "Episode",
+    "shape": "",
+    "active": "true",
+    "note": "Episode No / Episode Number"
+   },
+   {
+    "label": "Lab No",
+    "shape": "",
+    "active": "true",
+    "note": "Pathology lab number"
+   },
+   {
+    "label": "Lab Number",
+    "shape": "",
+    "active": "true",
+    "note": ""
+   },
+   {
+    "label": "Specimen",
+    "shape": "",
+    "active": "true",
+    "note": "Specimen No / Specimen Number"
+   },
+   {
+    "label": "Request No",
+    "shape": "",
+    "active": "true",
+    "note": "Pathology / imaging request number"
+   },
+   {
+    "label": "Request Number",
+    "shape": "",
+    "active": "true",
+    "note": ""
+   },
+   {
+    "label": "Client ID",
+    "shape": "",
+    "active": "true",
+    "note": "Community services client ID"
+   },
+   {
+    "label": "Client No",
+    "shape": "",
+    "active": "true",
+    "note": ""
+   }
+  ]
+ }
+}

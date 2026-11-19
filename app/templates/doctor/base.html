@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<style>
+/* ── Doctor Data: three-column workspace ────────────────────────────────── */
+.doctor-wrap {
+    display: flex;
+    gap: 0.75rem;
+    height: calc(100vh - var(--topnav-height, 48px));
+    min-height: 0;
+    padding: 0.75rem;
+    box-sizing: border-box;
+}
+
+/* Left: section nav */
+.doctor-nav {
+    width: 170px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.65rem 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background: var(--bg-primary);
+}
+.doctor-nav-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    padding: 0 0.4rem;
+    margin-bottom: 0.2rem;
+}
+.doctor-nav a {
+    display: block;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.3rem;
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: background 0.1s;
+}
+.doctor-nav a:hover { background: var(--bg-secondary); }
+.doctor-nav a.active {
+    background: rgba(13,110,253,0.08);
+    color: var(--accent-primary);
+    font-weight: 600;
+    border-left: 3px solid var(--accent-primary);
+    padding-left: calc(0.6rem - 3px);
+}
+
+/* Centre: main content */
+.doctor-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    overflow-y: auto;
+}
+
+/* Content header */
+.doctor-content-header {
+    flex-shrink: 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.doctor-content-header h2 {
+    font-size: 1.1rem;
+    margin: 0 0 0.15rem;
+}
+.doctor-content-header p {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* Summary cards */
+.doctor-cards {
+    display: flex;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+.doctor-card {
+    flex: 1;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background: var(--bg-primary);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+}
+.doctor-card-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 0.2rem;
+}
+.doctor-card-value {
+    /* Pushed to the bottom of the card (label stays pinned to the top) so
+       values line up flush along the bottom edge across a row of cards,
+       regardless of how many lines each card's label wraps to. Any trailing
+       sub-text (e.g. billing_analysis's "$X / item" line) rides down with
+       it as a group, since margin-top:auto only affects this element's own
+       offset, not later siblings' spacing. */
+    margin-top: auto;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+    line-height: 1.1;
+}
+
+/* Data table */
+.doctor-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+}
+.doctor-table th {
+    padding: 0.4rem 0.6rem;
+    text-align: left;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    border-bottom: 2px solid var(--border-color);
+}
+.doctor-table td {
+    padding: 0.4rem 0.6rem;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: top;
+}
+.doctor-table tr:last-child td { border-bottom: none; }
+.doctor-table tr:hover td { background: var(--bg-secondary); }
+.doctor-table .text-right  { text-align: right; }
+.doctor-table .text-center { text-align: center; }
+
+/* Right: filter panel */
+.doctor-filters {
+    width: 210px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 0.65rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background: var(--bg-primary);
+    overflow-y: auto;
+}
+.filter-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 0.15rem;
+}
+.filter-sep {
+    border: none;
+    border-top: 1px dashed var(--border-color);
+    margin: 0.15rem 0;
+}
+.filter-select, .filter-input {
+    width: 100%;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    box-sizing: border-box;
+}
+.filter-select:focus, .filter-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+{% block doctor_styles %}{% endblock %}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="doctor-wrap">
+
+    <!-- Left: section navigation -->
+    <nav class="doctor-nav" aria-label="Doctor Data sections">
+        <span class="doctor-nav-label">Doctor Data</span>
+        <a href="{{ url_for('doctor.billings') }}"
+           class="{{ 'active' if request.endpoint == 'doctor.billings' }}">
+            Billings
+        </a>
+        {% if current_user.is_admin %}
+        <a href="{{ url_for('doctor.billing_analysis') }}"
+           class="{{ 'active' if request.endpoint == 'doctor.billing_analysis' }}">
+            Billing Analysis
+        </a>
+        {% endif %}
+        <a href="{{ url_for('doctor.progress_notes') }}"
+           class="{{ 'active' if request.endpoint == 'doctor.progress_notes' }}">
+            Progress Notes
+        </a>
+        <a href="{{ url_for('doctor.transcripts') }}"
+           class="{{ 'active' if request.endpoint == 'doctor.transcripts' }}">
+            Transcripts
+        </a>
+        <a href="{{ url_for('doctor.comms') }}"
+           class="{{ 'active' if request.endpoint in ('doctor.comms', 'doctor.sms') }}">
+            Comms
+        </a>
+        <a href="{{ url_for('doctor.chats') }}"
+           class="{{ 'active' if request.endpoint == 'doctor.chats' }}">
+            Chats
+        </a>
+        <a href="{{ url_for('doctor.links') }}"
+           class="{{ 'active' if request.endpoint == 'doctor.links' }}">
+            Links
+        </a>
+        {% if current_user.has_level(5) %}
+        <a href="{{ url_for('careplan.recipes') }}"
+           class="{{ 'active' if request.endpoint and request.endpoint.startswith('careplan.recipe') }}">
+            Care Plan Recipes
+        </a>
+        {% endif %}
+        <a href="{{ url_for('doctor.quality') }}"
+           class="{{ 'active' if request.endpoint == 'doctor.quality' }}">
+            Quality
+        </a>
+        {% if current_user.can_use_ai %}
+        <a href="{{ url_for('chatbot.generic_index') }}"
+           class="{{ 'active' if request.endpoint == 'chatbot.generic_index' }}">
+            💬 Chatbot
+        </a>
+        {% endif %}
+        <hr style="border:none;border-top:1px dashed var(--border-color);margin:0.2rem 0;">
+        {% if current_user.is_admin %}
+        <a href="{{ url_for('doctor.usage') }}"
+           class="{{ 'active' if request.endpoint == 'doctor.usage' }}">
+            Application Usage
+        </a>
+        {% endif %}
+        {% if current_user.can_use_ai %}
+        <a href="{{ url_for('voice.quick_scribe') }}"
+           class="{{ 'active' if request.endpoint == 'voice.quick_scribe' }}">
+            ● Quick Scribe
+        </a>
+        {% endif %}
+    </nav>
+
+    <!-- Centre: main content -->
+    <div class="doctor-content">
+        {% block doctor_content %}{% endblock %}
+    </div>
+
+    <!-- Right: filter panel -->
+    <div class="doctor-filters">
+        {% block doctor_filters %}{% endblock %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% block doctor_scripts %}{% endblock %}
+{% endblock %}

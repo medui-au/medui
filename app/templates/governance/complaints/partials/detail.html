@@ -1,0 +1,318 @@
+<div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">
+    <div>
+        <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+            <span style="font-family:monospace; font-size:1rem; font-weight:700; color:var(--accent-primary);">
+                {{ complaint.reference_no }}
+            </span>
+            <span class="badge-status badge-{{ complaint.status.value }}">
+                {{ complaint.status.value.replace('_',' ') }}
+            </span>
+            {% if overdue %}
+            <span class="badge-status badge-overdue">OVERDUE ACK</span>
+            {% endif %}
+            {% if complaint.open_disclosure_required and not complaint.open_disclosure_completed_at %}
+            <span class="badge-status" style="background:#fff3e0;color:#e65100;">DISCLOSURE PENDING</span>
+            {% endif %}
+        </div>
+        <div style="font-size:var(--text-sm); color:var(--text-muted); margin-top:0.2rem;">
+            Received {{ complaint.received_at | short_date if complaint.received_at else '—' }}
+            by {{ complaint.received_by.display_name if complaint.received_by else '—' }}
+        </div>
+    </div>
+    <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+    {% if complaint.voided_at %}
+    <span class="badge-status" style="background:#fce4ec;color:#880e4f;">VOIDED — {{ complaint.void_reason }}</span>
+    {% elif has_gov_level(9) %}
+        {% if complaint.status.value not in ('closed','withdrawn') %}
+        <form method="post" action="{{ url_for('governance.complaints_close', complaint_id=complaint.id) }}"
+              onsubmit="return confirm('Close this complaint?');" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% if can_close %}
+            <button type="submit" class="btn btn-sm btn-outline">Close</button>
+            {% endif %}
+        </form>
+        {% endif %}
+        <button type="button" class="btn btn-sm btn-outline"
+                style="color:var(--danger);border-color:var(--danger);"
+                onclick="document.getElementById('void-form-{{ complaint.id }}').style.display='block';this.style.display='none';">
+            Void (Error)
+        </button>
+        <form id="void-form-{{ complaint.id }}" method="post"
+              action="{{ url_for('governance.complaints_void', complaint_id=complaint.id) }}"
+              style="display:none; margin-top:0.3rem; width:100%;"
+              onsubmit="return confirm('Void this complaint? It will be hidden from the register.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="display:flex; gap:0.4rem; align-items:flex-end; flex-wrap:wrap;">
+                <div style="flex:1; min-width:200px;">
+                    <div class="gov-field-label">Reason for voiding <span style="color:var(--danger);">*</span></div>
+                    <input name="reason" type="text" class="filter-input" placeholder="e.g. Duplicate entry" required>
+                </div>
+                <button type="submit" class="btn btn-sm" style="background:var(--danger);color:#fff;border:none;">Confirm Void</button>
+                <button type="button" class="btn btn-sm btn-outline"
+                        onclick="this.closest('form').style.display='none';this.closest('div').previousElementSibling.style.display='';">Cancel</button>
+            </div>
+        </form>
+    {% endif %}
+    </div>
+</div>
+
+{# Status timeline #}
+<div class="gov-steps">
+    {% set step_order = ['received','acknowledged','under_review','resolved','closed'] %}
+    {% set current_idx = step_order.index(complaint.status.value) if complaint.status.value in step_order else -1 %}
+    {% for s in step_order %}
+    {% set idx = loop.index0 %}
+    <span class="gov-step {{ 'done' if idx < current_idx else ('current' if idx == current_idx else '') }}">
+        {{ s.replace('_',' ').title() }}
+    </span>
+    {% endfor %}
+    {% if complaint.status.value == 'withdrawn' %}
+    <span class="gov-step current">Withdrawn</span>
+    {% endif %}
+</div>
+
+{# Complainant #}
+<div class="gov-section">
+    <div class="gov-section-title">Complainant</div>
+    {% if complaint.complainant_type.value == 'patient' and patient %}
+    <div class="gov-field">
+        <span class="gov-field-label">Patient</span>
+        <span class="gov-field-value">
+            {{ patient.get('Firstname','') }} {{ patient.get('Surname','') }}
+            (ID: {{ complaint.patient_id }})
+        </span>
+    </div>
+    {% elif complaint.complainant_type.value == 'anonymous' %}
+    <div class="gov-field-value" style="color:var(--text-muted);">Anonymous</div>
+    {% else %}
+    <div class="gov-field">
+        <span class="gov-field-label">Type</span>
+        <span class="gov-field-value">{{ complaint.complainant_type.value.replace('_',' ').title() }}</span>
+    </div>
+    {% if complaint.external_name %}
+    <div class="gov-field">
+        <span class="gov-field-label">Name</span>
+        <span class="gov-field-value">{{ complaint.external_name }}</span>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+
+{# Complaint detail #}
+<div class="gov-section">
+    <div class="gov-section-title">Complaint</div>
+    <div class="gov-field">
+        <span class="gov-field-label">Subject</span>
+        <span class="gov-field-value" style="font-weight:600;">{{ complaint.subject }}</span>
+    </div>
+    <div class="gov-field">
+        <span class="gov-field-label">Category</span>
+        <span class="gov-field-value">{{ complaint.category.value.replace('_',' ').title() }}</span>
+    </div>
+    <div class="gov-field">
+        <span class="gov-field-label">Description</span>
+        <div class="gov-field-value" style="white-space:pre-wrap; max-height:120px; overflow-y:auto; background:var(--bg-secondary); padding:0.5rem; border-radius:0.3rem; font-size:0.8rem;">{{ complaint.description }}</div>
+    </div>
+    {% if complaint.assigned_to %}
+    <div class="gov-field">
+        <span class="gov-field-label">Assigned to</span>
+        <span class="gov-field-value">{{ complaint.assigned_to.display_name }}</span>
+    </div>
+    {% endif %}
+</div>
+
+{# Acknowledgement #}
+<div class="gov-section">
+    <div class="gov-section-title">Acknowledgement</div>
+    {% if complaint.acknowledged_at %}
+    <div class="gov-field">
+        <span class="gov-field-label">Acknowledged</span>
+        <span class="gov-field-value">
+            {{ complaint.acknowledged_at | short_date }}
+            via {{ complaint.acknowledgement_method or '—' }}
+            {% if days_to_ack is not none %}
+            ({{ days_to_ack }} business day{{ 's' if days_to_ack != 1 }})
+            {% if days_to_ack > 2 %}
+            <span class="badge-status badge-overdue">Late</span>
+            {% endif %}
+            {% endif %}
+        </span>
+    </div>
+    {% elif has_gov_level(6) and complaint.status.value == 'received' %}
+    <form method="post" action="{{ url_for('governance.complaints_acknowledge', complaint_id=complaint.id) }}"
+          style="display:flex; gap:0.5rem; align-items:flex-end; flex-wrap:wrap;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+            <div class="gov-field-label">Method</div>
+            <select name="method" class="filter-select" style="width:auto;">
+                <option value="phone">Phone</option>
+                <option value="letter">Letter</option>
+                <option value="email">Email</option>
+                <option value="in_person">In Person</option>
+            </select>
+        </div>
+        <div>
+            <div class="gov-field-label">Date acknowledged <span style="color:var(--text-muted);font-weight:400;">(leave blank = today)</span></div>
+            <input name="ack_date" type="date" class="filter-input" style="width:auto;">
+        </div>
+        <button type="submit" class="btn btn-sm btn-primary">Mark Acknowledged</button>
+    </form>
+    {% else %}
+    <span style="color:var(--text-muted); font-size:var(--text-sm);">Not yet acknowledged</span>
+    {% endif %}
+</div>
+
+{# Open disclosure #}
+{% if complaint.open_disclosure_required %}
+<div class="gov-section">
+    <div class="gov-section-title">Open Disclosure</div>
+    {% if complaint.open_disclosure_completed_at %}
+    <div class="gov-field">
+        <span class="gov-field-label">Completed</span>
+        <span class="gov-field-value">
+            {{ complaint.open_disclosure_completed_at | short_date }}
+            by {{ complaint.open_disclosure_by.display_name if complaint.open_disclosure_by else '—' }}
+        </span>
+    </div>
+    {% if complaint.open_disclosure_notes %}
+    <div class="gov-field">
+        <span class="gov-field-label">Notes</span>
+        <div class="gov-field-value" style="white-space:pre-wrap; font-size:0.8rem;">{{ complaint.open_disclosure_notes }}</div>
+    </div>
+    {% endif %}
+    {% elif has_gov_level(6) %}
+    <form method="post" action="{{ url_for('governance.complaints_disclosure', complaint_id=complaint.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <textarea name="notes" rows="2" class="filter-input" placeholder="Disclosure notes…" style="margin-bottom:0.35rem;"></textarea>
+        <button type="submit" class="btn btn-sm btn-primary">Mark Disclosure Complete</button>
+    </form>
+    {% else %}
+    <span style="color:var(--danger); font-size:var(--text-sm);">Disclosure required — not yet completed</span>
+    {% endif %}
+</div>
+{% endif %}
+
+{# Resolution #}
+{% if complaint.status.value in ('under_review','resolved','closed') %}
+<div class="gov-section">
+    <div class="gov-section-title">Resolution</div>
+    {% if complaint.resolution_summary %}
+    <div class="gov-field">
+        <span class="gov-field-label">Summary</span>
+        <div class="gov-field-value" style="white-space:pre-wrap; font-size:0.8rem;">{{ complaint.resolution_summary }}</div>
+    </div>
+    {% endif %}
+    {% if complaint.corrective_action %}
+    <div class="gov-field">
+        <span class="gov-field-label">Corrective Action</span>
+        <div class="gov-field-value" style="white-space:pre-wrap; font-size:0.8rem;">{{ complaint.corrective_action }}</div>
+    </div>
+    {% endif %}
+    {% if not complaint.resolution_summary and has_gov_level(6) %}
+    <a href="{{ url_for('governance.complaints_edit', complaint_id=complaint.id) }}"
+       hx-get="{{ url_for('governance.complaints_edit', complaint_id=complaint.id) }}"
+       hx-target="#complaints-detail-panel" hx-swap="innerHTML"
+       class="btn btn-sm btn-outline">Add Resolution</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{# Escalation #}
+{% if complaint.escalated_to and complaint.escalated_to.value != 'none' %}
+<div class="gov-section">
+    <div class="gov-section-title">Escalation</div>
+    <div class="gov-field">
+        <span class="gov-field-label">Escalated to</span>
+        <span class="gov-field-value">{{ complaint.escalated_to.value.replace('_',' ').title() }}</span>
+    </div>
+    {% if complaint.escalation_ref %}
+    <div class="gov-field">
+        <span class="gov-field-label">Reference</span>
+        <span class="gov-field-value">{{ complaint.escalation_ref }}</span>
+    </div>
+    {% endif %}
+    {% if complaint.escalation_notes %}
+    <div class="gov-field">
+        <span class="gov-field-label">Notes</span>
+        <div class="gov-field-value" style="font-size:0.8rem;">{{ complaint.escalation_notes }}</div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{# Cross-links #}
+{% if cross_links %}
+<div class="gov-section">
+    <div class="gov-section-title">Linked Adverse Events</div>
+    {% for link in cross_links %}
+    {% if link.adverse_event_id %}
+    <div style="font-size:var(--text-sm); margin-bottom:0.3rem;">
+        <a href="{{ url_for('governance.ae_detail', event_id=link.adverse_event_id) }}"
+           hx-get="{{ url_for('governance.ae_detail', event_id=link.adverse_event_id) }}"
+           hx-target="#complaints-detail-panel" hx-swap="innerHTML">
+            {% if link.adverse_event %}{{ link.adverse_event.reference_no }}{% else %}#{{ link.adverse_event_id }}{% endif %}
+        </a>
+        <span style="color:var(--text-muted);">— {{ link.link_type.value.replace('_',' ') }}</span>
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+
+{# Workflow actions (level ≥ 6) #}
+{% if has_gov_level(6) and complaint.status.value not in ('closed','withdrawn') %}
+<div class="gov-section">
+    <div class="gov-section-title">Actions</div>
+    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+        <a href="{{ url_for('governance.complaints_edit', complaint_id=complaint.id) }}"
+           hx-get="{{ url_for('governance.complaints_edit', complaint_id=complaint.id) }}"
+           hx-target="#complaints-detail-panel" hx-swap="innerHTML"
+           class="btn btn-sm btn-outline">Edit</a>
+
+        {# Transition buttons based on current status #}
+        {% if complaint.status.value == 'acknowledged' %}
+        <form method="post" action="{{ url_for('governance.complaints_transition', complaint_id=complaint.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="under_review">
+            <button type="submit" class="btn btn-sm btn-primary">Begin Review</button>
+        </form>
+        {% elif complaint.status.value == 'under_review' %}
+        <form method="post" action="{{ url_for('governance.complaints_transition', complaint_id=complaint.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="resolved">
+            <button type="submit" class="btn btn-sm btn-primary">Mark Resolved</button>
+        </form>
+        {% elif complaint.status.value == 'resolved' and has_gov_level(9) %}
+        <form method="post" action="{{ url_for('governance.complaints_close', complaint_id=complaint.id) }}" style="display:inline;"
+              onsubmit="return confirm('Close this complaint?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% if can_close %}
+            <button type="submit" class="btn btn-sm btn-primary">Close Complaint</button>
+            {% endif %}
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{# Add note #}
+{% if has_gov_level(4) %}
+<div class="gov-section">
+    <div class="gov-section-title">Add Note / Keywords</div>
+    <form method="post" action="{{ url_for('governance.complaints_note', complaint_id=complaint.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <textarea name="notes" rows="2" class="filter-input" placeholder="Note…" style="margin-bottom:0.35rem;" required></textarea>
+        <button type="submit" class="btn btn-sm btn-outline">Add Note</button>
+    </form>
+</div>
+{% endif %}
+
+{# Audit log #}
+<div class="gov-section">
+    <div class="gov-section-title">Activity Log</div>
+    <div hx-get="{{ url_for('governance.complaints_actions', complaint_id=complaint.id) }}"
+         hx-trigger="load"
+         hx-swap="innerHTML">
+        Loading…
+    </div>
+</div>

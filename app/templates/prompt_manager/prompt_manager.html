@@ -1,0 +1,351 @@
+{% extends 'base.html' %}
+{% block title %}Prompt Manager — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+.pm-layout      { display:flex; height:calc(100vh - var(--nav-height)); overflow:hidden; }
+.pm-sidebar     { width:322px; flex-shrink:0; border-right:1px solid var(--border-color);
+                  display:flex; flex-direction:column; background:var(--bg-secondary); overflow:hidden; }
+.pm-sidebar-hdr { padding:0.45rem 0.75rem; border-bottom:1px solid var(--border-color);
+                  flex-shrink:0; display:flex; align-items:center; gap:0.5rem; }
+.pm-sidebar-hdr h2 { font-size:0.88rem; margin:0; flex:1; }
+.pm-tabs        { display:flex; flex-shrink:0; border-bottom:2px solid var(--border-color); }
+.pm-tab         { flex:1; padding:0.4rem 0.5rem; font-size:0.72rem; font-weight:600;
+                  text-align:center; cursor:pointer; user-select:none; color:var(--text-muted);
+                  border-bottom:2px solid transparent; margin-bottom:-2px;
+                  display:flex; align-items:center; justify-content:center; gap:0.35rem; }
+.pm-tab:hover   { color:var(--text-primary); background:var(--bg-primary); }
+.pm-tab.active  { color:var(--accent); border-bottom-color:var(--accent); background:var(--bg-primary); }
+.pm-tab-panel   { display:none; flex:1; flex-direction:column; overflow:hidden; }
+.pm-tab-panel.active { display:flex; }
+.pm-tab-actions { padding:0.35rem 0.65rem; border-bottom:1px solid var(--border-color);
+                  display:flex; align-items:center; flex-shrink:0; }
+.pm-list        { overflow-y:auto; flex:1; }
+.pm-list-item   { padding:0.4rem 0.75rem; border-bottom:1px solid var(--border-color);
+                  cursor:pointer; user-select:none; }
+.pm-list-item:hover { background:var(--bg-primary); }
+.pm-list-item.active { background:var(--accent-light, rgba(59,130,246,0.08));
+                        border-left:3px solid var(--accent); }
+.pm-main        { flex:1; overflow-y:auto; display:flex; flex-direction:column; }
+.pm-placeholder { display:flex; align-items:center; justify-content:center;
+                  flex:1; color:var(--text-muted); font-size:var(--text-sm); }
+.pm-editor      { padding:1.25rem 1.5rem; flex:1; }
+.pm-field-lbl   { font-size:0.7rem; font-weight:600; color:var(--text-muted);
+                  display:block; margin-bottom:0.2rem; }
+.pm-input       { width:100%; box-sizing:border-box; padding:0.3rem 0.5rem; font-size:var(--text-sm);
+                  border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                  background:var(--bg-primary); color:var(--text-primary); }
+.pm-textarea    { width:100%; box-sizing:border-box; padding:0.4rem 0.5rem; font-size:0.78rem;
+                  border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                  background:var(--bg-primary); color:var(--text-primary);
+                  font-family:var(--font-mono, monospace); resize:vertical; }
+.pm-drawer      { position:fixed; top:0; right:0; width:380px; height:100vh;
+                  background:var(--bg-primary); border-left:1px solid var(--border-color);
+                  box-shadow:-4px 0 16px rgba(0,0,0,0.15); z-index:200;
+                  display:flex; flex-direction:column; transform:translateX(100%);
+                  transition:transform 0.2s ease; }
+.pm-drawer.open { transform:translateX(0); }
+.pm-drawer-hdr  { padding:0.75rem 1rem; border-bottom:1px solid var(--border-color);
+                  display:flex; align-items:center; gap:0.5rem; }
+.pm-drawer-body { flex:1; overflow-y:auto; padding:0.75rem 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pm-layout">
+
+    {# ── Sidebar ── #}
+    <aside class="pm-sidebar">
+        <div class="pm-sidebar-hdr">
+            <h2>Prompt Manager{{ help('prompts.overview') }}</h2>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline"
+               style="padding:0.2rem 0.45rem; font-size:0.68rem; white-space:nowrap;">← Admin</a>
+        </div>
+
+        {# Tab bar #}
+        <div class="pm-tabs">
+            <div class="pm-tab active" id="tab-sys" onclick="switchTab('sys')">
+                System
+            </div>
+            <div class="pm-tab" id="tab-usr" onclick="switchTab('usr')">
+                User
+            </div>
+        </div>
+
+        {# System Prompts panel #}
+        <div class="pm-tab-panel active" id="panel-sys">
+            <div class="pm-tab-actions">
+                <span style="font-size:0.68rem; color:var(--text-muted); flex:1;">System Prompts</span>
+                <button type="button" onclick="openNewSystemForm()"
+                        class="btn btn-primary"
+                        style="padding:0.1rem 0.4rem; font-size:0.65rem;">+ New</button>
+            </div>
+            <div class="pm-list" id="sys-list">
+                {% include 'prompt_manager/partials/system_prompt_list.html' %}
+            </div>
+        </div>
+
+        {# User Prompts panel #}
+        <div class="pm-tab-panel" id="panel-usr">
+            <div class="pm-tab-actions">
+                <span style="font-size:0.68rem; color:var(--text-muted); flex:1;">User Prompts</span>
+                <button type="button" onclick="openNewUserForm()"
+                        class="btn btn-primary"
+                        style="padding:0.1rem 0.4rem; font-size:0.65rem;">+ New</button>
+            </div>
+            <div class="pm-list" id="usr-list">
+                {% include 'prompt_manager/partials/user_prompt_list.html' %}
+            </div>
+        </div>
+    </aside>
+
+    {# ── Main editor area ── #}
+    <div class="pm-main" id="pm-editor-area">
+        <div class="pm-placeholder">Select a prompt to edit, or click + New.</div>
+    </div>
+
+</div>
+
+{# ── Version history drawer ── #}
+<div class="pm-drawer" id="pm-history-drawer">
+    <div class="pm-drawer-hdr">
+        <span style="font-size:0.82rem; font-weight:600; flex:1;">Version History</span>
+        <button type="button" onclick="closeHistoryDrawer()"
+                style="background:none; border:none; cursor:pointer; color:var(--text-muted);
+                       font-size:1rem; padding:0.2rem 0.4rem;">✕</button>
+    </div>
+    <div class="pm-drawer-body" id="pm-history-body">
+        <p style="color:var(--text-muted); font-size:var(--text-sm);">Loading…</p>
+    </div>
+</div>
+<div id="pm-drawer-overlay" onclick="closeHistoryDrawer()"
+     style="display:none; position:fixed; inset:0; z-index:199; background:rgba(0,0,0,0.2);"></div>
+
+{# ── New System Prompt inline form (shown in editor area) ── #}
+<template id="tpl-new-sys">
+<div class="pm-editor" id="pm-editor-content">
+    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem;">
+        <h3 style="font-size:0.88rem; font-weight:700; margin:0; flex:1;">New System Prompt{{ help('prompts.responsibility') }}</h3>
+        <span id="pm-save-status" style="font-size:0.75rem;"></span>
+    </div>
+    <form id="new-sys-form"
+          hx-post="{{ url_for('prompt_manager.system_new') }}"
+          hx-target="#sys-list"
+          hx-swap="innerHTML"
+          hx-include="[name='csrf_token']"
+          hx-on:htmx:after-request="onNewSysResponse(event)">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div style="margin-bottom:0.75rem;">
+            <label class="pm-field-lbl">Name <span style="color:var(--danger)">*</span></label>
+            <input type="text" name="name" required class="pm-input" placeholder="e.g. clinical_default">
+        </div>
+        <div style="margin-bottom:0.75rem;">
+            <label class="pm-field-lbl">Description</label>
+            <input type="text" name="description" class="pm-input" placeholder="Optional note">
+        </div>
+        <div style="margin-bottom:0.75rem;">
+            <label class="pm-field-lbl">Prompt text <span style="color:var(--danger)">*</span></label>
+            <textarea name="prompt_text" required class="pm-textarea" rows="14"
+                      placeholder="You are a clinical assistant…"></textarea>
+        </div>
+        <div style="margin-bottom:1rem; display:flex; align-items:center; gap:0.4rem;">
+            <input type="checkbox" name="is_default" value="1" id="ns-default">
+            <label for="ns-default" style="font-size:0.75rem;">Set as global default</label>
+        </div>
+        <div style="display:flex; gap:0.5rem;">
+            <button type="submit" class="btn btn-primary" style="font-size:0.78rem;">Create</button>
+            <button type="button" class="btn btn-outline" style="font-size:0.78rem;"
+                    onclick="clearEditor()">Cancel</button>
+        </div>
+    </form>
+</div>
+</template>
+
+{# ── New User Prompt inline form ── #}
+<template id="tpl-new-usr">
+<div class="pm-editor" id="pm-editor-content">
+    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem;">
+        <h3 style="font-size:0.88rem; font-weight:700; margin:0; flex:1;">New User Prompt{{ help('prompts.responsibility') }}</h3>
+        <span id="pm-save-status" style="font-size:0.75rem;"></span>
+    </div>
+    <form id="new-usr-form"
+          hx-post="{{ url_for('prompt_manager.user_new') }}"
+          hx-target="#usr-list"
+          hx-swap="innerHTML"
+          hx-include="[name='csrf_token']"
+          hx-on:htmx:after-request="onNewUsrResponse(event)">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
+            <div>
+                <label class="pm-field-lbl">Name <span style="color:var(--danger)">*</span></label>
+                <input type="text" name="name" required class="pm-input" placeholder="e.g. discharge_summary">
+            </div>
+            <div>
+                <label class="pm-field-lbl">System prompt binding</label>
+                <select name="system_prompt_name" class="pm-input">
+                    <option value="">(use global default)</option>
+                    {% for sp in system_prompts %}
+                    <option value="{{ sp.name }}">{{ sp.name }}{% if sp.is_default %} ★{% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
+            <div>
+                <label class="pm-field-lbl">Description</label>
+                <input type="text" name="description" class="pm-input" placeholder="What this prompt does">
+            </div>
+            <div>
+                <label class="pm-field-lbl">Classifier</label>
+                <input type="text" name="classifier" class="pm-input" placeholder="e.g. ai_panel, scribe"
+                       list="classifier-options-new">
+                <datalist id="classifier-options-new">
+                    {% for cls in all_classifiers %}<option value="{{ cls }}">{% endfor %}
+                </datalist>
+            </div>
+        </div>
+        <div style="margin-bottom:0.75rem;">
+            <label class="pm-field-lbl">Prompt text <span style="color:var(--danger)">*</span></label>
+            <textarea name="prompt_text" required class="pm-textarea" rows="12"
+                      placeholder="Summarise the following clinical note…"></textarea>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
+            <div>
+                <label class="pm-field-lbl">Temperature</label>
+                <input type="number" name="temperature" step="0.1" min="0" max="2" class="pm-input"
+                       placeholder="0.7">
+            </div>
+            <div>
+                <label class="pm-field-lbl">Max tokens</label>
+                <input type="number" name="max_tokens" step="1" min="1" class="pm-input"
+                       placeholder="(provider default)">
+            </div>
+            <div style="display:flex; align-items:flex-end; padding-bottom:0.15rem;">
+                <label style="font-size:0.75rem; display:flex; align-items:center; gap:0.35rem; cursor:pointer;">
+                    <input type="checkbox" name="show_in_assistant" value="1">
+                    Show in AI assist
+                </label>
+            </div>
+        </div>
+        <div style="display:flex; gap:0.5rem;">
+            <button type="submit" class="btn btn-primary" style="font-size:0.78rem;">Create</button>
+            <button type="button" class="btn btn-outline" style="font-size:0.78rem;"
+                    onclick="clearEditor()">Cancel</button>
+        </div>
+    </form>
+</div>
+</template>
+
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+<script>
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+function switchTab(which) {
+    ['sys', 'usr'].forEach(t => {
+        document.getElementById('tab-' + t).classList.toggle('active', t === which);
+        document.getElementById('panel-' + t).classList.toggle('active', t === which);
+    });
+}
+
+function pmInsertToken(token) {
+    const ta = document.getElementById('pm-prompt-textarea');
+    if (!ta) return;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    ta.value = ta.value.slice(0, start) + token + ta.value.slice(end);
+    ta.selectionStart = ta.selectionEnd = start + token.length;
+    ta.focus();
+    const ref = document.getElementById('pm-tok-ref');
+    if (ref) ref.removeAttribute('open');
+}
+
+function clearEditor() {
+    var area = document.getElementById('pm-editor-area');
+    area.innerHTML = '<div class="pm-placeholder">Select a prompt to edit, or click + New.</div>';
+    document.querySelectorAll('.pm-list-item').forEach(el => el.classList.remove('active'));
+}
+
+function openNewSystemForm() {
+    switchTab('sys');
+    clearEditor();
+    var tpl = document.getElementById('tpl-new-sys');
+    var area = document.getElementById('pm-editor-area');
+    area.innerHTML = '';
+    area.appendChild(tpl.content.cloneNode(true));
+    if (window.htmx) htmx.process(area);
+}
+
+function openNewUserForm() {
+    switchTab('usr');
+    clearEditor();
+    var tpl = document.getElementById('tpl-new-usr');
+    var area = document.getElementById('pm-editor-area');
+    area.innerHTML = '';
+    area.appendChild(tpl.content.cloneNode(true));
+    if (window.htmx) htmx.process(area);
+}
+
+function loadSystemEditor(id) {
+    document.querySelectorAll('.pm-list-item').forEach(el => el.classList.remove('active'));
+    var item = document.querySelector('.pm-list-item[data-id="sys-' + id + '"]');
+    if (item) item.classList.add('active');
+    var area = document.getElementById('pm-editor-area');
+    area.innerHTML = '<div class="pm-placeholder">Loading…</div>';
+    fetch('{{ url_for("prompt_manager.system_edit", prompt_id=0) }}'.replace('/0/', '/' + id + '/'), {
+        headers: {'X-CSRFToken': csrfToken}
+    })
+    .then(r => r.text())
+    .then(html => {
+        area.innerHTML = html;
+        if (window.htmx) htmx.process(area);
+    });
+}
+
+function loadUserEditor(id) {
+    document.querySelectorAll('.pm-list-item').forEach(el => el.classList.remove('active'));
+    var item = document.querySelector('.pm-list-item[data-id="usr-' + id + '"]');
+    if (item) item.classList.add('active');
+    var area = document.getElementById('pm-editor-area');
+    area.innerHTML = '<div class="pm-placeholder">Loading…</div>';
+    fetch('{{ url_for("prompt_manager.user_edit", prompt_id=0) }}'.replace('/0/', '/' + id + '/'), {
+        headers: {'X-CSRFToken': csrfToken}
+    })
+    .then(r => r.text())
+    .then(html => {
+        area.innerHTML = html;
+        if (window.htmx) htmx.process(area);
+    });
+}
+
+function openHistoryDrawer(sysId) {
+    document.getElementById('pm-history-body').innerHTML =
+        '<p style="color:var(--text-muted);font-size:var(--text-sm);">Loading…</p>';
+    document.getElementById('pm-history-drawer').classList.add('open');
+    document.getElementById('pm-drawer-overlay').style.display = 'block';
+    fetch('{{ url_for("prompt_manager.system_history", prompt_id=0) }}'.replace('/0/', '/' + sysId + '/'), {
+        headers: {'X-CSRFToken': csrfToken}
+    })
+    .then(r => r.text())
+    .then(html => {
+        document.getElementById('pm-history-body').innerHTML = html;
+    });
+}
+
+function closeHistoryDrawer() {
+    document.getElementById('pm-history-drawer').classList.remove('open');
+    document.getElementById('pm-drawer-overlay').style.display = 'none';
+}
+
+function onNewSysResponse(event) {
+    if (event.detail.successful) {
+        clearEditor();
+    }
+}
+
+function onNewUsrResponse(event) {
+    if (event.detail.successful) {
+        clearEditor();
+    }
+}
+</script>
+{% endblock %}

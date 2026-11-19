@@ -1,0 +1,155 @@
+{% set _labels = dict(choices) %}
+<div class="setup-section">
+    <h2 class="setup-h2">AI scope{{ help('setup.ai-scope') }}</h2>
+    <p style="font-size:var(--text-sm); color:var(--text-muted); margin:0 0 1rem; max-width:680px;">
+        A short scope instruction is placed in front of the system prompt of every AI call made by a
+        workflow, keeping the AI to organising, summarising and drafting from what was said or
+        recorded. Which wording applies: the workflow's prompt step if it sets one, otherwise the
+        system prompt's (Prompt Manager), otherwise the practice default below. A reply the AI
+        flags as out of scope is shown under a warning and recorded on the run.
+    </p>
+
+    {% if flash_msg %}
+    <div style="margin-bottom:0.75rem; padding:0.5rem 0.75rem; border-radius:var(--radius-sm); font-size:var(--text-sm);
+                {% if flash_ok %}background:rgba(25,135,84,0.08); border:1px solid var(--success); color:var(--success);
+                {% else %}background:rgba(220,53,69,0.08); border:1px solid var(--danger); color:var(--danger);{% endif %}">
+        {{ flash_msg }}
+    </div>
+    {% endif %}
+
+    {# ── Practice switch and default ── #}
+    <div class="provider-card" style="margin-bottom:1rem; max-width:680px;">
+        <div class="provider-card-header"><span style="font-weight:600;">Practice settings</span></div>
+        <form style="padding:0.75rem;" hx-post="{{ url_for('setup.ai_scope_save') }}"
+              hx-target="#setup-content" hx-swap="innerHTML">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.9rem;">
+                <label class="toggle-switch">
+                    <input type="checkbox" name="enabled" value="true" {% if enabled %}checked{% endif %}>
+                    <span class="toggle-switch-slider"></span>
+                </label>
+                <div>
+                    <span style="font-weight:600; font-size:var(--text-sm);">Scope instructions on</span>
+                    <p style="margin:0; font-size:0.7rem; color:var(--text-muted);">
+                        Off: no scope instruction is sent anywhere, whatever the prompts and workflows say.
+                    </p>
+                </div>
+            </div>
+            <label style="display:block; font-weight:600; font-size:var(--text-sm); margin-bottom:0.3rem;">
+                Default wording for system prompts without one
+            </label>
+            <select class="form-control" name="default_key" style="max-width:360px;">
+                {% for k, lbl in choices %}
+                <option value="{{ k }}" {% if k == default_key %}selected{% endif %}>{{ lbl }}</option>
+                {% endfor %}
+            </select>
+            <label style="display:block; font-weight:600; font-size:var(--text-sm); margin:0.9rem 0 0.3rem;">
+                Request check
+            </label>
+            <select class="form-control" name="check_mode" style="max-width:360px;">
+                <option value="record" {% if check_mode == 'record' %}selected{% endif %}>Record — note device-like requests on the run</option>
+                <option value="off" {% if check_mode == 'off' %}selected{% endif %}>Off</option>
+                <option disabled>Warn / Block — with the pre-send review (later)</option>
+            </select>
+            <p style="margin:0.2rem 0 0; font-size:0.7rem; color:var(--text-muted);">
+                Looks at what the user typed (not the workflow's own wording or the record) for asks such as
+                "what dose should I…", "second opinion" or "what is the prognosis".
+            </p>
+            <label style="display:block; font-weight:600; font-size:var(--text-sm); margin:0.9rem 0 0.3rem;">
+                General chatbot without the PII Erasure workflow
+            </label>
+            <select class="form-control" name="generic_without_erasure" style="max-width:360px;">
+                <option value="warn" {% if generic_without_erasure != 'off' %}selected{% endif %}>Allowed with a privacy warning</option>
+                <option value="off" {% if generic_without_erasure == 'off' %}selected{% endif %}>Not allowed</option>
+            </select>
+            <p style="margin:0.2rem 0 0; font-size:0.7rem; color:var(--text-muted);">
+                Applies only while no PII Erasure workflow (a local model that removes identifiers first) is active.
+                Allowed: the user confirms a warning once per chat, then messages get rule-based redaction only.
+            </p>
+            <div style="display:flex; align-items:center; gap:0.75rem; margin-top:0.9rem;">
+                <label class="toggle-switch">
+                    <input type="checkbox" name="notices_enabled" value="true" {% if notices_enabled %}checked{% endif %}>
+                    <span class="toggle-switch-slider"></span>
+                </label>
+                <div>
+                    <span style="font-weight:600; font-size:var(--text-sm);">Notices above AI output on</span>
+                    <p style="margin:0; font-size:0.7rem; color:var(--text-muted);">
+                        The one-line "AI draft — check it…" notices. The out-of-scope warning is shown regardless.
+                    </p>
+                </div>
+            </div>
+            <div style="margin-top:0.9rem;"><button type="submit" class="btn btn-primary">Save</button></div>
+        </form>
+    </div>
+
+    {# ── Which system prompts use what ── #}
+    <div class="provider-card" style="margin-bottom:1rem; max-width:680px;">
+        <div class="provider-card-header"><span style="font-weight:600;">System prompts</span></div>
+        <div style="padding:0.5rem 0.75rem;">
+            <table class="table" style="font-size:var(--text-sm); margin:0;">
+                <thead><tr><th style="text-align:left;">System prompt</th><th style="text-align:left;">Scope</th></tr></thead>
+                <tbody>
+                {% for p in prompts %}
+                <tr>
+                    <td>{{ p.name }} <span style="color:var(--text-muted); font-size:0.7rem;">v{{ p.version }}</span></td>
+                    <td>
+                        {% if p.scope_key %}{{ _labels.get(p.scope_key, p.scope_key + ' (missing)') }}
+                        {% else %}<span style="color:var(--text-muted);">Practice default — {{ _labels.get(default_key, default_key) }}</span>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <p style="font-size:0.7rem; color:var(--text-muted); margin:0.4rem 0 0;">
+                Change a prompt's scope in Prompt Manager; a workflow can override it on its prompt step
+                in Pipeline Designer.
+            </p>
+        </div>
+    </div>
+
+    {# ── Scope instruction wordings: added before system prompts ── #}
+    <h3 style="font-size:0.9rem; margin:1.25rem 0 0.5rem;">System prompt guardrail injections</h3>
+    <p style="font-size:0.75rem; color:var(--text-muted); margin:0 0 0.75rem; max-width:680px;">
+        Saving a change creates a new version; each run records the version it was given. Every
+        wording is followed by the same flag instruction:
+        <em>{{ flag_instruction }}</em>
+    </p>
+    {% for w in wordings %}
+    <div class="provider-card" style="margin-bottom:0.75rem; max-width:680px;">
+        <div class="provider-card-header">
+            <span style="font-weight:600;">{{ w.key }}</span>
+            <span style="font-size:0.7rem; color:var(--text-muted); margin-left:0.5rem;">v{{ w.version }}</span>
+        </div>
+        <form style="padding:0.75rem;" hx-post="{{ url_for('setup.ai_scope_wording_save', key=w.key) }}"
+              hx-target="#setup-content" hx-swap="innerHTML">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input class="form-control" name="label" value="{{ w.label }}" style="margin-bottom:0.4rem;">
+            <textarea class="form-control" name="text" rows="4">{{ w.text }}</textarea>
+            <div style="margin-top:0.5rem;"><button type="submit" class="btn btn-outline">Save wording</button></div>
+        </form>
+    </div>
+    {% endfor %}
+
+    {# ── Notices ── #}
+    <h3 style="font-size:0.9rem; margin:1.25rem 0 0.5rem;">Notices above AI output</h3>
+    <p style="font-size:0.75rem; color:var(--text-muted); margin:0 0 0.75rem; max-width:680px;">
+        Shown on screen only, never copied or filed. Each page has a usual notice; a workflow can
+        choose another on its inference step in Pipeline Designer.
+    </p>
+    {% for w in notices %}
+    <div class="provider-card" style="margin-bottom:0.75rem; max-width:680px;">
+        <div class="provider-card-header">
+            <span style="font-weight:600;">{{ w.key }}</span>
+            <span style="font-size:0.7rem; color:var(--text-muted); margin-left:0.5rem;">v{{ w.version }}</span>
+        </div>
+        <form style="padding:0.75rem;" hx-post="{{ url_for('setup.ai_scope_wording_save', key=w.key) }}"
+              hx-target="#setup-content" hx-swap="innerHTML">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="kind" value="notice">
+            <input class="form-control" name="label" value="{{ w.label }}" style="margin-bottom:0.4rem;">
+            <textarea class="form-control" name="text" rows="2">{{ w.text }}</textarea>
+            <div style="margin-top:0.5rem;"><button type="submit" class="btn btn-outline">Save notice</button></div>
+        </form>
+    </div>
+    {% endfor %}
+</div>

@@ -1,0 +1,59 @@
+{% if rows %}
+<div style="overflow-x:auto; max-height:400px; overflow-y:auto;">
+    <table style="width:100%; border-collapse:collapse; font-size:var(--text-sm); line-height:1.2;">
+        <thead style="position:sticky; top:0; background:var(--bg-secondary); z-index:1;">
+            <tr style="border-bottom:2px solid var(--border-color);">
+                <th style="padding:0.25rem 0.5rem; text-align:left;">Date</th>
+                <th style="padding:0.25rem 0.5rem; text-align:left;">Test</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr style="border-bottom:1px solid var(--border-color);">
+                <td style="padding:0.25rem 0.5rem; vertical-align:top; white-space:nowrap;">
+                    {{ row.get('CollectionDate', '') }}
+                </td>
+                <td style="padding:0.25rem 0.5rem; vertical-align:top;">
+                    {% set _rid   = row.get('ReportID') %}
+                    {% set _inbox = row.get('IsInBox', 0) %}
+                    {% if _rid and patient_id %}
+                    <a href="{{ url_for('viewer.pathology_viewer', patient_id=patient_id, report_id=_rid, inbox=_inbox) }}"
+                       style="color:var(--accent-primary); text-decoration:none;"
+                       title="Open in viewer">
+                        {{ row.get('TestName', '(unknown)') }}
+                    </a>
+                    {% else %}
+                    {{ row.get('TestName', '(unknown)') }}
+                    {% endif %}
+                    {% if _inbox == 1 %}
+                    <span style="font-size:0.65rem; padding:0.05rem 0.3rem; border-radius:0.2rem;
+                                 background:var(--info); color:white; font-weight:bold;
+                                 vertical-align:middle; margin-left:0.25rem;">Inbox</span>
+                    {% endif %}
+                    {% if _rid and patient_id %}
+                    <span style="white-space:nowrap; margin-left:0.35rem;">
+                        {% if current_user.can_use_ai %}
+                        <a href="{{ url_for('clinical.ai_panel', patient_id=patient_id) }}?auto=txt&doc_type=path&doc_id={{ _rid }}&inbox={{ _inbox }}&label={{ row.get('TestName','') | urlencode }}"
+                           target="_blank" rel="noopener"
+                           style="font-size:0.65rem; color:var(--text-muted); text-decoration:none;"
+                           title="Load document text into AI panel">[TXT]</a>
+                        <a href="{{ url_for('clinical.ai_panel', patient_id=patient_id) }}?auto=sum&doc_type=path&doc_id={{ _rid }}&inbox={{ _inbox }}&label={{ row.get('TestName','') | urlencode }}"
+                           target="_blank" rel="noopener"
+                           style="font-size:0.65rem; color:var(--accent); text-decoration:none; margin-left:0.2rem;"
+                           title="Summarise with AI">[SUM]</a>
+                        <a href="{{ url_for('clinical.ai_panel', patient_id=patient_id) }}?auto=exp&doc_type=path&doc_id={{ _rid }}&inbox={{ _inbox }}&label={{ row.get('TestName','') | urlencode }}"
+                           target="_blank" rel="noopener"
+                           style="font-size:0.65rem; color:var(--accent); text-decoration:none; margin-left:0.2rem;"
+                           title="Summarise with AI">[EXP]</a>
+                        {% endif %}
+                    </span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-muted" style="margin:0; padding:0.5rem; font-size:var(--text-sm);">No pathology reports found.</p>
+{% endif %}

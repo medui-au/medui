@@ -1,0 +1,425 @@
+{% extends 'doctor/base.html' %}
+
+{% block doctor_styles %}
+/* ── Quality: categorical chart palette (dataviz skill's validated 8-slot
+   set) — CSS custom properties so the Chart.js renderer can theme without
+   baking hex values into Python. Same convention billing_analysis.html
+   uses for --accent-primary. ── */
+:root {
+    --q-series-1: #2a78d6; /* blue */
+    --q-series-2: #eb6834; /* orange */
+    --q-series-3: #1baf7a; /* aqua */
+    --q-series-4: #eda100; /* yellow */
+    --q-series-5: #e87ba4; /* magenta */
+    --q-series-6: #008300; /* green */
+    --q-series-7: #4a3aa7; /* violet */
+    --q-series-8: #e34948; /* red */
+}
+[data-theme="dark"] {
+    --q-series-1: #3987e5;
+    --q-series-2: #d95926;
+    --q-series-3: #199e70;
+    --q-series-4: #c98500;
+    --q-series-5: #d55181;
+    --q-series-6: #008300;
+    --q-series-7: #9085e9;
+    --q-series-8: #e66767;
+}
+
+.quality-tabbar a.tab-btn {
+    display: inline-block;
+    text-decoration: none;
+}
+.quality-stat-tiles {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+.quality-chart-wrap {
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    background: var(--bg-primary);
+}
+.quality-chart-canvas {
+    position: relative;
+    height: 340px;
+}
+.quality-table-wrap {
+    /* min-width:0 lets this box shrink narrower than the table wants to be
+       (the table's own width:max-content is what actually needs to scroll)
+       — otherwise, as a column-flex child of .doctor-content, it would just
+       force the whole page wider instead of scrolling internally.
+
+       flex-shrink:0 is the fix for the OTHER axis: per the CSS overflow
+       spec, declaring overflow-x:auto forces the browser to also compute
+       overflow-y as 'auto' (a mismatched visible/non-visible pair always
+       gets resolved to auto on both axes — explicitly declaring
+       overflow-y:visible does NOT prevent this, it still gets promoted).
+       A flex item with non-visible overflow loses its "don't shrink below
+       content height" protection, so .doctor-content's flex layout was
+       squeezing this box down to fit its remaining space and scrolling
+       *inside* it instead of growing tall and letting .doctor-content's own
+       vertical scrollbar handle the whole column. flex-shrink:0 stops that
+       squeeze outright, regardless of what overflow-y computes to. */
+    min-width: 0;
+    flex-shrink: 0;
+    overflow-x: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+}
+.quality-table-wrap table {
+    width: max-content;
+    min-width: 100%;
+}
+.quality-total-row td {
+    font-weight: 700;
+    background: var(--bg-secondary);
+    border-top: 2px solid var(--border-color);
+}
+{% endblock %}
+
+{% block doctor_content %}
+
+<div class="doctor-content-header" style="display:flex; align-items:baseline; gap:0.4rem; flex-wrap:wrap;">
+    <h2 style="margin:0;">Quality — {{ indicator.label }}</h2>
+    <p style="margin:0;">
+        - {{ display_name }}
+        {% if indicator.uses_period_filter %}
+        · {{ start_date.strftime('%d/%m/%Y') }} – {{ end_date.strftime('%d/%m/%Y') }}
+        {% else %}
+        · live snapshot
+        {% endif %}
+    </p>
+</div>
+
+<div class="tab-bar quality-tabbar">
+    {% for item in indicators_nav %}
+    <a class="tab-btn {{ 'active' if item.active else '' }}"
+       href="{{ url_for('doctor.quality', indicator=item.key, period=period, date_from=start_date.isoformat(), date_to=end_date.isoformat(), doctor_id=selected_doctor_id) }}">
+        {{ item.label }}
+    </a>
+    {% endfor %}
+</div>
+
+<p style="font-size:var(--text-sm); color:var(--text-muted); margin:0 0 0.5rem;">{{ indicator.description }}</p>
+
+{% if is_admin and current_user.bpsdb_user_id %}
+<div class="tab-bar quality-tabbar" style="margin-bottom:0.5rem;">
+    <a class="tab-btn {{ 'active' if show_table else '' }}"
+       href="{{ url_for('doctor.quality', indicator=indicator.key, period=period, date_from=start_date.isoformat(), date_to=end_date.isoformat(), chart=chart_key, doctor_id='') }}">
+        All Doctors
+    </a>
+    <a class="tab-btn {{ 'active' if (not show_table) and selected_doctor_id|string == current_user.bpsdb_user_id|string else '' }}"
+       href="{{ url_for('doctor.quality', indicator=indicator.key, period=period, date_from=start_date.isoformat(), date_to=end_date.isoformat(), chart=chart_key, doctor_id=current_user.bpsdb_user_id) }}">
+        My Results
+    </a>
+</div>
+{% endif %}
+
+{% if error %}
+<div class="flash flash-danger">{{ error }}</div>
+{% endif %}
+
+{% if not show_table %}
+    {% if rows %}
+    {% set row = rows[0] %}
+    <div class="doctor-cards quality-stat-tiles">
+        {% for col in indicator.columns %}
+        {% if col.always_show_tile or row[col.key] %}
+        <div class="doctor-card">
+            <div class="doctor-card-label">{{ col.label }}</div>
+            <div class="doctor-card-value">{{ row[col.key] }}</div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>No entries recorded{{ ' for ' + display_name if not is_admin }}.</p>
+    {% endif %}
+{% endif %}
+
+{% if chart %}
+<div class="quality-chart-wrap">
+    {% if indicator.charts|length > 1 %}
+    <div class="tab-bar quality-tabbar" style="margin-bottom:0.5rem;">
+        {% for c in indicator.charts %}
+        <a class="tab-btn {{ 'active' if c.key == chart_key else '' }}"
+           href="{{ url_for('doctor.quality', indicator=indicator.key, period=period, date_from=start_date.isoformat(), date_to=end_date.isoformat(), doctor_id=selected_doctor_id, chart=c.key) }}">
+            {{ c.label }}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+    <div class="quality-chart-canvas">
+        <canvas id="qualityChart"></canvas>
+    </div>
+    {% if chart.anonymize %}
+    <p style="font-size:var(--text-xs); color:var(--text-muted); margin:0.5rem 0 0;">
+        {% if chart.mine_index is not none %}
+        Your result is highlighted; other doctors are shown without names.
+        {% else %}
+        Practice-wide comparison, shown without names.
+        {% endif %}
+    </p>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if show_table %}
+<div class="quality-table-wrap">
+    <table class="doctor-table">
+        <thead>
+            <tr>
+                <th>Doctor</th>
+                {% for col in indicator.columns %}<th>{{ col.label }}</th>{% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                <td>{{ row.doctor_name }}</td>
+                {% for col in indicator.columns %}<td>{{ row[col.key] }}</td>{% endfor %}
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="{{ indicator.columns|length + 1 }}" style="text-align:center; color:var(--text-muted); padding:1.5rem;">
+                    No data available.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        {% if totals_row %}
+        <tfoot>
+            <tr class="quality-total-row">
+                <td>{{ totals_row.doctor_name }}</td>
+                {% for col in indicator.columns %}
+                <td>{{ totals_row[col.key] if totals_row[col.key] is not none else '—' }}</td>
+                {% endfor %}
+            </tr>
+        </tfoot>
+        {% endif %}
+    </table>
+</div>
+{% endif %}
+
+{% endblock %}
+
+
+{% block doctor_filters %}
+<form method="GET" action="{{ url_for('doctor.quality') }}" id="qualityForm">
+    <input type="hidden" name="indicator" value="{{ indicator.key }}">
+    {% if chart_key %}<input type="hidden" name="chart" value="{{ chart_key }}">{% endif %}
+
+    {% if is_admin %}
+    <span class="filter-label">Doctor</span>
+    <select name="doctor_id" class="filter-select" onchange="this.form.submit()">
+        <option value="">All Doctors</option>
+        {% for d in doctors %}
+        <option value="{{ d.bpsdb_userid }}"
+                {{ 'selected' if selected_doctor_id|string == d.bpsdb_userid|string }}>
+            {{ d.full_name }}
+        </option>
+        {% endfor %}
+    </select>
+    <hr class="filter-sep">
+    {% endif %}
+
+    {% if indicator.uses_period_filter %}
+    <span class="filter-label">Period</span>
+    <select name="period" id="periodSelect" class="filter-select">
+        <option value="today"      {{ 'selected' if period == 'today'      }}>Today</option>
+        <option value="2days"      {{ 'selected' if period == '2days'      }}>Last 2 Days</option>
+        <option value="7days"      {{ 'selected' if period == '7days'      }}>Last 7 Days</option>
+        <option value="month"      {{ 'selected' if period == 'month'      }}>This Month</option>
+        <option value="last_month" {{ 'selected' if period == 'last_month' }}>Last Month</option>
+        <option value="year"       {{ 'selected' if period == 'year'       }}>This Year</option>
+        <option value="last_year"  {{ 'selected' if period == 'last_year'  }}>Last Year</option>
+        <option value="custom"     {{ 'selected' if period == 'custom'     }}>Custom Range</option>
+    </select>
+
+    <hr class="filter-sep">
+    <span class="filter-label">From</span>
+    <input type="date" name="date_from" id="dateFrom" class="filter-input"
+           value="{{ start_date.isoformat() }}">
+
+    <span class="filter-label">To</span>
+    <input type="date" name="date_to" id="dateTo" class="filter-input"
+           value="{{ end_date.isoformat() }}">
+    {% else %}
+    <p class="stale" style="font-size:var(--text-xs); color:var(--text-muted);">
+        This indicator is a live snapshot of current state — no period selection needed.
+    </p>
+    {% endif %}
+
+    <hr class="filter-sep">
+    <button type="submit" class="btn btn-primary"
+            style="width:100%; font-size:var(--text-sm);">Apply</button>
+</form>
+
+{% if not show_table %}
+<hr class="filter-sep">
+<a class="btn btn-primary" target="_blank" rel="noopener"
+   style="display:block; width:100%; text-align:center; font-size:var(--text-sm); box-sizing:border-box; white-space:normal; line-height:1.3;"
+   href="{{ url_for('doctor.quality_report', doctor_id=selected_doctor_id, period=period, date_from=start_date.isoformat(), date_to=end_date.isoformat()) }}">
+    CPD - Reviewing Performance Report
+</a>
+{% endif %}
+{% endblock %}
+
+
+{% block doctor_scripts %}
+<script src="{{ url_for('static', filename='vendor/chartjs-4.6.1/chart.umd.min.js') }}"></script>
+<script>
+(function () {
+    const form      = document.getElementById('qualityForm');
+    const periodSel = document.getElementById('periodSelect');
+    const dateFrom  = document.getElementById('dateFrom');
+    const dateTo    = document.getElementById('dateTo');
+    if (!periodSel) return;
+
+    function fmt(d) { return d.toISOString().slice(0, 10); }
+
+    periodSel.addEventListener('change', function () {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        let s = new Date(today), e = new Date(today);
+
+        switch (this.value) {
+            case 'today':      break;
+            case '2days':      s.setDate(today.getDate() - 1); break;
+            case '7days':      s.setDate(today.getDate() - 6); break;
+            case 'month':      s.setDate(1); break;
+            case 'last_month':
+                e.setDate(0);
+                s = new Date(e); s.setDate(1); break;
+            case 'year':       s.setMonth(0, 1); break;
+            case 'last_year':
+                s = new Date(today.getFullYear() - 1, 0, 1);
+                e = new Date(today.getFullYear() - 1, 11, 31); break;
+            case 'custom':     return;
+        }
+        dateFrom.value = fmt(s);
+        dateTo.value   = fmt(e);
+        form.submit();
+    });
+
+    [dateFrom, dateTo].forEach(input => {
+        if (!input) return;
+        input.addEventListener('change', () => { periodSel.value = 'custom'; });
+    });
+}());
+
+(function () {
+    const chartData = {{ chart | tojson }};
+    const canvas = document.getElementById('qualityChart');
+    if (!chartData || !canvas || typeof Chart === 'undefined') return;
+
+    const style = getComputedStyle(document.documentElement);
+    const seriesColor = i => style.getPropertyValue('--q-series-' + ((i % 8) + 1)).trim();
+    const gridColor   = style.getPropertyValue('--border-color').trim();
+    const textColor   = style.getPropertyValue('--text-muted').trim();
+    const accent      = style.getPropertyValue('--accent-primary').trim();
+    const mutedFill   = style.getPropertyValue('--text-muted').trim();
+
+    const mineIdx = chartData.mine_index;
+    const haveMine = chartData.anonymize && mineIdx !== null && mineIdx !== undefined;
+    const singleSeries = chartData.datasets.length === 1;
+
+    // Horizontal charts (indexAxis 'y' — currently only the practice-wide
+    // category-totals chart) put one bar per label down the y-axis, which
+    // can be 20+ categories. A fixed-height canvas was forcing Chart.js's
+    // default label autoSkip to kick in and drop every second one; instead,
+    // grow the canvas to fit every label at a fixed pixel-per-bar rate, and
+    // disable autoSkip below as a belt-and-braces guard.
+    if (chartData.indexAxis === 'y') {
+        const perBar = 26, basePadding = 40, minHeight = 340;
+        canvas.parentElement.style.height = Math.max(minHeight, chartData.labels.length * perBar + basePadding) + 'px';
+    }
+
+    const datasets = chartData.datasets.map(ds => ({
+        label: ds.label,
+        data: ds.data,
+        // Single-series bars can also afford to grey out colleagues outright
+        // (no segment breakdown to lose); stacked bars keep every segment's
+        // real colour so the composition stays legible, and rely on the
+        // halo + bold axis label below to mark "mine" instead.
+        backgroundColor: (haveMine && singleSeries)
+            ? ds.data.map((_, i) => (i === mineIdx ? accent : mutedFill))
+            : seriesColor(ds.series),
+        borderRadius: 3,
+        borderSkipped: false,
+    }));
+
+    // Draws a rounded box a few pixels OUTSIDE the viewer's own bar (all
+    // stacked segments included), rather than a border flush against the
+    // bar edge — a flush border reads as just another segment boundary and
+    // is easy to miss; a halo with breathing room doesn't.
+    const mineHalo = {
+        id: 'qualityMineHalo',
+        afterDatasetsDraw(chart) {
+            if (!haveMine) return;
+            const elements = chart.data.datasets
+                .map((_, di) => chart.getDatasetMeta(di).data[mineIdx])
+                .filter(Boolean);
+            if (!elements.length) return;
+
+            const margin = 6;
+            const left   = elements[0].x - elements[0].width / 2 - margin;
+            const right  = elements[0].x + elements[0].width / 2 + margin;
+            const top    = Math.min(...elements.map(el => el.y)) - margin;
+            const bottom = Math.max(...elements.map(el => el.base ?? el.y)) + margin;
+
+            const ctx = chart.ctx;
+            ctx.save();
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(left, top, right - left, bottom - top, 6);
+            } else {
+                ctx.rect(left, top, right - left, bottom - top);
+            }
+            ctx.stroke();
+            ctx.restore();
+        },
+    };
+
+    new Chart(canvas.getContext('2d'), {
+        type: chartData.type,
+        data: { labels: chartData.labels, datasets: datasets },
+        plugins: [mineHalo],
+        options: {
+            indexAxis: chartData.indexAxis,
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: chartData.datasets.length > 1, labels: { color: textColor } },
+                tooltip: chartData.anonymize ? {
+                    callbacks: {
+                        title: items => (items[0] && items[0].dataIndex === mineIdx) ? 'You' : 'Colleague',
+                    },
+                } : {},
+            },
+            scales: {
+                x: {
+                    stacked: chartData.stacked,
+                    grid: { color: gridColor },
+                    ticks: {
+                        autoSkip: false,
+                        color: ctx => (chartData.anonymize && ctx.index === mineIdx) ? accent : textColor,
+                        font: ctx => (chartData.anonymize && ctx.index === mineIdx) ? { weight: 'bold' } : {},
+                    },
+                },
+                y: {
+                    stacked: chartData.stacked,
+                    grid: { color: gridColor },
+                    ticks: { autoSkip: false, color: textColor },
+                    beginAtZero: true,
+                },
+            },
+        },
+    });
+}());
+</script>
+{% endblock %}

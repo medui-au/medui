@@ -1,0 +1,11 @@
+{# Inbox left-panel patient fragment. Requires: patient (dict or None). #}
+{% if patient %}
+<div class="card" style="padding:0.6rem;">
+  {% include 'clinical/_demographics.html' %}
+</div>
+{% include 'clinical/_patient_tools.html' %}
+{% else %}
+<div style="padding:1.25rem; text-align:center; color:var(--text-muted); font-size:0.78rem; font-style:italic;">
+  Patient record not found.
+</div>
+{% endif %}

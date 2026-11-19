@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}{{ docs[name] }} — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+.guide-layout { display:flex; gap:1.5rem; max-width:1100px; margin:0 auto; padding:1.5rem; }
+.guide-nav    { width:190px; flex-shrink:0; font-size:0.8rem; }
+.guide-nav a  { display:block; padding:0.3rem 0.6rem; color:var(--text-secondary); text-decoration:none;
+                border-left:3px solid transparent; }
+.guide-nav a.active { border-left-color:var(--accent); color:var(--accent); font-weight:600; }
+.guide-body   { flex:1; min-width:0; font-size:0.85rem; line-height:1.55; }
+.guide-body h1 { font-size:1.2rem; } .guide-body h2 { font-size:1rem; margin-top:1.6rem; }
+.guide-body h3 { font-size:0.9rem; margin-top:1.2rem; }
+.guide-body pre { background:var(--bg-secondary); border:1px solid var(--border-color);
+                  border-radius:var(--radius-sm); padding:0.6rem 0.8rem; overflow-x:auto; font-size:0.76rem; }
+.guide-body code { font-size:0.8em; }
+.guide-body table { border-collapse:collapse; margin:0.6rem 0; }
+.guide-body th, .guide-body td { border:1px solid var(--border-color); padding:0.3rem 0.5rem; vertical-align:top; }
+@media (max-width: 700px) { .guide-layout { flex-direction:column; } .guide-nav { width:auto; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="guide-layout">
+    <nav class="guide-nav">
+        <a href="{{ url_for('setup.index') }}">← Application Setup</a>
+        <hr class="setup-divider">
+        {% for key, title in docs.items() %}
+        <a href="{{ url_for('setup.guide', name=key) }}" class="{% if key == name %}active{% endif %}">{{ title }}</a>
+        {% endfor %}
+    </nav>
+    <article class="guide-body">{{ body }}</article>
+</div>
+{% endblock %}
