@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}AI-use policy — {{ app_name }}{% endblock %}
+{% block head %}
+<style>
+.policy-wrap { max-width:860px; margin:0 auto; padding:1.25rem 1.5rem; }
+.policy-bar { display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; margin-bottom:1rem; }
+.policy-bar .policy-meta { flex:1; font-size:0.78rem; color:var(--text-muted); }
+.policy-body { font-size:0.88rem; line-height:1.55; }
+.policy-body h1 { font-size:1.25rem; } .policy-body h2 { font-size:1.02rem; margin-top:1.5rem; }
+.policy-body table { border-collapse:collapse; margin:0.6rem 0; }
+.policy-body th, .policy-body td { border:1px solid var(--border-color); padding:0.3rem 0.5rem; vertical-align:top; }
+.policy-body code { font-size:0.8em; }
+@media print {
+  .topnav, .policy-bar, footer, .help-panel, .alert { display:none !important; }
+  .main-content { margin-top:0 !important; }
+  .policy-wrap { max-width:none; padding:0; }
+  .policy-body { font-size:10.5pt; }
+  .policy-body a { color:inherit; text-decoration:none; }
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="policy-wrap">
+  <div class="policy-bar">
+    <span class="policy-meta">
+      {% if policy.is_template %}
+        The template: not yet adapted for the practice.{% if current_user.is_admin %} Edit it to make it the practice's own.{% endif %}
+      {% else %}
+        Last changed{% if policy.updated_by %} by {{ policy.updated_by }}{% endif %}{% if policy.updated_at %} on {{ policy.updated_at[:10] }}{% endif %}.
+      {% endif %}
+      {{ help('governance.ai-policy') }}
+    </span>
+    <button type="button" class="btn btn-sm btn-outline" onclick="window.print()">Print or save as PDF</button>
+    <a class="btn btn-sm btn-outline" href="{{ url_for('governance.ai_policy_download') }}">Download (.md)</a>
+    {% if current_user.is_admin %}
+    <a class="btn btn-sm btn-primary" href="{{ url_for('governance.ai_policy_edit') }}">Edit</a>
+    {% endif %}
+  </div>
+  <article class="policy-body">{{ body }}</article>
+</div>
+{% endblock %}

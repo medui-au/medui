@@ -9,6 +9,11 @@
 !wsgi.py
 !docs/
 !docs/**
+!README.md
+!CHANGELOG.md
+!SECURITY.md
+!AGENTS.md
+!scripts/windows/README.md
 !deploy/
 !deploy/**
 **/__pycache__

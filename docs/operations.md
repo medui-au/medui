@@ -49,6 +49,8 @@ instance disconnected from outbound messaging/PIT until its configuration is che
 anything changes; `--dry-run` shows the plan. It builds the new image before stopping
 the app, keeps the previous image as `<project>-app:previous`, and if a step fails it
 prints the exact commands to restore the backup and the previous code and image.
+Once it knows the new version, it carries on with that version's own `upgrade.sh` ("Continuing
+with … upgrade script"), so steps a release adds run in the upgrade that brings it.
 **While the repository is private, the fetch needs a GitHub token** with read access, the same
 as the clone (see the [installation recipes](install/README.md)). Git asks for it: the username, then
 the token at the password prompt. Or give it for that one run without it reaching your shell

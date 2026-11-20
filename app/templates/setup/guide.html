@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ docs[name] }} — {{ app_name }}{% endblock %}
+{% block title %}{{ docs.get(name) or title }} — {{ app_name }}{% endblock %}
 
 {% block head %}
 <style>
@@ -11,12 +11,23 @@
 .guide-body   { flex:1; min-width:0; font-size:0.85rem; line-height:1.55; }
 .guide-body h1 { font-size:1.2rem; } .guide-body h2 { font-size:1rem; margin-top:1.6rem; }
 .guide-body h3 { font-size:0.9rem; margin-top:1.2rem; }
+/* A link to a section (#…) stops below the fixed menu bar, not behind it. */
+.guide-body [id] { scroll-margin-top:calc(var(--nav-height) + 1rem); }
 .guide-body pre { background:var(--bg-secondary); border:1px solid var(--border-color);
                   border-radius:var(--radius-sm); padding:0.6rem 0.8rem; overflow-x:auto; font-size:0.76rem; }
 .guide-body code { font-size:0.8em; }
 .guide-body table { border-collapse:collapse; margin:0.6rem 0; }
 .guide-body th, .guide-body td { border:1px solid var(--border-color); padding:0.3rem 0.5rem; vertical-align:top; }
 @media (max-width: 700px) { .guide-layout { flex-direction:column; } .guide-nav { width:auto; } }
+.guide-print { float:right; font-size:0.75rem; }
+/* Printing, or saving as a PDF: the page alone, for the practice's document management. */
+@media print {
+  .topnav, .navbar, .guide-nav, .guide-print, footer, .help-panel { display:none !important; }
+  .main-content { margin-top:0 !important; }
+  .guide-layout { display:block; padding:0; max-width:none; }
+  .guide-body { font-size:10.5pt; }
+  .guide-body a { color:inherit; text-decoration:none; }
+}
 </style>
 {% endblock %}
 
@@ -29,6 +40,9 @@
         <a href="{{ url_for('setup.guide', name=key) }}" class="{% if key == name %}active{% endif %}">{{ title }}</a>
         {% endfor %}
     </nav>
-    <article class="guide-body">{{ body }}</article>
+    <article class="guide-body">
+        <button type="button" class="btn btn-outline guide-print" onclick="window.print()">Print or save as PDF</button>
+        {{ body }}
+    </article>
 </div>
 {% endblock %}

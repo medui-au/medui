@@ -157,10 +157,12 @@ def test_admin_bootstrap_and_core_pages(installed_app):
     guide = client.get('/setup/guide')
     assert guide.status_code == 200
     text = guide.get_data(as_text=True)
-    assert 'http://liteparse:5707' in text and 'AI_ENABLED=true' in text
+    assert 'OCR_ENABLED' in text and 'AI_ENABLED=true' in text
     assert 'href="/setup/guide/troubleshooting#best-practice-connection"' in text
     assert 'Administrator setup guide' in client.get('/setup/').get_data(as_text=True)
-    assert client.get('/setup/guide/release-status').status_code == 404
+    assert client.get('/setup/guide/release-status').status_code == 200      # any page under docs/
+    assert client.get('/setup/guide/repo/CLAUDE').status_code == 404       # not documentation
+    assert client.get('/setup/guide/no-such-page').status_code == 404
     # My settings, and Setup's AI scope and user defaults tabs (upstream ADR-085, ADR-087).
     for path in ['/me/settings', '/setup/tab/ai-scope', '/setup/tab/user-defaults']:
         assert client.get(path).status_code == 200, path

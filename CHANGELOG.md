@@ -3,11 +3,160 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.52.0 — pre-release (November 2026)
+
+**Upgrade from 0.51.1**; nothing to migrate.
+
+- **Governance → AI-use Policy: the practice's own policy, in MedUI.** Everyone signed in can read
+  it; administrators adapt it with **Edit** (Markdown), starting from the template, and can start
+  again from the template. Its Appendix A lists the AI providers and models enabled at the moment
+  it is opened, printed or downloaded. **Print or save as PDF** and **Download (.md)** keep dated
+  copies for the practice's document management. The page shows who last changed it and when.
+  Synced from upstream.
+- The [AI-use policy template](docs/templates/practice-ai-use-policy.md) in the docs is the same
+  text the Governance page starts from; the in-app guide still shows it with the live appendix.
+
+## 0.51.1 — pre-release (November 2026)
+
+**Upgrade from 0.51.0**; nothing to migrate.
+
+- **The top menu reads Home, Daysheet, Patient Data, User Data, Doctor Data, Governance, Charts,
+  Admin.** The Reception item, which did nothing yet, is gone. Synced from upstream.
+
+## 0.51.0 — pre-release (November 2026)
+
+**Upgrade from 0.50.2**; nothing to migrate.
+
+- **A shorter, plainer [AI-use policy template](docs/templates/practice-ai-use-policy.md).** It
+  states the principles: AI in MedUI is an administrative and research assistant for the
+  clinician using it, and is not positioned to give diagnostic or management advice to
+  clinicians, staff or patients; every output is a draft the clinician checks and is
+  responsible for; no unredacted or identifiable patient information goes to a cloud AI service,
+  and staff don't copy patient information into AI tools outside MedUI; no provider or model is
+  enabled whose terms allow it to train on the practice's requests, or keep them beyond a limited
+  period for abuse and safety monitoring; patients are told, and may decline the scribe; who may
+  enable models and prompts, and who may use AI; what happens when something goes wrong; yearly
+  review. The reference to a governance register is gone.
+- **Its Appendix A lists what is enabled, live.** Opened in MedUI (Administrator setup guide →
+  AI-use policy, now in the guide's menu), the appendix lists the enabled AI providers, whether
+  each runs on the practice's computers or in the cloud, and their enabled models and what they
+  are used for, with the date and time, the practice name and MedUI's version. Outside MedUI the
+  file says where to see the list.
+- **The installation status no longer asks for a "Recommended" model.** Its "AI provider and
+  model" item counted only models ticked Recommended in Setup → Models, a label nothing else
+  uses, so a working AI setup showed amber. It now counts any enabled model of an enabled
+  provider, and its message says what to do ("there is no a model" is gone).
+- **PIT export and email/SMS count towards the installation.** Switched off, they show amber
+  (to do) with the command that turns them on, instead of grey (optional): sending results to
+  Best Practice and messaging patients are part of how a practice uses MedUI. A demo
+  installation still leaves them out.
+- **The installation status shows what is left to do.** Items to do, needed or switched off are
+  always listed; the ready ones fold away behind "Show the … ready items".
+- **Print or save as PDF** on every guide page prints the page alone, so a snapshot of the
+  policy can go into the practice's document management.
+
+## 0.50.2 — pre-release (November 2026)
+
+**Upgrade from 0.50.1**; nothing to migrate.
+
+- **Every link in the in-app guide works.** The guide (Application Setup → Administrator setup
+  guide) showed six pages, so a link from them to any other page, such as the installation
+  recipes, went nowhere. It now shows every page of MedUI's documentation, and the top-level
+  README, changelog, security policy and AGENTS.md, which are now copied into the app's image.
+  A link to a file that isn't a page (a script, a CSV file) shows where the file is in the MedUI
+  folder instead. The guide's menu adds the cheat sheet and the changelog. A test follows every
+  link in every page.
+
+## 0.50.1 — pre-release (November 2026)
+
+**Upgrade from 0.50.0**; nothing to migrate. This upgrade adds the `OCR_ENABLED` line that the
+upgrade to 0.50.0 should have added.
+
+- **`./upgrade.sh` runs the new version's own upgrade steps.** It used to run the installed
+  version's copy of itself, so a step added in a release only ran on the upgrade after it: the
+  upgrade to 0.50.0 didn't add `OCR_ENABLED` to `.env`. Now, once it knows the new version and
+  before changing anything, it hands over to the new version's `upgrade.sh` with the same
+  options. This takes effect from the next upgrade on (the script doing this upgrade is the
+  installed one).
+- `OCR_ENABLED` is added to `.env` in step 6 (new default settings), after the backup, not before
+  it.
+
+## 0.50.0 — pre-release (November 2026)
+
+**Upgrade from 0.49.2**; nothing to migrate. `./upgrade.sh` adds `OCR_ENABLED` to `.env` once:
+`true` if the installation has the LiteParse container, `false` if it was installed with
+`--no-ocr`.
+
+- **OCR has an on/off switch, and nothing to set up.** `OCR_ENABLED` in `.env`, beside the other
+  feature switches: on unless the installation was made with `--no-ocr`, and treated as on when
+  the line is missing. `./medui.sh features` offers it with the others and removes or starts the
+  LiteParse container to match; `./medui.sh status` lists it. Off turns OCR off completely.
+- **The built-in LiteParse needs no Setup entry,** as before; now the screens say so.
+  Application Setup → External Sources says which OCR is in use (the installation's own, a
+  saved service instead, or switched off), and its status dot counts the built-in one. The
+  setup guide's OCR step and the [OCR](docs/ocr.md) page say "nothing to do" and explain the
+  switch; adding a service in Setup is only for a different OCR server.
+- **If you use an OCR server of your own without the built-in container** (installed with
+  `--no-ocr`), set `OCR_ENABLED=true` in `.env` and run `./medui.sh reload` after upgrading.
+
+## 0.49.2 — pre-release (November 2026)
+
+**Upgrade from 0.49.1**; nothing to migrate.
+
+- The installation status checks OCR the way Setup's **Test** button does. LiteParse has no
+  health address, so a working LiteParse was shown as "not answering". When no OCR service is
+  saved in Setup, the status says the installation's own LiteParse is used automatically.
+
+## 0.49.1 — pre-release (November 2026)
+
+**Upgrade from 0.49.0**; nothing to migrate.
+
+- A link to a section of the in-app guide (from the home page's installation status, or within
+  the guide) shows the section's heading. It used to stop with the heading hidden behind the menu
+  bar at the top of the page.
+- The installation status's "Practice name and timezone" links to the part of the setup guide
+  that explains the timezone.
+
+## 0.49.0 — pre-release (November 2026)
+
+**Upgrade from 0.48.11**; nothing to migrate.
+
+- **The installation's status on the home page.** An administrator's home page lists what the
+  installation has and what it still needs: the practice name and timezone, the Best Practice
+  connection (the demo SQL Server in a demo installation), HTTPS, AI with a provider, a model and
+  a voice model, OCR, the PIT folder, email and SMS, and a second administrator. Each item says
+  what it is needed for (hover over its ⓘ) and links to the Setup tab that changes it and to the
+  section of the setup guide that explains it. Optional features that are switched off show grey and don't count
+  against the installation; when everything is ready the list folds to one line. The checks
+  only read, and load after the page, so a Best Practice or OCR server that doesn't answer
+  doesn't hold the home page up. Other users see no change.
+- `/setup/?tab=<name>` opens that Setup tab (the home page's links use it).
+
+## 0.48.11 — pre-release (November 2026)
+
+Documentation only. **Upgrade from 0.48.10**; nothing to migrate, and nothing in the app changes.
+
+- **A template for the practice's request to Best Practice for database access**
+  ([bp-database-access-request.md](docs/templates/bp-database-access-request.md)): which databases
+  to ask for and why, and suggested wording for the purpose and the use of the access (read-only,
+  on site, for the practice's own patients, AI used as the practice's policy sets). Best Practice
+  Software decides whether to grant access and on what terms. Linked from the setup guide, the
+  installing page and the README.
+
+## 0.48.10 — pre-release (November 2026)
+
+Documentation, and one code comment. **Upgrade from 0.48.9**; nothing to migrate, and nothing in
+the app changes.
+
+- The [Ubuntu recipe](docs/install/ubuntu-live.md) clones into `~/medui_os` by name, so the folder
+  stays the same whatever the repository is called.
+- A code comment no longer names a person.
+
 ## 0.48.9 — pre-release (November 2026)
 
 Clean-up before the public release. **Upgrade from 0.48.8**; nothing to migrate.
 
-- **Screens no longer say "MedUI5".** The Application Usage print-out, two of its failure
+- **Screens no longer use the upstream application's name.** The Application Usage print-out, two of its failure
   reasons, and the Observation anomalies page now use the installation's own name (MedUI). The
   Setup warning for a missing encryption key named a folder from the upstream application; it
   now says to set `MEDUI_ENCRYPTION_KEY` in the installation's `.env` and run

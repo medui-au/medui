@@ -4,5 +4,12 @@
 <div class="container">
   <h1>{{ app_name }}</h1>
   <p>Welcome, {{ current_user.display_name or current_user.username }}.</p>
+  {% if current_user.is_admin %}
+  {# medui_os: the installation's status, for administrators (loaded after the page). #}
+  <div id="install-status" hx-get="{{ url_for('main.install_status') }}" hx-trigger="load"
+       hx-swap="outerHTML">
+    <p class="text-muted" style="font-size:0.85rem;">Checking the installation…</p>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

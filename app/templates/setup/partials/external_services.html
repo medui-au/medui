@@ -9,8 +9,19 @@
                 style="padding:0.25rem 0.6rem; font-size:0.72rem;">+ Add Service</button>
     </div>
 
+    {# medui_os: say which OCR MedUI is using, so the built-in one needs no entry here. #}
+    {% set saved_ocr = services | selectattr('service_type.value', 'equalto', 'ocr') | list %}
     <p style="font-size:var(--text-sm); color:var(--text-muted); margin-bottom:0.75rem; margin-top:0;">
-        Configure a local LiteParse OCR server. OCR is recommended for scanned documents.
+        {% if not config.OCR_ENABLED %}
+        OCR is switched off (<code>OCR_ENABLED=false</code> in <code>.env</code>), so scanned
+        documents show no text. <code>./medui.sh features OCR_ENABLED=on</code> turns it on.
+        {% elif not saved_ocr %}
+        OCR (text from scanned documents) uses this installation's own LiteParse automatically:
+        nothing to set up here. Add a service only to use a different OCR server instead.
+        {% else %}
+        OCR uses the service below instead of this installation's own LiteParse. Delete it to go
+        back to the built-in one; disabling it turns OCR off.
+        {% endif %}
     </p>
 
     {# ── Add form ── #}

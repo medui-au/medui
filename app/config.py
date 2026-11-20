@@ -55,6 +55,7 @@ class Config:
     PATIENT_API_ENABLED = _bool('PATIENT_API_ENABLED')
     PATIENT_API_KEYS = [v for v in [os.environ.get('PATIENT_API_KEY')] if v]
     PBS_API_KEY = os.environ.get('PBS_API_KEY', '')
+    OCR_ENABLED = _bool('OCR_ENABLED', True)   # missing (an older .env): on, as before
     OCR_SERVICE_URL = os.environ.get('OCR_SERVICE_URL', '')
     OCR_API_KEY = os.environ.get('OCR_API_KEY', '')
     OCR_CA_BUNDLE = os.environ.get('OCR_CA_BUNDLE') or True

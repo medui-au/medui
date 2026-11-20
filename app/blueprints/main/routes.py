@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from flask import current_app, render_template
-from flask_login import login_required
+from flask import abort, current_app, render_template
+from flask_login import current_user, login_required
 from markupsafe import Markup
 from . import bp
 
@@ -10,6 +10,19 @@ from . import bp
 @login_required
 def index():
     return render_template('index.html')
+
+
+@bp.get('/install-status')
+@login_required
+def install_status():
+    # The home page's installation panel, loaded after the page (the checks connect to
+    # Best Practice and OCR, and mustn't hold the page up). Administrators only.
+    if not current_user.is_admin:
+        abort(403)
+    from app.services import install_status as status
+    found = status.items()
+    return render_template('install_status.html', items=found, summary=status.summary(found),
+                           demo=status.is_demo())
 
 
 @bp.get('/about')

@@ -24,24 +24,10 @@
                class="topnav-link{% if request.path == '/' %} active{% endif %}">Home</a>
         </li>
 
-        {# Reception — stub #}
+        {# Daysheet #}
         <li class="topnav-item">
-            <a href="#" class="topnav-link" onclick="return false;" title="Coming soon">Reception</a>
-        </li>
-
-        {# User Data #}
-        <li class="topnav-item" id="nav-userdata">
-            <button class="topnav-link" aria-haspopup="true" aria-expanded="false"
-                    onclick="toggleDropdown('nav-userdata')">User Data ▾</button>
-            <ul class="dropdown-menu" role="menu">
-                <li><a class="dropdown-item" href="{{ url_for('inbox.index') }}">All Inboxes</a></li>
-                <li><a class="dropdown-item" href="{{ url_for('inbox.outliers') }}">Results Outside Range</a></li>
-                {# Library: general documents, never linked to a patient (ADR-093) #}
-                <li><a class="dropdown-item" href="{{ url_for('doc_library.index') }}">Library</a></li>
-                <li class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="{{ url_for('my_settings.index') }}">⚙ My Settings</a></li>
-                <li><a class="dropdown-item" href="{{ url_for('my_settings.usage') }}">My Usage</a></li>
-            </ul>
+            <a href="{{ url_for('schedule.daysheet') }}"
+               class="topnav-link{% if request.path.startswith('/schedule') %} active{% endif %}">Daysheet</a>
         </li>
 
         {# Patient Data #}
@@ -81,10 +67,19 @@
             </ul>
         </li>
 
-        {# Daysheet #}
-        <li class="topnav-item">
-            <a href="{{ url_for('schedule.daysheet') }}"
-               class="topnav-link{% if request.path.startswith('/schedule') %} active{% endif %}">Daysheet</a>
+        {# User Data #}
+        <li class="topnav-item" id="nav-userdata">
+            <button class="topnav-link" aria-haspopup="true" aria-expanded="false"
+                    onclick="toggleDropdown('nav-userdata')">User Data ▾</button>
+            <ul class="dropdown-menu" role="menu">
+                <li><a class="dropdown-item" href="{{ url_for('inbox.index') }}">All Inboxes</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('inbox.outliers') }}">Results Outside Range</a></li>
+                {# Library: general documents, never linked to a patient (ADR-093) #}
+                <li><a class="dropdown-item" href="{{ url_for('doc_library.index') }}">Library</a></li>
+                <li class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{{ url_for('my_settings.index') }}">⚙ My Settings</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('my_settings.usage') }}">My Usage</a></li>
+            </ul>
         </li>
 
         {# Doctor Data #}
@@ -125,6 +120,8 @@
             <ul class="dropdown-menu" role="menu">
                 <li><a class="dropdown-item" href="{{ url_for('governance.complaints_index') }}">Complaints Register</a></li>
                 <li><a class="dropdown-item" href="{{ url_for('governance.ae_index') }}">Adverse Events Register</a></li>
+                <li class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{{ url_for('governance.ai_policy') }}">AI-use Policy</a></li>
             </ul>
         </li>
 

@@ -65,8 +65,9 @@ Who it is for, and what it does and does not do: [intended purpose](docs/intende
 - **Redaction is an aid, not a guarantee.** It is rule-based and improves with each release; a
   local model is always an option.
 - **The practice stays in charge:** who may use AI (by BP group), which provider and model, which
-  prompts. Templates for an [AI-use policy](docs/templates/practice-ai-use-policy.md) and an
-  [AI concerns process](docs/templates/ai-concerns-process.md) are included.
+  prompts. Templates for an [AI-use policy](docs/templates/practice-ai-use-policy.md), an
+  [AI concerns process](docs/templates/ai-concerns-process.md) and the
+  [request to BP for database access](docs/templates/bp-database-access-request.md) are included.
 
 ## If you change MedUI
 

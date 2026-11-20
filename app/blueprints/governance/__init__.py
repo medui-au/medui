@@ -6,6 +6,7 @@ from . import complaints_routes      # noqa: E402, F401
 from . import adverse_event_routes   # noqa: E402, F401
 from . import register_routes        # noqa: E402, F401
 from . import permissions_routes     # noqa: E402, F401
+from . import ai_policy_routes       # noqa: E402, F401
 
 
 @bp.context_processor

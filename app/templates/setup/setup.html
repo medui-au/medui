@@ -215,5 +215,14 @@ function setActiveTab(el) {
     document.querySelectorAll('.setup-tab').forEach(t => t.classList.remove('active'));
     el.classList.add('active');
 }
+// ?tab=<name> opens that tab (medui_os: the home page's installation links). General and
+// Database are rendered by the server; any other tab is loaded as if its link were clicked,
+// once htmx (loaded with defer) has processed the links.
+window.addEventListener('load', function () {
+    const name = new URLSearchParams(location.search).get('tab');
+    if (!name || !/^[a-z-]+$/.test(name) || name === 'general' || name === 'database') return;
+    const link = document.querySelector('.setup-tab[hx-get$="/tab/' + name + '"]');
+    if (link) link.click();
+});
 </script>
 {% endblock %}

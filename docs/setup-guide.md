@@ -6,6 +6,10 @@ steps are the same whether MedUI runs in a WSL2 instance on a Windows PC or on a
 computer; the recipe pages cover the few parts that differ. An administrator can also open this
 guide in MedUI: **Admin → Application Setup → Administrator setup guide**.
 
+**The home page shows where the installation stands.** After signing in, an administrator's home
+page lists each part below as ready (green), to do (amber), needed before MedUI can be used (red)
+or switched off on purpose (grey), with links to the Setup tab and to the section here.
+
 Commands run in the MedUI folder (`~/medui_os` by default) on the Ubuntu or WSL2 computer, as the
 install user, not root. Never paste `.env`, API keys, passwords or patient details into a ticket,
 chat or AI tool.
@@ -17,7 +21,7 @@ chat or AI tool.
 | 1 | [Sign in](#1-sign-in) as the administrator the installer created | Everything |
 | 2 | [Connect Best Practice](#2-best-practice-connection) | Patients, and BP staff logins |
 | 3 | [HTTPS for the workstations](#3-https-for-the-workstations), if not done during the install | Using MedUI from any other computer, and the scribe's microphone |
-| 4 | [OCR](#4-ocr-liteparse) | Reading scanned documents |
+| 4 | [OCR](#4-ocr-liteparse): nothing to do unless it is switched off | Reading scanned documents |
 | 5–8 | [AI](#5-turn-on-ai): turn it on, add a provider, activate workflows, check the guardrails | AI features only; leave out if the practice won't use AI |
 | 9 | [Other optional features](#9-other-optional-features) | Messaging, PIT export, patient API |
 | 10 | [Backups](#10-backups) | Every live installation |
@@ -30,7 +34,8 @@ A demo installation leaves out step 2: see [a demo installation](#a-demo-install
 login. Best Practice Software supplies its password under an Elevated Database Access Agreement
 (EDBA) with the practice, for access to `BPSPatients`, `BPSDocumentsInbox` and all the
 `BPSDocuments` databases. The practice applies to BP for the agreement; whether it is granted is
-decided by Best Practice Software. BP then provides a script that creates the login. Have ready:
+decided by Best Practice Software. A [template](templates/bp-database-access-request.md) suggests
+wording for the request. BP then provides a script that creates the login. Have ready:
 the server name (usually a named instance, such as `BPSERVER\BPSINSTANCE`), the login and its
 EDBA password. MedUI installs and runs without it, but shows no patients.
 
@@ -153,20 +158,16 @@ practice's own certificate, see [HTTPS](https.md).
 
 ### 4. OCR (LiteParse)
 
-The installer starts the LiteParse container unless `--no-ocr` was used. In
-**Application Setup → External Sources → + Add Service**:
+**Nothing to do.** OCR reads the text of scanned documents with LiteParse, a container on the
+MedUI computer that the installer starts. MedUI uses it automatically: the home page's
+installation status shows it as answering, and **Application Setup → External Sources** says
+it is in use. Nothing is sent off the computer.
 
-| Field | Value |
-|---|---|
-| Display name | Local LiteParse |
-| Service type | OCR |
-| Base URL | `http://liteparse:5707` |
-
-Leave the other fields blank and press **Test**: it should say "✓ LiteParse is
-reachable". `127.0.0.1` inside the app container is the app itself,
-and the host's LAN address doesn't reach LiteParse, because its port is published
-on localhost only. Without a saved entry MedUI uses `OCR_SERVICE_URL` from the
-environment. See [OCR](ocr.md).
+- **On or off:** `OCR_ENABLED` in `.env`, on unless the installation was made with `--no-ocr`.
+  `./medui.sh features OCR_ENABLED=off` (or `=on`) changes it, and removes or starts the
+  container to match.
+- **A different OCR server:** add it in **External Sources → + Add Service**; it is used
+  instead of the built-in one. See [OCR](ocr.md).
 
 ### 5. Turn on AI
 
@@ -185,7 +186,10 @@ features are disabled", and the AI menus and the document buttons ([TXT], [SUM],
 [EXP]) are hidden or blocked. AI is available to doctors and administrators only.
 
 Read the practice's [AI-use policy template](templates/practice-ai-use-policy.md)
-before turning AI on for clinicians.
+before turning AI on for clinicians. In MedUI it is **Governance → AI-use Policy**: administrators
+adapt it there (**Edit**), everyone can read it, and its Appendix A lists the providers and models
+enabled at that moment. **Print or save as PDF** or **Download (.md)** keeps a dated copy with the
+approved policy, and again whenever a provider or model changes.
 
 ### 6. Add an AI provider and models
 

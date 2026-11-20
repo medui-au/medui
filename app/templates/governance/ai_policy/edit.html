@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Edit the AI-use policy — {{ app_name }}{% endblock %}
+{% block content %}
+<div style="max-width:960px; margin:0 auto; padding:1.25rem 1.5rem;">
+  <h2 style="font-size:1rem; margin:0 0 0.4rem;">Edit the AI-use policy{{ help('governance.ai-policy') }}</h2>
+  <p style="font-size:0.8rem; color:var(--text-muted); margin:0 0 0.8rem;">
+    Written in Markdown (<code>#</code> headings, <code>-</code> lists, <code>**bold**</code>).
+    Appendix A, the AI providers and models enabled, goes where the two
+    <code>medui:enabled-ai</code> marker lines are, and is filled in each time the policy is
+    opened, printed or downloaded; without the markers it goes at the end.
+  </p>
+  <form method="post" action="{{ url_for('governance.ai_policy_save') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <textarea name="markdown" rows="32" maxlength="{{ max_length }}" required
+              style="width:100%; font-family:var(--font-mono); font-size:0.8rem; line-height:1.45;
+                     padding:0.6rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                     background:var(--bg-primary); color:var(--text-primary);">{{ policy.markdown }}</textarea>
+    <div style="display:flex; gap:0.5rem; margin-top:0.7rem; align-items:center;">
+      <button type="submit" name="action" value="save" class="btn btn-primary">Save</button>
+      <a class="btn btn-outline" href="{{ url_for('governance.ai_policy') }}">Cancel</a>
+      <span style="flex:1;"></span>
+      {% if not policy.is_template %}
+      <button type="submit" name="action" value="reset" class="btn btn-outline" formnovalidate
+              onclick="return confirm('Replace the practice\'s policy with the template? The current wording is removed (download it first to keep a copy).');">Start again from the template</button>
+      {% endif %}
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -21,7 +21,7 @@ MedUI folder (`~/medui_os` by default) as the install user, not root.
 | `--app-port N` | MedUI's port on this computer (default 5005) |
 | `--db-port N` | PostgreSQL's port (default 55432) |
 | `--ocr-port N` | LiteParse OCR's port (default 5707) |
-| `--no-ocr` | Don't build or start OCR |
+| `--no-ocr` | Don't build or start OCR (`OCR_ENABLED=false`) |
 | `--no-apt` | Skip system packages (Docker, git, curl): install them yourself |
 | `--no-admin` | Don't create the local administrator now (`install admin` later) |
 | `--reference-data` | Also import the optional drug and vaccine reference snapshots |
@@ -85,7 +85,7 @@ the command it runs, so it can be repeated by hand, and nothing in it prints `.e
 | `start` / `stop` (`--all`) | Start or stop MedUI (and HTTPS); `--all` also stops the database and OCR |
 | `reload` | Recreate the app so it reads `.env` again |
 | `bp` / `bp-check` / `bp-clear` | Set the Best Practice connection (then reload and check it), check the login is read-only, or remove it |
-| `features` | Turn AI, messaging or PIT export on or off, then reload (`features AI_ENABLED=on`) |
+| `features` | Turn OCR, AI, messaging or PIT export on or off, then reload (`features AI_ENABLED=on`) |
 | `https` | HTTPS for workstations (`./install.sh --https`, with its options); on WSL2 it shows the Windows firewall step |
 | `backup` / `backups` | Back up now into `backups/<date>-<version>-manual/`, or list the backups |
 | `upgrade` | `./upgrade.sh --dry-run`, then the upgrade after a yes |

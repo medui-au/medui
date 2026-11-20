@@ -11,6 +11,8 @@ _MIME_TO_EXT = {'application/pdf': 'pdf', 'image/png': 'png', 'image/jpeg': 'jpg
 
 def _get_config():
     from app.models.external_service import ExternalServiceConfig, ExternalServiceType
+    if not current_app.config.get('OCR_ENABLED', True):   # medui_os: OCR_ENABLED=false in .env
+        return None
     cfg = (ExternalServiceConfig.query
            .filter_by(service_type=ExternalServiceType.ocr).order_by(ExternalServiceConfig.id).first())
     # A saved disabled service overrides environment defaults.

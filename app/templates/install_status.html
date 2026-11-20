@@ -1,0 +1,70 @@
+{# medui_os: the installation's status on the home page, for administrators. #}
+<style>
+.inst { max-width:760px; margin-top:1.2rem; border:1px solid var(--border-color);
+        border-radius:var(--radius-sm); background:var(--bg-secondary); font-size:0.85rem; }
+.inst-head { padding:0.6rem 0.9rem; font-weight:600; }
+.inst-more > summary { padding:0.35rem 0.9rem; cursor:pointer; color:var(--text-secondary); font-size:0.8rem; }
+.inst-list { list-style:none; margin:0; padding:0 0.9rem 0.6rem; }
+.inst-list li { display:flex; gap:0.6rem; align-items:baseline; padding:0.35rem 0;
+                border-top:1px solid var(--border-color); }
+.inst-dot { flex-shrink:0; width:0.6rem; height:0.6rem; border-radius:50%; }
+.inst-ok .inst-dot { background:var(--success); }
+.inst-warn .inst-dot { background:var(--warning); }
+.inst-missing .inst-dot { background:var(--danger); }
+.inst-off .inst-dot { background:var(--text-muted); opacity:0.5; }
+.inst-off .inst-label { color:var(--text-muted); }
+.inst-body { flex:1; min-width:0; }
+.inst-label { font-weight:600; }
+.inst-detail { color:var(--text-secondary); }
+.inst-links { flex-shrink:0; white-space:nowrap; font-size:0.78rem; }
+.inst-links a { margin-left:0.6rem; }
+.inst-why { position:relative; display:inline-block; margin-left:0.25rem; color:var(--text-muted);
+            cursor:help; font-size:0.75rem; outline:none; }
+.inst-tip { visibility:hidden; opacity:0; transition:opacity 0.1s; position:absolute; left:50%;
+            bottom:calc(100% + 6px); transform:translateX(-50%); z-index:20; width:max-content;
+            max-width:260px; padding:0.4rem 0.55rem; border-radius:var(--radius-sm);
+            background:var(--text-primary); color:var(--bg-primary); font-size:0.75rem;
+            font-weight:400; line-height:1.35; white-space:normal; pointer-events:none; }
+.inst-why:hover .inst-tip, .inst-why:focus .inst-tip { visibility:visible; opacity:1; }
+.inst-note { padding:0 0.9rem 0.7rem; color:var(--text-muted); font-size:0.78rem; }
+@media (max-width: 600px) { .inst-list li { flex-wrap:wrap; } .inst-links { width:100%; padding-left:1.2rem; } }
+</style>
+{% macro row(item) -%}
+    <li class="inst-{{ item.state }}">
+      <span class="inst-dot" title="{{ {'ok': 'Ready', 'warn': 'To do', 'missing': 'Needed', 'off': 'Switched off'}[item.state] }}"></span>
+      <div class="inst-body">
+        <span class="inst-label">{{ item.label }}</span>
+        {%- if item.why %}<span class="inst-why" tabindex="0" aria-label="{{ item.why }}">ⓘ<span class="inst-tip" role="tooltip">{{ item.why }}</span></span>{% endif %}
+        <span class="inst-detail">{{ item.detail }}</span>
+      </div>
+      <span class="inst-links">
+        {% if item.setup_url %}<a href="{{ item.setup_url }}">Setup</a>{% endif %}
+        {% if item.guide_url %}<a href="{{ item.guide_url }}">How to</a>{% endif %}
+      </span>
+    </li>
+{%- endmacro %}
+{# What still needs doing is always shown; the ready items fold away behind "Show". #}
+{% set todo = items | rejectattr('state', 'equalto', 'ok') | list %}
+{% set ready = items | selectattr('state', 'equalto', 'ok') | list %}
+<section class="inst" id="install-status">
+  <div class="inst-head">
+    {% if summary.complete %}Installation complete{% else %}Installation{% endif %}{% if demo %} (demo){% endif %}:
+    {{ summary.ready }} of {{ summary.total }} ready
+    {%- if summary.blocked %}, and MedUI can't be used until the red items are done{% endif %}
+  </div>
+  {% if todo %}
+  <ul class="inst-list">
+    {% for item in todo %}{{ row(item) }}{% endfor %}
+  </ul>
+  {% endif %}
+  {% if ready %}
+  <details class="inst-more">
+    <summary>Show the {{ ready | length }} ready item{{ 's' if ready | length != 1 }}</summary>
+    <ul class="inst-list">
+      {% for item in ready %}{{ row(item) }}{% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+  <p class="inst-note">Grey items are optional and switched off. Shown to administrators only;
+    <code>./medui.sh</code> commands run in the MedUI folder on the MedUI computer.</p>
+</section>

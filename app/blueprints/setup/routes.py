@@ -77,9 +77,9 @@ def _compute_tab_statuses() -> dict:
         pass
 
     try:
-        s['external'] = ('complete'
-                         if ExternalServiceConfig.query.filter_by(is_enabled=True).count()
-                         else 'warning')
+        # medui_os: the installation's own LiteParse counts without a saved entry.
+        from app.services import ocr_service
+        s['external'] = 'complete' if ocr_service.is_configured() else 'warning'
     except Exception:
         s['external'] = 'warning'
 
@@ -1303,31 +1303,23 @@ _GUIDE_DOCS = {
     'ocr': 'OCR',
     'seed-data': 'Seed data',
     'https': 'HTTPS for workstations',
+    'cheatsheet': 'Cheat sheet',
+    'repo/CHANGELOG': 'Changelog',
+    'templates/practice-ai-use-policy': 'AI-use policy',
 }
 
 
 @bp.get('/guide')
-@bp.get('/guide/<name>')
+@bp.get('/guide/<path:name>')
 @login_required
 @_require_admin
 def guide(name: str = 'setup-guide'):
-    import re
-    from pathlib import Path
-    import markdown as md_lib
-    from flask import abort, url_for
-    from markupsafe import Markup
-    if name not in _GUIDE_DOCS:
+    # medui_os: every page under docs/ (and the few top-level ones it links to); the menu lists
+    # the main ones. app/services/guide_docs.py renders them and keeps their links in the app.
+    from flask import abort
+    from app.services import guide_docs
+    page = guide_docs.render(name)
+    if page is None:
         abort(404)
-    path = Path(current_app.root_path).parent / 'docs' / f'{name}.md'
-    if not path.is_file():
-        abort(404)
-    html = md_lib.markdown(path.read_text(encoding='utf-8'),
-                           extensions=['tables', 'fenced_code', 'toc'])
-
-    def _link(m):
-        target, anchor = m.group(1), m.group(2) or ''
-        if target in _GUIDE_DOCS:
-            return f'href="{url_for("setup.guide", name=target)}{anchor}"'
-        return m.group(0)
-    html = re.sub(r'href="([\w-]+)\.md(#[\w-]+)?"', _link, html)
-    return render_template('setup/guide.html', name=name, docs=_GUIDE_DOCS, body=Markup(html))
+    title, body = page
+    return render_template('setup/guide.html', name=name, docs=_GUIDE_DOCS, title=title, body=body)

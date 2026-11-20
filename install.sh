@@ -284,6 +284,9 @@ fi
 # MedUI keeps BP patient and user numbers in its own database, so an installation is a demo from
 # its first run or never: a live one can't become a demo, nor a demo be pointed at BP.
 [ "$(env_get MEDUI_INSTANCE)" = demo ] && DEMO=1
+# OCR stays off on a rerun if .env says so (--no-ocr before, or ./medui.sh features);
+# ./medui.sh features OCR_ENABLED=on turns it back on.
+[ "$(env_get OCR_ENABLED)" = false ] && OCR=0
 # A new installation started by a person, without --demo or --yes, is asked once. With --yes
 # (the Windows script, which asks itself; agents; scripts) it is live unless --demo says otherwise,
 # and an existing installation keeps what its .env says.
@@ -471,6 +474,7 @@ if [ -f .env ] || [ "$DRY" = 1 ]; then
   env_set APP_PORT "$APP_PORT"
   env_set POSTGRES_PORT "$DB_PORT"
   env_set OCR_PORT "$OCR_PORT"
+  env_set OCR_ENABLED "$([ "$OCR" = 1 ] && echo true || echo false)"
   env_set PRACTICE_TIMEZONE "$PRACTICE_TZ"
   if [ "$DEMO" = 1 ]; then   # the demo's own SQL Server, and MedUI's read-only login to it
     new_pw() { python3 -c 'import secrets; print("Dm1-" + secrets.token_urlsafe(18))'; }

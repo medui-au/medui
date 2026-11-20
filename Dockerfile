@@ -14,6 +14,9 @@ COPY app ./app
 COPY migrations ./migrations
 COPY wsgi.py ./
 COPY docs ./docs
+# Pages the docs link to, for the in-app guide (app/services/guide_docs.py)
+COPY README.md CHANGELOG.md SECURITY.md AGENTS.md ./
+COPY scripts/windows/README.md ./scripts/windows/README.md
 # The files keep the checkout's permissions; a restrictive umask on the host (for
 # example left over from a backup) would leave them unreadable to the app user.
 RUN chmod -R a+rX /app/app /app/migrations /app/docs /app/wsgi.py

@@ -13,7 +13,7 @@
 #   bp                   set the Best Practice connection in .env, then reload and check it
 #   bp-check             check the Best Practice login: reachable, and read-only?
 #   bp-clear             remove the Best Practice connection (an install without BP)
-#   features [KEY=on|off ...]   optional features (AI, messaging, PIT export), then reload
+#   features [KEY=on|off ...]   optional features (OCR, AI, messaging, PIT export), then reload
 #   https [options]      HTTPS for workstations: runs ./install.sh --https [options]
 #   backup               back up the database, .env, app data and HTTPS folder now
 #   backups              list the backups
@@ -132,6 +132,7 @@ cmd_status() {
   if [ -n "$HTTPS_MODE" ]; then ok "HTTPS for workstations: on (port $(env_get HTTPS_PORT | sed 's/^$/443/'))"
   else ok "HTTPS for workstations: off (MedUI is reachable from this computer only)"; fi
   local f on=()
+  [ "$(env_get OCR_ENABLED)" != false ] && on+=(OCR)       # on unless .env says off
   for f in AI_ENABLED MESSAGING_ENABLED PIT_EXPORT_ENABLED PATIENT_API_ENABLED; do
     [[ "$(env_get $f)" =~ ^(1|true|yes)$ ]] && on+=("${f%_ENABLED}")
   done
@@ -256,8 +257,9 @@ cmd_bp_clear() {
   cmd_reload
 }
 
-FEATURES=(AI_ENABLED MESSAGING_ENABLED PIT_EXPORT_ENABLED)
-FEATURE_TEXT=("AI: assistant, scribe, chatbots, workflows (choose models in Setup)"
+FEATURES=(OCR_ENABLED AI_ENABLED MESSAGING_ENABLED PIT_EXPORT_ENABLED)
+FEATURE_TEXT=("OCR: text from scanned documents (LiteParse, on this computer)"
+              "AI: assistant, scribe, chatbots, workflows (choose models in Setup)"
               "Messaging: email and SMS to patients (set up in Setup)"
               "PIT file export")
 cmd_features() {
@@ -275,6 +277,7 @@ cmd_features() {
     for i in "${!FEATURES[@]}"; do
       k="${FEATURES[$i]}"
       local cur=n; [[ "$(env_get $k)" =~ ^(1|true|yes)$ ]] && cur=y
+      [ "$k" = OCR_ENABLED ] && [ -z "$(env_get $k)" ] && cur=y      # on unless .env says off
       if confirm "  ${FEATURE_TEXT[$i]}: on?" "$cur"; then v=true; else v=false; fi
       [ "$v" = true ] && [ "$cur" = y ] && continue
       [ "$v" = false ] && [ "$cur" = n ] && continue
@@ -286,6 +289,16 @@ cmd_features() {
   for c in "${changes[@]}"; do envs+=("MEDUI_SET_${c}"); keys+=("${c%%=*}"); done
   env "${envs[@]}" python3 scripts/env_edit.py set "${keys[@]}" || die "Nothing was changed."
   ok "Saved: ${changes[*]}"
+  # OCR's container follows the switch: removed when off (its image is kept), so start, stop
+  # and upgrades leave it alone; built if needed and started when on.
+  for c in "${changes[@]}"; do
+    case "$c" in
+      OCR_ENABLED=false) has_container liteparse && compose --profile ocr rm -sf liteparse ;;
+      OCR_ENABLED=true)
+        has_container liteparse || warn "The first OCR build downloads and compiles LiteParse: allow several minutes."
+        compose --profile ocr up -d --build --wait liteparse || warn "OCR didn't start: ./medui.sh logs, and docs/ocr.md" ;;
+    esac
+  done
   cmd_reload
 }
 

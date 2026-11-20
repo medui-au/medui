@@ -127,17 +127,17 @@ connected in `app/services/redaction_core.py`; `redaction_service.py`,
 replaces identifiers with reversible tokens such as `[Redacted Phone: PH-…]`. It is rule-based and
 improves over time; it is not perfect, which is one reason cloud use is opt-in.
 
-**Optional features** (all `false` until set in `.env`):
+**Optional features** (`false` until set in `.env`, except OCR):
 
 | Setting | Turns on |
 |---|---|
+| `OCR_ENABLED` | OCR of scanned documents by the built-in LiteParse (the one switch that starts `true`; `--no-ocr` sets it `false`) |
 | `AI_ENABLED` | AI panels, scribe, chatbots, prompt manager, pipeline runs |
 | `MESSAGING_ENABLED` | Outbound email and SMS to patients |
 | `PIT_EXPORT_ENABLED` | PIT file export |
 | `PATIENT_API_ENABLED` | Patient and practice REST APIs (needs `PATIENT_API_KEY`) |
 
-LiteParse OCR (a local container) is recommended for scanned documents. See
-[OCR](docs/ocr.md).
+LiteParse OCR is a local container, used without any setup. See [OCR](docs/ocr.md).
 
 ## Installation philosophy
 
@@ -178,7 +178,7 @@ LiteParse OCR (a local container) is recommended for scanned documents. See
 | Something isn't working | [troubleshooting](docs/troubleshooting.md) |
 | Helping someone choose how to install | [installing MedUI](docs/install/README.md); the architecture in one page: [how it's built](docs/technical.md) |
 | Making a release | [releasing](docs/maintainers/releasing.md), [changelog](CHANGELOG.md) |
-| Practice AI policy templates | [AI-use policy](docs/templates/practice-ai-use-policy.md), [AI concerns process](docs/templates/ai-concerns-process.md) |
+| Practice templates | [AI-use policy](docs/templates/practice-ai-use-policy.md), [AI concerns process](docs/templates/ai-concerns-process.md), [request to BP for database access (EDBA)](docs/templates/bp-database-access-request.md) |
 | What ships in the starter pack | [seed data](docs/seed-data.md) |
 | What is unfinished | [release status](docs/release-status.md) |
 
@@ -220,7 +220,9 @@ to synced files here must survive those merges; prefer fixing upstream. Files on
 this edition has (installer, seeds, docs, tests, `app/features.py`,
 `app/commands/install.py`, `app/services/seed_service.py`,
 `app/services/seed_resync_service.py`, `app/services/seed_fingerprint.py`,
-`app/models/user_prompt_version.py`, `app/templates/about.html`, `migrations/`)
+`app/models/user_prompt_version.py`, `app/templates/about.html`,
+`app/services/install_status.py`, `app/templates/install_status.html`,
+`app/services/guide_docs.py`, `app/templates/setup/guide.html`, `migrations/`)
 are maintained here. Example data in code, comments, tests and docs must be
 invented: no real patients, practitioners, practices or places. In-app help for the people
 using MedUI lives in `app/help/*.md` (synced from upstream with `app/`); `flask --app wsgi help check`

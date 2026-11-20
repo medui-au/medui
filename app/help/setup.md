@@ -11,6 +11,10 @@ the practice. A coloured dot beside each tab shows whether it is complete. Conne
 and secrets (Best Practice, the encryption key) are set when MedUI is installed, in its
 settings file, not here.
 
+The home page shows administrators the same picture for the whole installation: what is ready,
+what still needs doing and what is switched off, each with a link to its tab here and to the
+setup guide.
+
 ## General {#general}
 
 - **Practice name** (shown in the top bar and on generated documents) and **phone**.
@@ -94,7 +98,8 @@ service.
 ## External sources {#external}
 
 Outside services MedUI calls, each with its address and a health check: mainly the **OCR**
-service that reads scanned documents. A practice that runs its own compatible document server
+service that reads scanned documents. An installation's own OCR is used without an entry here;
+add one only to use a different OCR server instead. A practice that runs its own compatible document server
 can register it here too; most practices won't have one. (This isn't the summaries MedUI's AI
 functions write.)
 

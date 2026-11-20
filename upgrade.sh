@@ -34,6 +34,12 @@
 
 if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
 set -euo pipefail
+# Started by an older upgrade.sh handing over (below): this copy is a temporary file. Bash keeps
+# reading it after it is removed.
+if [ -n "${MEDUI_UPGRADE_HANDOFF:-}" ] && [ "$MEDUI_UPGRADE_HANDOFF" = "${BASH_SOURCE[0]}" ]; then
+  rm -f "$MEDUI_UPGRADE_HANDOFF"
+fi
+ARGS=("$@")
 
 APP_DIR="$(cd "${MEDUI_DIR:-$(dirname "${BASH_SOURCE[0]}")}" && pwd)"
 TARGET="" SEEDS=1 YES=0 DRY=0
@@ -109,7 +115,9 @@ PREV_VERSION="$(version_at HEAD)"
 # A token in MEDUI_GIT_TOKEN (private repository), set by upgrade_medui_wsl2.ps1 or by hand
 # (docs/operations.md), is used through a temporary GIT_ASKPASS helper, never on a command
 # line or on disk; otherwise git asks as usual.
-if [ -n "${MEDUI_GIT_TOKEN:-}" ]; then
+if [ -n "${MEDUI_UPGRADE_HANDOFF:-}" ]; then
+  :   # handed over: the installed script has just fetched (and git won't ask for the token again)
+elif [ -n "${MEDUI_GIT_TOKEN:-}" ]; then
   ASKPASS="$(mktemp)"; chmod 700 "$ASKPASS"
   printf '#!/bin/sh\ncase "$1" in Username*) echo x-access-token ;; *) printf "%%s\\n" "$MEDUI_GIT_TOKEN" ;; esac\n' > "$ASKPASS"
   GIT_ASKPASS="$ASKPASS" GIT_TERMINAL_PROMPT=0 git fetch --quiet --tags origin \
@@ -142,6 +150,15 @@ fi
 if git merge-base --is-ancestor "$TARGET_COMMIT" HEAD; then
   die "$TARGET_LABEL is older than what is installed. Going back needs the backup taken before the upgrade
 (docs/operations.md), not this script."
+fi
+# This script is the installed version's. If the new version's upgrade.sh differs, hand over to
+# it now, before anything changes, so that steps it adds (or fixes) run in this upgrade rather
+# than the next one. Once only: the new script doesn't hand over again.
+if [ -z "${MEDUI_UPGRADE_HANDOFF:-}" ] && ! git diff --quiet HEAD "$TARGET_COMMIT" -- upgrade.sh; then
+  NEXT="$(mktemp "${TMPDIR:-/tmp}/medui-upgrade.XXXXXX")"
+  git show "$TARGET_COMMIT:upgrade.sh" > "$NEXT"
+  ok "Continuing with $NEW_VERSION's upgrade script"
+  MEDUI_UPGRADE_HANDOFF="$NEXT" MEDUI_DIR="$APP_DIR" exec bash "$NEXT" ${ARGS[@]+"${ARGS[@]}"}
 fi
 # The changelog entries newer than the installed version.
 CHANGES="$(git show "$TARGET_COMMIT:CHANGELOG.md" 2>/dev/null \
@@ -240,6 +257,13 @@ say "6. Stop MedUI; database upgrade; new default settings"
 compose_run --profile app stop app
 flask_cmd db upgrade
 flask_cmd install defaults
+# .env settings added by a release, written once (after the backup, which holds the old .env).
+# OCR_ENABLED (0.50.0): what the installation has, the LiteParse container or not.
+if [ -z "$(env_get OCR_ENABLED)" ]; then
+  OCR_LINE="OCR_ENABLED=$([ "$OCR" = 1 ] && echo true || echo false)"
+  if [ "$DRY" = 1 ]; then echo "  [dry run] add $OCR_LINE to .env"; else echo "$OCR_LINE" >> "$APP_DIR/.env"; fi
+  ok ".env: $OCR_LINE added"
+fi
 ok "Schema current; new settings added, existing ones kept"
 
 # ---- 7. seeds -----------------------------------------------------------------------------------------------------

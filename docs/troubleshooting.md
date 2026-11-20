@@ -39,7 +39,7 @@ If what you see doesn't match these pages, check the version (the foot of every 
 | The day sheet opens on yesterday (or tomorrow) | MedUI's timezone isn't the practice's (a server is often set to UTC) | Application Setup → General → Practice Timezone; or `./install.sh --timezone brisbane` (your zone) |
 | An edit to `.env` has no effect | Containers read `.env` only when they are created | `./medui.sh reload` (by hand: `docker compose --profile app up -d --force-recreate app`) |
 | Patients, inbox or login can't reach Best Practice | `BPSDB_*` settings, TLS, or the named instance | See [Best Practice connection](#best-practice-connection) |
-| Documents show no text | OCR not running, or not installed (`--no-ocr`) | `docker compose --profile ocr ps`; see [OCR](ocr.md) |
+| Documents show no text | OCR switched off (`OCR_ENABLED=false`, or installed with `--no-ocr`), or its container isn't running | The home page's installation status says which; `./medui.sh features OCR_ENABLED=on`, or `./medui.sh ocr start`; see [OCR](ocr.md) |
 | Port already in use at installation | Another service, or a second MedUI install | A new installation moves its default ports to free ones; a port you chose, or one in `.env`, doesn't: rerun `./install.sh` with `--app-port`, `--db-port`, `--ocr-port` |
 | `Project '…' is already installed in <folder>` | A second folder with the same project name would take over the first one's containers | Run `./install.sh` in that folder, or give this one its own `--name` |
 | `Docker still holds data for a project called '…'` | A removed installation left its volumes, and a new `.env` can't open them | Another `--name`; or put that installation's `.env` back; or, after backing up, `docker volume rm` them (deletes that data) |

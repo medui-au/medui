@@ -27,7 +27,7 @@ choose, and how to check it worked.
 
 - **The BP read-only password.** Best Practice Software supplies it under an Elevated Database
   Access Agreement (EDBA) with the practice. The practice applies to BP, and BP decides whether to
-  grant it. MedUI installs and runs without it while you set up, using its own administrator
+  grant it ([suggested wording for the request](../templates/bp-database-access-request.md)). MedUI installs and runs without it while you set up, using its own administrator
   login.
 - **AI provider keys, only if you will use AI.** Nothing AI is on until you turn it on.
 - **For workstations:** the computer's name on the practice network, and a fixed address, for
