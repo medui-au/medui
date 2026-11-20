@@ -839,3 +839,16 @@ def test_usage_pages_render(installed_app, monkeypatch, ai_enabled):
     assert 'Practice:' in page
     # With AI switched off the page opens on Non-AI.
     assert ('Charts opened' in page) is (not ai_enabled)
+
+
+def test_no_file_names_the_private_upstream_application():
+    """Releases are copied from this repository: no tracked file names the upstream app."""
+    import shutil
+    import subprocess
+    from pathlib import Path
+    root = Path(__file__).resolve().parent.parent
+    if not (root / '.git').exists() or not shutil.which('git'):
+        pytest.skip('needs the git checkout')
+    found = subprocess.run(['git', 'grep', '-n', '-I', 'MedUI' + '5'], cwd=root,
+                           capture_output=True, text=True).stdout
+    assert not found, found

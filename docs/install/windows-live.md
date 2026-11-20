@@ -1,5 +1,23 @@
 # Windows PC, live installation
 
+| | |
+|---|---|
+| **Use this when** | MedUI is for the practice's real work, reading its Best Practice, and runs on a Windows PC. |
+| **Not this one** | To try MedUI or train staff with invented patients: [Windows PC, demo](windows-demo.md). On a computer running Ubuntu: [Ubuntu, live](ubuntu-live.md). |
+| **The script** | [`create_medui_wsl2.ps1`](https://github.com/medui-au/medui/blob/main/scripts/windows/create_medui_wsl2.ps1). On its GitHub page, choose **Download raw file** (↓). While the repository is private, sign in to GitHub first. |
+| **Answer** | `L` (or Enter) to "Live or demo?". |
+| **The PC** | Windows 11 22H2 or later; about 10 GB of free disk; stays on and signed in. |
+| **Time** | 20 to 40 minutes. |
+
+**In short:** have [section 2](#2-what-to-have-ready) ready, save the script in `Downloads`, then
+in an **ordinary** PowerShell window (not "Run as administrator"):
+
+```powershell
+cd $HOME\Downloads
+Unblock-File .\create_medui_wsl2.ps1
+powershell.exe -NoExit -ExecutionPolicy Bypass -File .\create_medui_wsl2.ps1
+```
+
 **For:** whoever installs MedUI for the practice on a Windows PC. **You end up with:** a new
 Ubuntu 24.04 instance under WSL2, used only for MedUI, with MedUI running in Docker inside it,
 ready for the [Administrator setup guide](../setup-guide.md).
@@ -45,8 +63,8 @@ keys if the practice will use AI. The
 ## 3. Get and run the script
 
 1. Sign in to Windows **as the account that will run MedUI**.
-2. Download [`scripts/windows/create_medui_wsl2.ps1`](../../scripts/windows/create_medui_wsl2.ps1)
-   from the `main` branch, into any folder, for example `Downloads`.
+2. Download [`create_medui_wsl2.ps1`](https://github.com/medui-au/medui/blob/main/scripts/windows/create_medui_wsl2.ps1)
+   from the `main` branch (**Download raw file**, ↓), into any folder, for example `Downloads`.
 3. Open an **ordinary** PowerShell window (Start, type `powershell`, Enter). Not "Run as
    administrator": the instance and its start-up task belong to whoever runs the script, so an
    elevated window under another account builds MedUI for that account.

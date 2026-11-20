@@ -1,5 +1,22 @@
 # Ubuntu, live installation
 
+| | |
+|---|---|
+| **Use this when** | MedUI is for the practice's real work, reading its Best Practice, on a computer that already runs Ubuntu. |
+| **Not this one** | To try MedUI or train staff with invented patients: [Ubuntu, demo](ubuntu-demo.md). On a Windows PC: [Windows PC, live](windows-live.md). |
+| **The script** | `./install.sh`, in the MedUI folder you download with `git clone` (below). |
+| **The computer** | Ubuntu with systemd (tested on 24.04 and 26.10); about 10 GB of free disk; your own login with `sudo`, not root. |
+
+**In short:** have [section 1](#1-what-to-have-ready) ready, then:
+
+```bash
+cd ~ && git clone https://github.com/medui-au/medui.git ~/medui_os
+```
+
+```bash
+cd ~/medui_os && ./install.sh
+```
+
 **For:** an Ubuntu server (bare metal or virtual), or an Ubuntu WSL2 instance you already
 have and look after yourself. **You end up with:** MedUI running in Docker in the folder
 `~/medui_os`, answering at `http://127.0.0.1:5005` on that computer only, ready for the

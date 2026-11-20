@@ -3,6 +3,22 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.52.2 — pre-release (November 2026)
+
+Documentation only. **Upgrade from 0.52.1**; nothing to migrate, and nothing in the app changes.
+
+- Each of the four install recipes now stands alone. It opens with a short box: when to use it,
+  which recipe to use instead, the script (with a download link for the Windows script), what the
+  computer needs, and the commands to run. The two demo recipes no longer send the reader to the
+  live ones for the steps. A test keeps the commands the pages share the same.
+
+## 0.52.1 — pre-release (November 2026)
+
+Documentation only. **Upgrade from 0.52.0**; nothing to migrate, and nothing in the app changes.
+
+- The changelog no longer names the private upstream application, and a test keeps every file
+  that way.
+
 ## 0.52.0 — pre-release (November 2026)
 
 **Upgrade from 0.51.1**; nothing to migrate.
@@ -156,10 +172,10 @@ the app changes.
 
 Clean-up before the public release. **Upgrade from 0.48.8**; nothing to migrate.
 
-- **Screens no longer use the upstream application's name.** The Application Usage print-out, two of its failure
-  reasons, and the Observation anomalies page now use the installation's own name (MedUI). The
-  Setup warning for a missing encryption key named a folder from the upstream application; it
-  now says to set `MEDUI_ENCRYPTION_KEY` in the installation's `.env` and run
+- **Screens no longer use the upstream application's name.** The Application Usage print-out, two
+  of its failure reasons, and the Observation anomalies page now use the installation's own name
+  (MedUI). The Setup warning for a missing encryption key named a folder from the upstream
+  application; it now says to set `MEDUI_ENCRYPTION_KEY` in the installation's `.env` and run
   `./medui.sh reload`.
 - Code comments, test and migration descriptions, the seed manifest's notes and this changelog
   refer to "upstream" instead of naming the private application.
