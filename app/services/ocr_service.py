@@ -7,6 +7,22 @@ from flask import current_app
 
 _MIME_TO_EXT = {'application/pdf': 'pdf', 'image/png': 'png', 'image/jpeg': 'jpg',
                 'image/bmp': 'bmp', 'image/tiff': 'tif'}
+_A4_WIDTH_INCHES = 8.27
+
+
+def _pdf_resolution(image):
+    """The dpi to give an image's PDF page, so the page is paper-sized. Without it Pillow uses
+    72 dpi, and a 200 dpi scan becomes a page 2.8 times too large, which OCR reads worse. A
+    scanner's own dpi (100 to 1200) is kept; otherwise (a photo, often marked 72 or unmarked)
+    the image is taken as A4 wide."""
+    dpi = image.info.get('dpi')
+    try:
+        dpi = float(dpi[0] if isinstance(dpi, tuple) else dpi)
+    except (TypeError, ValueError, IndexError):
+        dpi = 0
+    if 100 <= dpi <= 1200:
+        return dpi
+    return max(72.0, image.width / _A4_WIDTH_INCHES)
 
 
 def _get_config():
@@ -48,6 +64,7 @@ def extract_text(data: bytes, mimetype='application/octet-stream', filename='doc
             # Avoid upstream ImageMagick image->PDF policy restrictions. Preserve
             # all TIFF frames and flatten transparency onto white before OCR.
             with Image.open(io.BytesIO(data)) as image:
+                resolution = _pdf_resolution(image)   # the first page's, before the frames move
                 pages = []
                 for frame in ImageSequence.Iterator(image):
                     rgba = frame.convert('RGBA')
@@ -55,7 +72,8 @@ def extract_text(data: bytes, mimetype='application/octet-stream', filename='doc
                     page.paste(rgba, mask=rgba.getchannel('A'))
                     pages.append(page)
                 output = io.BytesIO()
-                pages[0].save(output, format='PDF', save_all=True, append_images=pages[1:])
+                pages[0].save(output, format='PDF', save_all=True, append_images=pages[1:],
+                              resolution=resolution)
                 data = output.getvalue()
                 mime = 'application/pdf'
                 filename = 'document.pdf'

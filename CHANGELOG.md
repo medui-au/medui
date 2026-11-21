@@ -3,6 +3,26 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.54.0 — pre-release (November 2026)
+
+**Upgrade from 0.53.5**; nothing to migrate. `./upgrade.sh` rebuilds the OCR container, which
+takes a few minutes longer than usual the first time.
+
+- **OCR uses LiteParse 2.20.0** (was 2.4.0). Reference ranges in brackets, such as "(3.5-5.2)",
+  are now kept when a scanned results table is read, and text in columns is laid out more
+  cleanly. On invented test documents, every number was read the same as before or better.
+  The OCR server and how MedUI talks to it are unchanged.
+
+## 0.53.5 — pre-release (November 2026)
+
+**Upgrade from 0.53.4**; nothing to migrate.
+
+- **Scanned images are read more accurately.** Before OCR, MedUI turns an image (TIFF, JPEG, PNG)
+  into a PDF. It made each page as if the image were 72 dpi, so a 200 dpi scan became a page
+  nearly three times too large, and OCR read it worse. Pages now keep the scanner's resolution,
+  or are taken as A4 wide when the image doesn't say (a phone photo). On an invented two-page
+  TIFF, 55 of 57 numbers are now read right, against 52 before.
+
 ## 0.53.4 — pre-release (November 2026)
 
 **Upgrade from 0.53.3**; nothing to migrate.

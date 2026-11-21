@@ -19,8 +19,8 @@ services:
   liteparse:
     profiles: [ocr]
     build:
-      context: https://github.com/run-llama/liteparse-server.git#70cee35fb429f531d657d3328dc9939c89c0312b
-      dockerfile: slim.Dockerfile
+      # Upstream's server at a pinned commit, built with LiteParse 2.20.0: see docker/liteparse/.
+      context: ./docker/liteparse
     restart: unless-stopped
     ports:
       - "127.0.0.1:${OCR_PORT:-5707}:5707"

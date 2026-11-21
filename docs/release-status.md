@@ -1,6 +1,6 @@
 # Release status
 
-**Version 0.53.4, pre-release (November 2026).** Synced with the upstream MedUI application, with
+**Version 0.54.0, pre-release (November 2026).** Synced with the upstream MedUI application, with
 the redaction core 0.2.20. Scope: a new practice installation, not migration of existing MedUI data.
 Each release is described in the [changelog](../CHANGELOG.md); this page is the summary of what
 is in place and what is left before a release to another practice.

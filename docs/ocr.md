@@ -38,7 +38,17 @@ if you don't want the built-in container).
 
 The `ocr` Compose profile builds the upstream
 [LiteParse REST server](https://github.com/run-llama/liteparse-server) at commit
-`70cee35fb429f531d657d3328dc9939c89c0312b`, using its slim Dockerfile and lockfile.
+`70cee35fb429f531d657d3328dc9939c89c0312b` with **LiteParse 2.20.0** (`@llamaindex/liteparse`),
+from `docker/liteparse/`. Upstream's lockfile at that commit fixes LiteParse at 2.4.0, and the
+server hasn't been updated since, so MedUI keeps its own `package.json` and `pnpm-lock.yaml`
+there (only the LiteParse version differs) and otherwise follows upstream's `slim.Dockerfile`.
+The server's code and API are unchanged. 2.20.0 was compared with 2.4.0 on invented documents
+before adoption: the same OCR accuracy, and bracketed reference ranges in scanned tables kept.
+
+To move to a newer LiteParse: change the version in `docker/liteparse/package.json`, regenerate
+the lockfile with the pnpm version the Dockerfile names (`pnpm install --lockfile-only` in a
+`node:24-slim` container), rebuild with `./medui.sh ocr` or `./upgrade.sh`, and check that a
+`POST /parse` without a file still answers 400 (the health check relies on it).
 `OCR_CONTAINER_URL` (default `http://liteparse:5707`) is the address the app container uses;
 `OCR_SERVICE_URL` is the one for MedUI run outside Docker.
 
@@ -47,7 +57,9 @@ and accepts `text/plain`, following the
 [upstream API](https://github.com/run-llama/liteparse-server/blob/70cee35fb429f531d657d3328dc9939c89c0312b/API_SPEC.md).
 The previous custom asynchronous litocr `/submit`/`status` protocol is not supported.
 Image uploads are wrapped in a PDF locally (including all TIFF frames), avoiding
-the upstream ImageMagick image-to-PDF policy restriction. A failed OCR request yields a visible extraction-unavailable placeholder; the
+the upstream ImageMagick image-to-PDF policy restriction. Each page keeps the scanner's resolution
+(100 to 1200 dpi), or is taken as A4 wide when the image doesn't say, so pages are paper-sized:
+oversized pages are read worse. A failed OCR request yields a visible extraction-unavailable placeholder; the
 original PDF/image remains available in the viewer.
 
 The upstream slim server does not supply an authentication layer. The supplied

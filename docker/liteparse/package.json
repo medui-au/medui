@@ -1,0 +1,76 @@
+{
+  "name": "@llamaindex/liteparse-rest",
+  "author": {
+    "name": "LlamaIndex",
+    "url": "https://llamaindex.ai"
+  },
+  "version": "0.1.0",
+  "description": "REST API server running LiteParse to parse and screenshot files, wrote in Express.js",
+  "keywords": [
+    "liteparse",
+    "document-parsing",
+    "ocr",
+    "server",
+    "express-js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/run-llama/liteparse-server.git"
+  },
+  "type": "module",
+  "main": "dist/slim.js",
+  "files": [
+    "dist/*.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "bin": {
+    "liteparse-rest-server": "dist/slim.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.1.0",
+    "@types/node": "^26.1.0",
+    "@types/supertest": "^7.2.0",
+    "esbuild": "^0.28.1",
+    "eslint": "^10.3.0",
+    "globals": "^17.6.0",
+    "jiti": "^2.6.1",
+    "prettier": "^3.8.3",
+    "supertest": "^7.2.2",
+    "typescript-eslint": "^8.59.1",
+    "vitest": "^4.1.5"
+  },
+  "peerDependencies": {
+    "@opentelemetry/auto-instrumentations-node": "^0.74.0",
+    "@opentelemetry/exporter-prometheus": "^0.216.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.216.0",
+    "@opentelemetry/sdk-node": "^0.216.0",
+    "@opentelemetry/sdk-trace-node": "^2.7.1",
+    "async-mutex": "^0.5.0",
+    "ioredis": "^5.10.1",
+    "rate-limiter-flexible": "^11.0.1",
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@llamaindex/liteparse": "^2.20.0",
+    "@opentelemetry/api": "^1.9.1",
+    "express": "^5.2.1",
+    "multer": "^2.1.1",
+    "tslog": "^4.10.2"
+  },
+  "scripts": {
+    "start": "node --import ./src/instrumentation.ts src/index.ts",
+    "start:slim": "pnpm run build:slim && ./dist/slim.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/** && eslint __tests__/**",
+    "prettier": "prettier --write .",
+    "prettier:check": "prettier .",
+    "build:slim": "node buildscripts/build-slim.cjs",
+    "build": "pnpm run build:slim",
+    "prepublishOnly": "pnpm run build"
+  },
+  "packageManager": "pnpm@11.9.0"
+}
