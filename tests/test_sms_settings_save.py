@@ -1,4 +1,5 @@
-"""Setup → Messaging → Save SMS Settings stores what was entered (ADR-159).
+"""Setup → Messaging → Save SMS Settings stores what was entered (ADR-159), and SMS text goes
+to the gateway as plain ASCII (ADR-160).
 
 The save route imported sms_service._set_secret, which didn't exist, so every save failed with
 an ImportError before anything was stored."""
@@ -80,3 +81,44 @@ def test_save_sms_settings_stores_them(ctx):
     assert SystemSetting.get('sms.smtp_password') != 'invented-password'
     assert sms_service._get_config()['smtp_password'] == 'invented-password'
     assert sms_service.is_configured() and sms_service.sms_password_is_set()
+
+
+# ── SMS text goes to the gateway as plain ASCII (ADR-160) ─────────────────────
+
+import email.message
+
+import pytest
+
+
+@pytest.mark.parametrize('given, sent', [
+    ('Your results are ready — please call.', 'Your results are ready - please call.'),
+    ('It’s booked for 9–10 am…', "It's booked for 9-10 am..."),
+    ('“Fasting” blood test', '"Fasting" blood test'),
+    ('Café Renée at 10 am', 'Cafe Renee at 10 am'),
+    ('Plain text stays exactly the same.', 'Plain text stays exactly the same.'),
+])
+def test_plain_text(given, sent):
+    assert sms_service.plain_text(given) == sent
+
+
+def test_other_characters_are_left_alone():
+    assert sms_service.plain_text('ok 你好') == 'ok 你好'
+
+
+def test_the_gateway_gets_7bit_ascii(monkeypatch):
+    from flask import Flask
+    cfg = {'smtp_host': 'sms-gateway.example', 'smtp_port': 25, 'sender_address': 'sms@clinic.example',
+           'recipient_template': '{number}@sms.provider.example', 'requires_auth': False,
+           'smtp_username': '', 'smtp_password': '', 'use_tls': False}
+    sent = {}
+    monkeypatch.setattr(sms_service, '_get_config', lambda: cfg)
+    monkeypatch.setattr(sms_service, '_smtp_send', lambda c, to, msg: sent.update(to=to, msg=msg))
+    app = Flask(__name__)
+    app.config['MESSAGING_ENABLED'] = True
+    with app.app_context():
+        result = sms_service.test('0400 000 000')
+    assert result['ok'], result
+    msg = sent['msg']
+    assert sent['to'] == '0400000000@sms.provider.example'
+    assert msg['Content-Transfer-Encoding'] == '7bit'
+    assert msg.get_content().strip() == 'MedUI test message - please ignore.'

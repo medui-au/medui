@@ -2,6 +2,7 @@
 from __future__ import annotations
 import re
 import smtplib
+import unicodedata
 import email.message
 
 from flask import current_app
@@ -37,6 +38,34 @@ def _get_config() -> dict:
     }
 
 
+# Email-to-SMS gateways can accept an email with non-ASCII text (sent as UTF-8, 8bit) and then not
+# deliver it, with no error back (ADR-160). Typographic punctuation, common in drafted text, becomes
+# its plain equivalent and accented letters lose their accents; nothing else is changed.
+_PLAIN = str.maketrans({
+    '\u2014': '-', '\u2013': '-', '\u2012': '-', '\u2010': '-', '\u2011': '-', '\u2212': '-',
+    '\u2018': "'", '\u2019': "'", '\u201a': "'", '\u2032': "'",
+    '\u201c': '"', '\u201d': '"', '\u201e': '"', '\u2033': '"',
+    '\u2026': '...', '\u2022': '-',
+    '\u00a0': ' ', '\u2007': ' ', '\u2009': ' ', '\u202f': ' ',
+    '\u200b': '', '\u200c': '', '\u200d': '', '\ufeff': '',
+})
+
+
+def plain_text(text: str) -> str:
+    """The SMS text as the gateway is sent it: plain ASCII where the text allows."""
+    text = text.translate(_PLAIN)
+    if text.isascii():
+        return text
+    out = []
+    for ch in text:
+        if ch.isascii():
+            out.append(ch)
+            continue
+        base = ''.join(c for c in unicodedata.normalize('NFKD', ch) if not unicodedata.combining(c))
+        out.append(base if base and base.isascii() else ch)
+    return ''.join(out)
+
+
 def send(mobile_number: str, message: str) -> None:
     """Send SMS via email-to-SMS gateway. Raises RuntimeError on failure."""
     cfg = _get_config()
@@ -46,7 +75,10 @@ def send(mobile_number: str, message: str) -> None:
     to_address = cfg['recipient_template'].replace('{number}', number)
 
     msg = email.message.EmailMessage()
-    msg.set_content(message)
+    text = plain_text(message)
+    if not text.isascii():
+        current_app.logger.warning('sms_service: message has characters the gateway may not deliver')
+    msg.set_content(text)
     msg['From']    = cfg['sender_address']
     msg['To']      = to_address
     msg['Subject'] = ''
@@ -61,7 +93,7 @@ def test(mobile_number: str) -> dict:
         cfg = _get_config()
         number = re.sub(r'\D', '', mobile_number)
         gateway = cfg.get('recipient_template', '').replace('{number}', number)
-        send(mobile_number, 'MedUI test message — please ignore.')
+        send(mobile_number, 'MedUI test message - please ignore.')
         return {'ok': True, 'message': f'Dispatched to gateway address: {gateway}'}
     except RuntimeError as e:
         return {'ok': False, 'message': str(e)}

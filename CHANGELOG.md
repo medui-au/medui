@@ -3,6 +3,17 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.52.5 — pre-release (November 2026)
+
+**Upgrade from 0.52.4**; nothing to migrate.
+
+- **SMS text goes to the gateway as plain text.** Some email-to-SMS gateways accept a message
+  with characters outside plain ASCII and then never deliver it, without an error. Dashes, curly
+  quotes, the ellipsis, bullets and special spaces now become their plain equivalents, and accented
+  letters lose their accents, before every SMS is sent. The patient's message record keeps the text
+  as written.
+- Setup → Messaging → **Test SMS** sends a plain-text message, so it arrives through such a gateway.
+
 ## 0.52.4 — pre-release (November 2026)
 
 **Upgrade from 0.52.3**; nothing to migrate.
