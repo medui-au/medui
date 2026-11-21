@@ -3,6 +3,15 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.53.1 — pre-release (November 2026)
+
+**Upgrade from 0.53.0**; nothing to migrate.
+
+- **`./medui.sh pit` works with an account given without a domain.** It stopped at "Couldn't
+  write …credentials" after writing the file, before making it readable by root only. The file
+  is now created root-only from the start. If 0.53.0 stopped there, delete the file
+  (`sudo rm -f /etc/medui/<installation>_pit.credentials`) and run `./medui.sh pit` again.
+
 ## 0.53.0 — pre-release (November 2026)
 
 **Upgrade from 0.52.5**; nothing to migrate. If PIT export is on, run `./medui.sh pit` after

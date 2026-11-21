@@ -126,6 +126,22 @@ def test_connect_then_disconnect(inst):
     assert re.search(r'^PIT_HOST_DIR=$', env, re.M) and 'PIT_EXPORT_ENABLED=false' in env
 
 
+def test_an_account_without_a_domain(inst):
+    """0.53.0 stopped here: with no domain, the password file's last line returned false, and
+    pipefail made the write look failed after it had happened, leaving the file unprotected."""
+    rc, out = _run(inst, ['pit'], ['//BPSERVER/BPS/Incoming', 'pitwriter', PASSWORD, 'n'])
+    assert rc == 0, out
+    assert inst.cred.read_text() == f'username=pitwriter\npassword={PASSWORD}\n'
+    assert oct(inst.cred.stat().st_mode & 0o777) == '0o600'
+    assert len([l for l in inst.fstab.read_text().splitlines() if 'medui_os_pit' in l]) == 1
+
+
+def test_the_password_file_is_never_readable_by_others():
+    text = (ROOT / 'medui.sh').read_text()
+    assert "sudo sh -c 'umask 077 && cat > \"$1\"' sh \"$PIT_CRED\"" in text
+    assert 'sudo tee "$PIT_CRED"' not in text
+
+
 def test_a_wrong_share_path_changes_nothing(inst):
     rc, out = _run(inst, ['pit'], ['C:\\BPS\\Incoming'])
     assert rc != 0 and "isn't a share path" in out

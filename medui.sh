@@ -469,9 +469,13 @@ EOF
   show sudo mkdir -p "$PIT_MNT" "$(dirname "$PIT_CRED")" || die "Couldn't make $PIT_MNT."
   pit_mounted && { show sudo umount "$PIT_MNT" || die "$PIT_MNT is in use and won't unmount. Nothing else was changed."; }
   show sudo chown root:root "$PIT_MNT" && show sudo chmod 755 "$PIT_MNT"
-  printf '  \033[2m$ sudo tee %s   (the account and password, shown nowhere else)\033[0m\n' "$PIT_CRED"
-  { printf 'username=%s\npassword=%s\n' "$user" "$pass"; [ -n "$dom" ] && printf 'domain=%s\n' "$dom"; } \
-    | sudo tee "$PIT_CRED" >/dev/null || die "Couldn't write $PIT_CRED."
+  # Written with umask 077, so the file is root's alone from its first byte; the password goes
+  # through a pipe, never a command line.
+  printf '  \033[2m$ sudo sh -c "umask 077; cat > %s"   (the account and password, shown nowhere else)\033[0m\n' "$PIT_CRED"
+  {
+    printf 'username=%s\npassword=%s\n' "$user" "$pass"
+    if [ -n "$dom" ]; then printf 'domain=%s\n' "$dom"; fi
+  } | sudo sh -c 'umask 077 && cat > "$1"' sh "$PIT_CRED" || die "Couldn't write $PIT_CRED."
   pass=""
   show sudo chmod 600 "$PIT_CRED" && show sudo chown root:root "$PIT_CRED"
   local opts="credentials=$PIT_CRED,uid=$PIT_UID,forceuid,gid=$(id -g),forcegid,dir_mode=0775,file_mode=0664,iocharset=utf8"
