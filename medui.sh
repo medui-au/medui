@@ -23,6 +23,7 @@
 #   password             set a new password for a local administrator
 #   seeds                show seeded prompt and workflow updates, then apply them after a yes
 #   ocr start|stop       LiteParse OCR
+#   pit [test|status|off]   connect Best Practice's PIT folder (its incoming share) as /pit
 #   installs             MedUI installations on this computer
 #   use                  make this installation the running one (stops the others' app and HTTPS)
 #   windows              WSL2: the commands that run on Windows (keep-alive task, firewall)
@@ -137,6 +138,11 @@ cmd_status() {
     [[ "$(env_get $f)" =~ ^(1|true|yes)$ ]] && on+=("${f%_ENABLED}")
   done
   ok "Optional features on: ${on[*]:-none}"
+  if [ -z "$DEMO" ] && [[ " ${on[*]} " == *" PIT_EXPORT "* ]]; then
+    pit_paths
+    if pit_mounted; then ok "PIT folder: $(pit_fstab_share) mounted, shown to MedUI as /pit"
+    else warn "PIT folder: no share mounted at $PIT_MNT (./medui.sh pit)"; fi
+  fi
   ok "Practice timezone: $(env_get PRACTICE_TIMEZONE)"
   local last; last="$(ls -1d backups/*/ 2>/dev/null | tail -1)"
   if [ -n "$last" ]; then ok "Last backup: ${last%/}"; else warn "No backup yet: ./medui.sh backup"; fi
@@ -412,6 +418,140 @@ cmd_ocr() {
   esac
 }
 
+# ---- the PIT folder: Best Practice's incoming share, mounted here and shown to the app as /pit ----
+# The app runs in a container that sees none of this computer's folders, so the share is mounted
+# here (CIFS, in /etc/fstab so it comes back after a restart) and passed in by compose.yaml
+# (PIT_HOST_DIR -> /pit). The folder under the mount is root's: if the share isn't mounted, the app
+# can't write there, so sending to BP fails visibly instead of filling a local folder.
+PIT_UID=10001   # the app container's user (Dockerfile)
+pit_paths() {
+  PIT_MNT="${MEDUI_TEST_MNT:-/mnt}/${PROJECT}_pit"
+  PIT_CRED="${MEDUI_TEST_ETC:-/etc/medui}/${PROJECT}_pit.credentials"
+  PIT_FSTAB="${MEDUI_TEST_FSTAB:-/etc/fstab}"
+}
+pit_mounted() { mountpoint -q "$PIT_MNT" 2>/dev/null; }
+pit_fstab_share() { awk -v m="$PIT_MNT" '$2 == m && $3 == "cifs" { gsub(/\\040/, " ", $1); print $1; exit }' "$PIT_FSTAB" 2>/dev/null; }
+
+cmd_pit() {
+  [ -z "$DEMO" ] || die "A demo installation never sends to Best Practice: its PIT files carry the demo's
+patient numbers, which would attach to whichever real patients have the same ones."
+  pit_paths
+  case "${1:-}" in
+    "") ;;
+    test)   pit_test; return ;;
+    status) pit_status; return ;;
+    off)    pit_off; return ;;
+    *) die "Use: ./medui.sh pit (connect the share), pit test, pit status or pit off" ;;
+  esac
+  say "Connect Best Practice's PIT folder"
+  cat <<EOF
+  Best Practice imports reports from a shared folder on the practice network (BP's own
+  settings name it, often something like \\\\SERVER\\BPS\\Incoming). This connects that share to
+  this computer at $PIT_MNT and shows it to MedUI as /pit. You need:
+   - the share's path;
+   - a Windows (or domain) account that can write to it. Its password is kept in
+     $PIT_CRED, readable by root only.
+  It uses sudo, and installs cifs-utils if it is missing.
+EOF
+  [ -t 0 ] || die "This asks questions: run it in a terminal."
+  local share cur user dom="" pass
+  cur="$(pit_fstab_share)"
+  read -rp $'\n'"  Share (\\\\SERVER\\share\\folder or //SERVER/share/folder)${cur:+ [$cur]}: " share
+  share="${share:-$cur}"; share="${share//\\//}"; share="${share%/}"
+  [[ "$share" =~ ^//[^/]+/[^/]+ ]] || die "That isn't a share path like //SERVER/share. Nothing was changed."
+  read -rp "  Windows account (user, or DOMAIN\\user): " user
+  [ -n "$user" ] || die "No account given. Nothing was changed."
+  if [[ "$user" == *\\* ]]; then dom="${user%%\\*}"; user="${user#*\\}"; fi
+  read -rsp "  Its password: " pass; echo
+  [ -n "$pass" ] || die "No password given. Nothing was changed."
+
+  command -v mount.cifs >/dev/null || show sudo apt-get install -y cifs-utils || die "Couldn't install cifs-utils. Nothing else was changed."
+  show sudo mkdir -p "$PIT_MNT" "$(dirname "$PIT_CRED")" || die "Couldn't make $PIT_MNT."
+  pit_mounted && { show sudo umount "$PIT_MNT" || die "$PIT_MNT is in use and won't unmount. Nothing else was changed."; }
+  show sudo chown root:root "$PIT_MNT" && show sudo chmod 755 "$PIT_MNT"
+  printf '  \033[2m$ sudo tee %s   (the account and password, shown nowhere else)\033[0m\n' "$PIT_CRED"
+  { printf 'username=%s\npassword=%s\n' "$user" "$pass"; [ -n "$dom" ] && printf 'domain=%s\n' "$dom"; } \
+    | sudo tee "$PIT_CRED" >/dev/null || die "Couldn't write $PIT_CRED."
+  pass=""
+  show sudo chmod 600 "$PIT_CRED" && show sudo chown root:root "$PIT_CRED"
+  local opts="credentials=$PIT_CRED,uid=$PIT_UID,forceuid,gid=$(id -g),forcegid,dir_mode=0775,file_mode=0664,iocharset=utf8"
+  if ! show sudo mount -t cifs "$share" "$PIT_MNT" -o "$opts"; then
+    warn "The share didn't mount. Check its path, the account and its password, and that this"
+    warn "computer can reach the server (port 445). Messages from the mount above say more."
+    die "Nothing else was changed. Try again: ./medui.sh pit"
+  fi
+  ok "Mounted $share at $PIT_MNT"
+
+  # In /etc/fstab, so it is mounted again after a restart, before Docker starts the app.
+  show sudo sed -i "\\# $PIT_MNT cifs #d" "$PIT_FSTAB"
+  printf '%s %s cifs %s,_netdev,nofail,x-systemd.before=docker.service,x-systemd.mount-timeout=30 0 0\n' \
+    "${share// /\\040}" "$PIT_MNT" "$opts" | show sudo tee -a "$PIT_FSTAB" >/dev/null || die "Couldn't add the share to $PIT_FSTAB."
+  command -v systemctl >/dev/null && sudo systemctl daemon-reload 2>/dev/null
+  ok "Added to $PIT_FSTAB: mounted again after a restart"
+
+  MEDUI_SET_PIT_HOST_DIR="$PIT_MNT" python3 scripts/env_edit.py set PIT_HOST_DIR >/dev/null || die "Couldn't save PIT_HOST_DIR in .env."
+  local changes=(PIT_HOST_DIR)
+  if [[ ! "$(env_get PIT_EXPORT_ENABLED)" =~ ^(1|true|yes)$ ]] && confirm "PIT export is off. Turn it on?" y; then
+    MEDUI_SET_PIT_EXPORT_ENABLED=true python3 scripts/env_edit.py set PIT_EXPORT_ENABLED >/dev/null && changes+=(PIT_EXPORT_ENABLED=true)
+  fi
+  ok "Saved in .env: ${changes[*]}"
+  cmd_reload || return 1
+  app_python cmd_pit "
+from wsgi import app
+from app.models.system_setting import SystemSetting
+with app.app_context():
+    if SystemSetting.get('pit_export_path', '') != '/pit':
+        SystemSetting.set('pit_export_path', '/pit')
+        print('  Setup → Messaging → PIT Export Folder set to /pit')
+"
+  pit_test
+}
+
+pit_test() {
+  say "Can MedUI write to the PIT folder?"
+  app_python pit_test "
+import os
+from wsgi import app
+from app.models.system_setting import SystemSetting
+from app.utils.pit_utils import folder_problem
+with app.app_context():
+    folder = SystemSetting.get('pit_export_path', '') or '/pit'
+problem = folder_problem(folder)
+if problem:
+    print('  NO: ' + problem); raise SystemExit(1)
+probe = os.path.join(folder, '.medui_write_test_%d' % os.getpid())
+with open(probe, 'w') as fh:
+    fh.write('MedUI write test, deleted straight away\n')
+os.remove(probe)
+print('  YES: a test file was written to ' + folder + ' and deleted again')
+"
+}
+
+pit_status() {
+  say "PIT folder"
+  local share; share="$(pit_fstab_share)"
+  if [ -n "$share" ]; then ok "Share: $share, in $PIT_FSTAB"; else warn "No share connected (./medui.sh pit)"; fi
+  if pit_mounted; then ok "Mounted at $PIT_MNT"; else warn "Not mounted at $PIT_MNT"; fi
+  local host; host="$(env_get PIT_HOST_DIR)"
+  if [ "$host" = "$PIT_MNT" ]; then ok "Shown to MedUI as /pit (PIT_HOST_DIR)"; else warn "PIT_HOST_DIR is ${host:-not set}: MedUI's /pit isn't the share"; fi
+  [[ "$(env_get PIT_EXPORT_ENABLED)" =~ ^(1|true|yes)$ ]] && ok "PIT export: on" || warn "PIT export: off (./medui.sh features PIT_EXPORT_ENABLED=on)"
+  running app && pit_test
+  return 0
+}
+
+pit_off() {
+  say "Disconnect the PIT folder"
+  confirm "Unmount the share, remove it from $PIT_FSTAB and delete its saved password?" || { ok "Nothing was changed."; return 0; }
+  pit_mounted && show sudo umount "$PIT_MNT"
+  show sudo sed -i "\\# $PIT_MNT cifs #d" "$PIT_FSTAB"
+  show sudo rm -f "$PIT_CRED"
+  local envs=(MEDUI_SET_PIT_HOST_DIR=) keys=(PIT_HOST_DIR)
+  if confirm "Turn PIT export off too?" y; then envs+=(MEDUI_SET_PIT_EXPORT_ENABLED=false); keys+=(PIT_EXPORT_ENABLED); fi
+  env "${envs[@]}" python3 scripts/env_edit.py set "${keys[@]}" >/dev/null
+  ok "Disconnected. Sending to BP now fails with a clear reason until a folder is connected again."
+  cmd_reload
+}
+
 medui_installs() {   # name<TAB>folder<TAB>status, for each MedUI installation Docker knows
   "${DOCKER[@]}" compose ls --all --format json 2>/dev/null | python3 -c '
 import json, os, sys
@@ -514,6 +654,15 @@ cmd_remove() {
   left="$("${DOCKER[@]}" ps -aq --filter "label=com.docker.compose.project=$PROJECT"; "${DOCKER[@]}" volume ls -q --filter "label=com.docker.compose.project=$PROJECT")"
   [ -z "$left" ] || die "Some of '$PROJECT' is still in Docker: docker ps -a / docker volume ls. The folder is kept."
   ok "Containers, database, stored files, images and network of '$PROJECT' removed"
+  pit_paths
+  if [ -z "$DEMO" ] && { [ -n "$(pit_fstab_share)" ] || [ -e "$PIT_CRED" ] || pit_mounted; }; then
+    say "Its PIT share"
+    pit_mounted && show sudo umount "$PIT_MNT"
+    show sudo sed -i "\\# $PIT_MNT cifs #d" "$PIT_FSTAB"
+    show sudo rm -f "$PIT_CRED"
+    show sudo rmdir "$PIT_MNT" 2>/dev/null
+    ok "Disconnected: unmounted, out of $PIT_FSTAB, its saved password deleted"
+  fi
 
   say "Last: the folder $APP_DIR"
   [ -n "$root" ] && echo "  Workstations that trusted this installation's MedUI root still list it (docs/operations.md)."
@@ -571,6 +720,7 @@ cmd_support() {
   echo "  Demo installation: ${DEMO:+yes}${DEMO:-no}"
   echo "  BP set:  $(env_has BPSDB_URI || env_has BPSDB_HOST BPSDB_USER BPSDB_PASSWORD && echo yes || echo no);  HTTPS: ${HTTPS_MODE:-off}"
   echo "  Features: AI=$(env_get AI_ENABLED) MESSAGING=$(env_get MESSAGING_ENABLED) PIT=$(env_get PIT_EXPORT_ENABLED)"
+  pit_paths; echo "  PIT share: $( [ -n "$(pit_fstab_share)" ] && echo 'in fstab' || echo 'none'), $(pit_mounted && echo mounted || echo 'not mounted'), PIT_HOST_DIR $( [ "$(env_get PIT_HOST_DIR)" = "$PIT_MNT" ] && echo 'matches' || echo 'differs')"
   echo "  Add: the step, what was expected, what happened (AGENTS.md: reporting a problem)."
 }
 
@@ -595,6 +745,7 @@ MENU=(
   password "New password for a local administrator"
   seeds    "Seeded prompt and workflow updates"
   ocr      "OCR: start or stop"
+  pit      "PIT folder: connect Best Practice's incoming share"
   installs "Installations on this computer"
   use      "Make this installation the running one"
   windows  "WSL2: commands that run on Windows"
@@ -626,6 +777,8 @@ menu() {
     case "$pick" in
       logs-f) ( cmd_logs -f ) ;;
       ocr) sub="$(choose "OCR" start "Start OCR" stop "Stop OCR")" && ( cmd_ocr "$sub" ) ;;
+      pit) sub="$(choose "PIT folder" connect "Connect the share (or change it)" status "What is connected" \
+              test "Check MedUI can write to it" off "Disconnect it")" && { [ "$sub" = connect ] && sub=""; ( cmd_pit $sub ); } ;;
       remove) cmd_remove ;;   # not in a subshell: it ends this menu with the folder (exec)
       demo) sub="$(choose "Demo data" status "What is there" refresh "Bring the dates up to today" \
               password "Set the demo users' password")" && ( cmd_demo "$sub" ) ;;
@@ -644,14 +797,14 @@ dispatch() {
     reload) cmd_reload ;; bp) cmd_bp ;; bp-check) cmd_bp_check ;; bp-clear) cmd_bp_clear ;;
     features) cmd_features "$@" ;; https) cmd_https "$@" ;; backup) cmd_backup ;; backups) cmd_backups ;;
     upgrade) cmd_upgrade "$@" ;; logs) cmd_logs "$@" ;; admin) cmd_admin ;; password) cmd_password ;;
-    seeds) cmd_seeds ;; ocr) cmd_ocr "$@" ;; installs) cmd_installs ;; use) cmd_use ;;
+    seeds) cmd_seeds ;; ocr) cmd_ocr "$@" ;; pit) cmd_pit "$@" ;; installs) cmd_installs ;; use) cmd_use ;;
     windows) cmd_windows ;; support) cmd_support ;; demo) cmd_demo "$@" ;; remove) cmd_remove ;;
     *) echo "Unknown command: $c (see ./medui.sh help)" >&2; return 2 ;;
   esac
 }
 
 case "${1:-}" in
-  -h|--help|help) sed -n '2,34p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  -h|--help|help) sed -n '2,35p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
   "") setup; menu ;;
   *) setup; dispatch "$@" ;;
 esac

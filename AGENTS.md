@@ -134,7 +134,7 @@ improves over time; it is not perfect, which is one reason cloud use is opt-in.
 | `OCR_ENABLED` | OCR of scanned documents by the built-in LiteParse (the one switch that starts `true`; `--no-ocr` sets it `false`) |
 | `AI_ENABLED` | AI panels, scribe, chatbots, prompt manager, pipeline runs |
 | `MESSAGING_ENABLED` | Outbound email and SMS to patients |
-| `PIT_EXPORT_ENABLED` | PIT file export |
+| `PIT_EXPORT_ENABLED` | PIT file export, into Best Practice's incoming share connected by `./medui.sh pit` (the app sees it as `/pit`) |
 | `PATIENT_API_ENABLED` | Patient and practice REST APIs (needs `PATIENT_API_KEY`) |
 
 LiteParse OCR is a local container, used without any setup. See [OCR](docs/ocr.md).

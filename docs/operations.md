@@ -25,7 +25,7 @@ Back up `.env` securely alongside the database, especially `MEDUI_ENCRYPTION_KEY
 With HTTPS on, also back up the `https` folder: it holds the MedUI root and its key, and a
 new root means installing it on every workstation again ([HTTPS](https.md)).
 Encrypted records cannot be recovered without the original key. Also back up the
-`app_data` volume and any separately configured PIT/export folders. A Docker
+`app_data` volume. The PIT folder (`./medui.sh pit`) is Best Practice's share, backed up with the BP server, not here. A Docker
 volume alone is not a backup. Store another copy off the host.
 
 ## Restore rehearsal

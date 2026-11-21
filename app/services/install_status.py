@@ -196,20 +196,24 @@ def _ocr() -> Item:
 
 def _pit() -> Item:
     from app.models.system_setting import SystemSetting
-    guide = 'setup-guide#9-other-optional-features'
+    from app.utils.pit_utils import folder_problem
+    guide = 'setup-guide#sending-to-best-practice-the-pit-folder'
+    label = 'Sending to Best Practice (PIT folder)'
     if not _flag('PIT_EXPORT_ENABLED'):            # counted: how MedUI's work reaches BP
-        return Item('pit', 'Sending to Best Practice (PIT folder)', WARN,
-                    'Switched off: ./medui.sh features PIT_EXPORT_ENABLED=on, then set the folder '
-                    'in Setup → Messaging.', 'messaging', guide)
+        return Item('pit', label, WARN,
+                    'Switched off: connect BP\'s incoming share with ./medui.sh pit (it turns PIT '
+                    'export on), or ./medui.sh features PIT_EXPORT_ENABLED=on.', 'messaging', guide)
     folder = (SystemSetting.get('pit_export_path', '') or '').strip()
     if not folder:
-        return Item('pit', 'Sending to Best Practice (PIT folder)', WARN,
-                    'Switched on, but no folder is set.', 'messaging', guide)
-    if not (os.path.isdir(folder) and os.access(folder, os.W_OK)):
-        return Item('pit', 'Sending to Best Practice (PIT folder)', WARN,
-                    'The folder isn\'t reachable or MedUI can\'t write to it.', 'messaging', guide)
-    return Item('pit', 'Sending to Best Practice (PIT folder)', OK, 'Folder reachable.',
-                'messaging', guide)
+        return Item('pit', label, WARN,
+                    'Switched on, but no folder is set: ./medui.sh pit connects BP\'s share as /pit.',
+                    'messaging', guide)
+    problem = folder_problem(folder)
+    if problem:
+        hint = '' if folder.startswith('/pit') else ' This installation shows BP\'s share as /pit.'
+        return Item('pit', label, WARN, f'{problem} Connect it with ./medui.sh pit.{hint}',
+                    'messaging', guide)
+    return Item('pit', label, OK, f'MedUI can write to {folder}.', 'messaging', guide)
 
 
 def _messaging() -> list[Item]:

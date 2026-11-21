@@ -2,7 +2,7 @@
 title: Application Setup
 area: Administration
 roles: [admin]
-reviewed: 2026-11-15
+reviewed: 2026-11-21
 related: [prompts, my-settings, ai-drafts]
 ---
 
@@ -163,7 +163,10 @@ everyone: users then see it marked *Set by your practice*.
 - **Outbound email (SMTP):** the mail server for emails to patients. **Test Connection** checks it.
 - **SMS gateway:** SMS is sent by emailing a gateway that turns the message into an SMS.
 - **Best Practice PIT export:** the shared folder Best Practice reads incoming reports from,
-  used by **BP →** and **File to BP**.
+  used by **BP →** and **File to BP**. It is the folder on MedUI's server where that share is
+  mounted, not a Windows path such as `\\SERVER\share`. MedUI never creates it: **Save** says
+  if it doesn't exist or can't be written to, and sending to BP then fails with that reason
+  instead of writing somewhere BP never reads.
 
 ## Maintenance {#maintenance}
 

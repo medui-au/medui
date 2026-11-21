@@ -40,6 +40,7 @@ services:
       OCR_SERVICE_URL: ${OCR_CONTAINER_URL:-http://liteparse:5707}
       # The container's local time is the practice's: "today" on the day sheet and elsewhere.
       TZ: ${PRACTICE_TIMEZONE:-Australia/Brisbane}
+      PIT_CONTAINER_DIR: /pit   # Setup → Messaging names this folder in its hint
     ports:
       - "${APP_BIND_HOST:-127.0.0.1}:${APP_PORT:-5005}:8000"
     depends_on:
@@ -47,6 +48,10 @@ services:
         condition: service_healthy
     volumes:
       - app_data:/app/instance
+      # Best Practice's PIT folder: its incoming share, mounted on this computer by ./medui.sh pit
+      # (PIT_HOST_DIR in .env) and shown to the app as /pit. Unset, ./pit is an empty folder the app
+      # can't write to, so sending to BP fails with a reason instead of writing where BP never reads.
+      - ${PIT_HOST_DIR:-./pit}:/pit
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
       interval: 15s

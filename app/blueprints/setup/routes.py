@@ -997,6 +997,12 @@ def model_set_speaker_turns(model_id: int):
 
 # ── Messaging ─────────────────────────────────────────────────────────────────
 
+def _pit_container_dir() -> str:
+    """Where a Docker installation shows the PIT share inside the app (medui_os: /pit)."""
+    import os
+    return os.environ.get('PIT_CONTAINER_DIR', '')
+
+
 def _messaging_tab_data() -> dict:
     from app.models.system_setting import SystemSetting
     from app.services import email_service, sms_service
@@ -1018,6 +1024,7 @@ def _messaging_tab_data() -> dict:
         'sms.use_tls':           SystemSetting.get('sms.use_tls', False),
         'sms_password_set':      sms_service.sms_password_is_set(),
         'pit_export_path':       SystemSetting.get('pit_export_path', ''),
+        'pit_container_dir':     _pit_container_dir(),
         'ai.provenance_footer':  SystemSetting.get('ai.provenance_footer', False),
         'ai.provenance_include_model': SystemSetting.get('ai.provenance_include_model', False),
     }
@@ -1076,9 +1083,14 @@ def messaging_save_sms():
 @_require_admin
 def messaging_save_pit():
     from app.models.system_setting import SystemSetting
-    SystemSetting.set('pit_export_path', request.form.get('pit_export_path', '').strip())
+    from app.utils.pit_utils import folder_problem
+    folder = request.form.get('pit_export_path', '').strip()
+    SystemSetting.set('pit_export_path', folder)
     SystemSetting.set('ai.provenance_footer', 'ai.provenance_footer' in request.form)
     SystemSetting.set('ai.provenance_include_model', 'ai.provenance_include_model' in request.form)
+    problem = folder_problem(folder) if folder else None
+    if problem:
+        return _render_messaging_tab(flash_pit=f'PIT settings saved, but: {problem}', flash_pit_ok=False)
     return _render_messaging_tab(flash_pit='PIT settings saved.', flash_pit_ok=True)
 
 

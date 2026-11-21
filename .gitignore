@@ -69,3 +69,6 @@ seed_data/
 
 # Demo data (install.sh --demo downloads medui_demodata here)
 demodata/
+
+# The empty folder compose.yaml binds as /pit until ./medui.sh pit connects BP's share
+/pit/

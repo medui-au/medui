@@ -171,9 +171,15 @@
                   hx-target="#setup-content" hx-swap="innerHTML"
                   style="max-width:520px;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {% if d.get('pit_container_dir') %}
                 {{ field('PIT Export Folder', 'pit_export_path', d.get('pit_export_path',''),
-                         placeholder='\\\\SERVER\\BPS\\Incoming  or  /mnt/bps/incoming',
-                         hint='UNC or local path accessible to this server. Leave blank to disable.') }}
+                         placeholder=d.get('pit_container_dir'),
+                         hint='In this installation Best Practice\'s incoming share appears as ' ~ d.get('pit_container_dir') ~ ': connect it with ./medui.sh pit, then enter ' ~ d.get('pit_container_dir') ~ ' here. Leave blank to disable.') }}
+                {% else %}
+                {{ field('PIT Export Folder', 'pit_export_path', d.get('pit_export_path',''),
+                         placeholder='/mnt/bps/incoming',
+                         hint='The folder on this server where Best Practice\'s incoming share is mounted. A Windows path (\\\\SERVER\\share) can\'t be used directly: mount the share first. Leave blank to disable.') }}
+                {% endif %}
                 {{ toggle('Provenance footer on AI drafts', 'ai.provenance_footer', d.get('ai.provenance_footer', False),
                           hint='Ends a filed AI assistant or scribe draft with: AI-assisted draft · filed by … · date and time · MedUI ref (the run, for the full record).') }}
                 {{ toggle('Include the model name', 'ai.provenance_include_model', d.get('ai.provenance_include_model', False),

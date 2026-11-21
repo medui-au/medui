@@ -237,6 +237,44 @@ request, in **My settings** (top menu), where the practice's defaults and locks
 `MESSAGING_ENABLED`, `PIT_EXPORT_ENABLED` and `PATIENT_API_ENABLED` are switched on
 in `.env` the same way as AI (`./medui.sh features`), and are configured in Application Setup.
 
+#### Sending to Best Practice (the PIT folder)
+
+MedUI sends letters, scribe notes and patient messages to Best Practice as PIT files, which BP
+imports from a shared folder on the practice network. BP's own settings name that folder, often
+something like `\\SERVER\BPS\Incoming`.
+
+MedUI can't write to a Windows path such as `\\SERVER\share` directly, and the app runs in a
+container that sees none of this computer's folders. So the share is mounted on this computer and
+passed to the app, which sees it as `/pit`. One command does all of it:
+
+```bash
+./medui.sh pit
+```
+
+It asks for the share's path and a Windows (or domain) account that can write to it, then:
+
+- mounts the share at `/mnt/<installation name>_pit` (for example `/mnt/medui_os_pit`), with the
+  account's password in a file only root can read, and adds it to `/etc/fstab` so it is mounted
+  again after a restart;
+- sets `PIT_HOST_DIR` in `.env`, offers to turn PIT export on, and recreates the app;
+- sets **Setup → Messaging → PIT Export Folder** to `/pit`, and writes and deletes a test file
+  there.
+
+| Later | Command |
+|---|---|
+| What is connected, and can MedUI write there? | `./medui.sh pit status` |
+| Just the write check | `./medui.sh pit test` |
+| A new password, or a different share | `./medui.sh pit` again |
+| Disconnect it | `./medui.sh pit off` |
+
+If the share isn't mounted (the server was off when this computer started, or the password
+changed), MedUI can't write to `/pit`: sending to BP fails with that reason, and the home page's
+installation status shows it, instead of writing files BP never reads. Once the share is back,
+`sudo mount /mnt/<installation name>_pit` and `./medui.sh reload`, or run `./medui.sh pit` again.
+
+A demo installation never connects a PIT folder: its files carry the demo's patient numbers, which
+would attach to real patients.
+
 ### 10. Backups
 
 ```bash

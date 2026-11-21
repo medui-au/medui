@@ -3,6 +3,26 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.53.0 — pre-release (November 2026)
+
+**Upgrade from 0.52.5**; nothing to migrate. If PIT export is on, run `./medui.sh pit` after
+upgrading: sending to Best Practice needs its share connected as `/pit` (below).
+
+- **`./medui.sh pit` connects Best Practice's PIT folder.** BP imports PIT files from a share on
+  the practice network, but the app runs in a container that sees none of this computer's
+  folders, so no folder setting could reach it. The command asks for the share and a Windows
+  account, mounts the share (password in a root-only file; in `/etc/fstab`, so it is mounted again
+  after a restart), passes it to the app as `/pit` (`PIT_HOST_DIR` in `.env`), sets Setup's PIT
+  folder to `/pit` and checks MedUI can write there. `pit status`, `pit test` and `pit off` look
+  after it later; `./medui.sh remove` disconnects it. A demo installation refuses: its files carry
+  the demo's patient numbers.
+- **MedUI never creates the PIT folder.** A Windows path (`\\SERVER\share`), a mistyped path or
+  an unmounted share used to make a local folder, and PIT files went there, logged as written,
+  where BP never read them. Now sending to BP fails with the reason, **Save** in Setup → Messaging
+  says what is wrong, and the home page's installation status checks the folder.
+- Setup's hint names `/pit` and `./medui.sh pit`; the Administrator setup guide has a section on
+  the PIT folder, and troubleshooting a row.
+
 ## 0.52.5 — pre-release (November 2026)
 
 **Upgrade from 0.52.4**; nothing to migrate.

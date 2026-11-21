@@ -132,20 +132,38 @@ def generate_pit_report(patient: dict, pit_type: str, contentstring: str,
     return pit
 
 
+def folder_problem(directory: str) -> str | None:
+    """Why PIT files can't be written to this folder, or None when they can (ADR-161).
+
+    The folder must already exist: it is where Best Practice's incoming share is mounted on this
+    server. MedUI never creates it, so a mistyped or unmounted path fails instead of quietly
+    filling a local folder BP never reads."""
+    directory = (directory or '').strip()
+    if not directory:
+        return 'No PIT folder is set (Setup → Messaging).'
+    if directory.startswith(('\\\\', '//')) or re.match(r'^[A-Za-z]:[\\/]', directory):
+        return ('A Windows path (\\\\SERVER\\share or C:\\…) can\'t be written from this server. Mount the '
+                'share on the server first and give the folder it is mounted at.')
+    if not os.path.isabs(directory):
+        return 'The PIT folder must be a full path, starting with /.'
+    if not os.path.isdir(directory):
+        return f'The PIT folder {directory} doesn\'t exist. Is the share mounted?'
+    if not os.access(directory, os.W_OK):
+        return f'MedUI can\'t write to the PIT folder {directory}. Is the share mounted, and writable?'
+    return None
+
+
 def pit_delivery(internal_id: int | str, pit_content: str,
                  patient_name: str) -> bool:
     """Write a PIT string to the configured export directory."""
     if not current_app.config.get('PIT_EXPORT_ENABLED', False):
         raise RuntimeError('PIT export is disabled for this installation.')
     try:
-        directory = SystemSetting.get('pit_export_path', '')
-        if not directory:
-            current_app.logger.error(
-                'PIT delivery failed: pit_export_path not configured (Setup → Messaging)'
-            )
+        directory = (SystemSetting.get('pit_export_path', '') or '').strip()
+        problem = folder_problem(directory)
+        if problem:
+            current_app.logger.error('PIT delivery failed: %s', problem)
             return False
-
-        os.makedirs(directory, exist_ok=True)
 
         timestamp = datetime.now().strftime('%d%m%Y%H%M%S')
         filename  = f'{patient_name}_COMMS_{timestamp}.pit'

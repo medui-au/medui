@@ -86,6 +86,7 @@ the command it runs, so it can be repeated by hand, and nothing in it prints `.e
 | `reload` | Recreate the app so it reads `.env` again |
 | `bp` / `bp-check` / `bp-clear` | Set the Best Practice connection (then reload and check it), check the login is read-only, or remove it |
 | `features` | Turn OCR, AI, messaging or PIT export on or off, then reload (`features AI_ENABLED=on`) |
+| `pit` | Connect Best Practice's PIT folder (its incoming share) as `/pit`; `pit status`, `pit test`, `pit off` |
 | `https` | HTTPS for workstations (`./install.sh --https`, with its options); on WSL2 it shows the Windows firewall step |
 | `backup` / `backups` | Back up now into `backups/<date>-<version>-manual/`, or list the backups |
 | `upgrade` | `./upgrade.sh --dry-run`, then the upgrade after a yes |
