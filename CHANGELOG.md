@@ -3,6 +3,15 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.53.4 — pre-release (November 2026)
+
+**Upgrade from 0.53.3**; nothing to migrate.
+
+- **Glucose results with LOINC 14768-6 now reach the AI context and trends.** Labs send this
+  code as plain "Glucose", usually fasting. Pathology and compact pathology in the patient
+  summary, and pathology trends, listed only 14771-0 (fasting glucose), so these results were
+  left out. Random glucose (14749-6) is still left out.
+
 ## 0.53.3 — pre-release (November 2026)
 
 **Upgrade from 0.53.2**; nothing to migrate.
