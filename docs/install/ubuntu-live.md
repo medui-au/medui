@@ -6,6 +6,7 @@
 | **Not this one** | To try MedUI or train staff with invented patients: [Ubuntu, demo](ubuntu-demo.md). On a Windows PC: [Windows PC, live](windows-live.md). |
 | **The script** | `./install.sh`, in the MedUI folder you download with `git clone` (below). |
 | **The computer** | Ubuntu with systemd (tested on 24.04 and 26.10); about 10 GB of free disk; your own login with `sudo`, not root. |
+| **Time** | Allow about 30 minutes to install, and about 30 minutes more to set MedUI up for the practice (the [Administrator setup guide](../setup-guide.md)) if the practice already has its BP database access account (EDBA). |
 
 **In short:** have [section 1](#1-what-to-have-ready) ready, then:
 

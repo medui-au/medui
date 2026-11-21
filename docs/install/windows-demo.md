@@ -7,7 +7,7 @@
 | **The script** | [`create_medui_wsl2.ps1`](https://github.com/medui-au/medui/blob/main/scripts/windows/create_medui_wsl2.ps1), the same one as for a live installation. On its GitHub page, choose **Download raw file** (↓). While the repository is private, sign in to GitHub first. |
 | **Answer** | `d` to "Live or demo?". |
 | **The PC** | Windows 11 22H2 or later, Intel or AMD; 8 GB of memory or more; about 12 GB of free disk. |
-| **Time** | 20 to 40 minutes, plus the SQL Server download (about 1.6 GB). |
+| **Time** | Allow 30 to 40 minutes to install. |
 
 **In short:** have [section 2](#2-what-to-have-ready) ready, save the script in `Downloads`, then
 in an **ordinary** PowerShell window (not "Run as administrator"):

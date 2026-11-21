@@ -6,6 +6,7 @@
 | **Not this one** | For the practice's real work: [Ubuntu, live](ubuntu-live.md). On a Windows PC: [Windows PC, demo](windows-demo.md). |
 | **The script** | `./install.sh --demo`, in a MedUI folder called `medui_demo` that you download with `git clone` (below). |
 | **The computer** | Ubuntu with systemd (tested on 24.04 and 26.10), Intel or AMD (x86-64) only; 8 GB of memory or more (under 6 GB the script warns); about 12 GB of free disk; your own login with `sudo`, not root. |
+| **Time** | Allow 30 to 40 minutes to install. |
 
 **In short:** have [section 1](#1-what-to-have-ready) ready, then:
 
@@ -41,8 +42,9 @@ provider keys only if you will show AI.
 
 ## 2. Get MedUI and run the installer
 
-Log in as your own user and download MedUI into `~/medui_demo`. The folder must **not** be called
-`medui_os`: the installer refuses, so a demo can't be mistaken for the practice's installation.
+Log in as your own user and download MedUI into `~/medui_demo`, as shown: the folder's name
+becomes the installation's name. Any name works except `medui_os`, which is kept for the
+practice's live installation; the installer refuses it for a demo.
 
 ```bash
 cd ~ && git clone https://github.com/medui-au/medui.git ~/medui_demo

@@ -7,7 +7,7 @@
 | **The script** | [`create_medui_wsl2.ps1`](https://github.com/medui-au/medui/blob/main/scripts/windows/create_medui_wsl2.ps1). On its GitHub page, choose **Download raw file** (↓). While the repository is private, sign in to GitHub first. |
 | **Answer** | `L` (or Enter) to "Live or demo?". |
 | **The PC** | Windows 11 22H2 or later; about 10 GB of free disk; stays on and signed in. |
-| **Time** | 20 to 40 minutes. |
+| **Time** | Allow about 30 minutes to install, and about 30 minutes more to set MedUI up for the practice (the [Administrator setup guide](../setup-guide.md)) if the practice already has its BP database access account (EDBA). |
 
 **In short:** have [section 2](#2-what-to-have-ready) ready, save the script in `Downloads`, then
 in an **ordinary** PowerShell window (not "Run as administrator"):
@@ -27,7 +27,7 @@ can reach it until you turn on HTTPS for the practice's workstations, which near
 installation will want: the script asks (question 11), or you can do it later. Best Practice and
 AI stay off until the administrator sets them up.
 
-**Time:** 20 to 40 minutes, most of it downloads and the OCR build. Longer if WSL has to be
+**Time:** about 30 minutes, most of it downloads and the OCR build. Longer if WSL has to be
 installed first, which needs a restart.
 
 For a demo (invented patients, never BP), see [Windows PC, demo](windows-demo.md) instead.

@@ -3,6 +3,16 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.52.3 — pre-release (November 2026)
+
+Documentation only. **Upgrade from 0.52.2**; nothing to migrate, and nothing in the app changes.
+
+- The install recipes give the time to allow: about 30 minutes to install a live installation,
+  and about 30 more to set it up for the practice if it already has its EDBA account; 30 to 40
+  minutes for a demo.
+- The Ubuntu demo recipe says the folder's name becomes the installation's name, and that only
+  `medui_os` is refused for a demo.
+
 ## 0.52.2 — pre-release (November 2026)
 
 Documentation only. **Upgrade from 0.52.1**; nothing to migrate, and nothing in the app changes.
