@@ -773,8 +773,12 @@ def provider_add_preset():
     }
     try:
         svc.create_from_preset(preset_key, overrides)
+    except svc.ProviderError as exc:
+        return _render_provider_list(provider_error=str(exc))
     except Exception as exc:
-        return f'<div class="alert alert-danger">{exc}</div>', 400
+        db.session.rollback()
+        current_app.logger.error('Adding a provider failed: %s', exc)
+        return _render_provider_list(provider_error=f'The provider could not be added: {exc}')
     return _render_provider_list()
 
 
@@ -795,8 +799,12 @@ def provider_add_custom():
     }
     try:
         svc.create_custom(data)
+    except svc.ProviderError as exc:
+        return _render_provider_list(provider_error=str(exc))
     except Exception as exc:
-        return f'<div class="alert alert-danger">{exc}</div>', 400
+        db.session.rollback()
+        current_app.logger.error('Adding a provider failed: %s', exc)
+        return _render_provider_list(provider_error=f'The provider could not be added: {exc}')
     return _render_provider_list()
 
 
@@ -1288,7 +1296,7 @@ def _render_model_list(flash: dict | None = None):
                            flash_models=flash)
 
 
-def _render_provider_list(flash: str = ''):
+def _render_provider_list(flash: str = '', provider_error: str = ''):
     from app.services import ai_provider_service as svc
     from app.models.ai_provider import AIModel
     from app.models.system_setting import SystemSetting
@@ -1303,7 +1311,8 @@ def _render_provider_list(flash: str = ''):
                            default_local_model_id=SystemSetting.get('default_local_model_id'),
                            default_chatbot_model_id=SystemSetting.get('default_chatbot_model_id'),
                            default_chatbot_local_model_id=SystemSetting.get('default_chatbot_local_model_id'),
-                           flash_defaults=flash)
+                           flash_defaults=flash,
+                           provider_error=provider_error)
 
 
 # ── Administrator setup guide (renders docs/ for administrators) ─────────────

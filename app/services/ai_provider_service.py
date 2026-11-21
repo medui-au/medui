@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 import json
+import re
 import time
 from datetime import datetime, timezone
 
@@ -29,12 +30,36 @@ def get_preset(provider_key: str) -> AIProviderPreset | None:
     return AIProviderPreset.query.filter_by(provider_key=provider_key).first()
 
 
+class ProviderError(ValueError):
+    """A provider can't be added as asked; the message is for the administrator."""
+
+
+def unique_provider_key(base: str) -> str:
+    """`base`, or `base_2`, `base_3`… if a provider already has it (ADR-163): a second server of
+    the same kind, such as a second Ollama, gets its own key."""
+    base = re.sub(r'[^a-z0-9_]+', '_', (base or 'provider').lower()).strip('_')[:50] or 'provider'
+    taken = {k for (k,) in db.session.query(AIProviderConfig.provider_key)
+             .filter(AIProviderConfig.provider_key.like(f'{base}%')).all()}
+    if base not in taken:
+        return base
+    n = 2
+    while f'{base}_{n}' in taken:
+        n += 1
+    return f'{base}_{n}'
+
+
 def create_from_preset(provider_key: str, overrides: dict) -> AIProviderConfig:
     """Create a new AIProviderConfig pre-filled from a preset + admin overrides."""
-    preset = AIProviderPreset.query.filter_by(provider_key=provider_key).first_or_404()
+    preset = AIProviderPreset.query.filter_by(provider_key=provider_key).first()
+    if preset is None:
+        raise ProviderError('Choose a preset first.')
+    name = overrides.get('name') or preset.display_name
+    if AIProviderConfig.query.filter(db.func.lower(AIProviderConfig.name) == name.lower()).first():
+        raise ProviderError(f'A provider called "{name}" already exists: give this one another '
+                            'display name, such as the server it runs on.')
     cfg = AIProviderConfig(
-        name=overrides.get('name') or preset.display_name,
-        provider_key=overrides.get('provider_key') or preset.provider_key,
+        name=name,
+        provider_key=unique_provider_key(overrides.get('provider_key') or preset.provider_key),
         provider_type=preset.provider_type,
         base_url=overrides.get('base_url') or preset.base_url_default or '',
         is_local=overrides.get('is_local', preset.is_local_default),
@@ -71,6 +96,11 @@ def create_from_preset(provider_key: str, overrides: dict) -> AIProviderConfig:
 
 def create_custom(data: dict) -> AIProviderConfig:
     """Create a fully custom AIProviderConfig."""
+    if not data.get('provider_key'):
+        raise ProviderError('Give the provider a key.')
+    if AIProviderConfig.query.filter_by(provider_key=data['provider_key']).first():
+        raise ProviderError(f'The key "{data["provider_key"]}" is used by another provider: choose '
+                            f'another, such as {unique_provider_key(data["provider_key"])}.')
     cfg = AIProviderConfig(
         name=data['name'],
         provider_key=data['provider_key'],

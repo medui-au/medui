@@ -3,6 +3,17 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.53.3 — pre-release (November 2026)
+
+**Upgrade from 0.53.2**; nothing to migrate.
+
+- **A second Ollama (or any second server of the same kind) can be added from its preset.**
+  Adding it did nothing: it needed an internal key of its own, and the page didn't show the error.
+  It now gets `ollama_2`, `ollama_3` and so on. Give each one its own display name, such as the
+  server it runs on.
+- When a provider can't be added (a display name or custom key already used, no preset chosen),
+  Setup → AI Providers says why above the list.
+
 ## 0.53.2 — pre-release (November 2026)
 
 **Upgrade from 0.53.1**; nothing to migrate.
