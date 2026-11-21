@@ -19,6 +19,11 @@ def _get_secret(key: str) -> str:
         return ''
 
 
+def _set_secret(key: str, plaintext: str) -> None:
+    from app.utils.crypto import encrypt_secret
+    SystemSetting.set(key, encrypt_secret(plaintext))
+
+
 def _get_config() -> dict:
     return {
         'smtp_host':          SystemSetting.get('sms.smtp_host', ''),
