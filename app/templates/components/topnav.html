@@ -14,7 +14,7 @@
 <nav class="topnav" role="navigation" aria-label="Main navigation">
 
     {# Brand #}
-    <a href="{{ url_for('main.index') }}" class="topnav-brand">{{ _pname }}</a>
+    <a href="{{ url_for('main.index') }}" class="topnav-brand{% if _pname|length > 24 %} topnav-brand--long{% endif %}" title="{{ _pname }}">{{ _pname }}</a>
 
     {# Main menu #}
     <ul class="topnav-menu" id="topnavMenu">

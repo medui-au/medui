@@ -3,6 +3,14 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.53.2 — pre-release (November 2026)
+
+**Upgrade from 0.53.1**; nothing to migrate.
+
+- **A long practice name no longer covers the top of the page.** The name in the top bar takes at
+  most two lines (smaller type for long names, ending in "…" if it still doesn't fit), and shows in
+  full when you hover over it.
+
 ## 0.53.1 — pre-release (November 2026)
 
 **Upgrade from 0.53.0**; nothing to migrate.

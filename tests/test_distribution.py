@@ -852,3 +852,13 @@ def test_no_file_names_the_private_upstream_application():
     found = subprocess.run(['git', 'grep', '-n', '-I', 'MedUI' + '5'], cwd=root,
                            capture_output=True, text=True).stdout
     assert not found, found
+
+
+def test_practice_name_takes_at_most_two_lines():
+    """A long practice name made the fixed top bar taller than the page leaves for it (0.53.2)."""
+    from pathlib import Path
+    css = (Path(__file__).resolve().parent.parent / 'app/static/css/style.css').read_text()
+    brand = css[css.index('.topnav-brand {'):css.index('}', css.index('.topnav-brand {'))]
+    assert '-webkit-line-clamp: 2' in brand and 'overflow:           hidden' in brand
+    nav = (Path(__file__).resolve().parent.parent / 'app/templates/components/topnav.html').read_text()
+    assert 'title="{{ _pname }}"' in nav and 'topnav-brand--long' in nav
