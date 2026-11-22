@@ -72,6 +72,19 @@ def why_text(option, flags: dict, version) -> str:
     return vtag
 
 
+def one_per_label(options: list, default=None, current=None) -> list:
+    """The options a GP chooses between, one per label (ADR-182). A wizard-built protocol has one row per
+    patient group, so the same target can appear more than once; the GP sees it once, as the row that
+    is preselected for this patient (or holds the current target), else the first by priority."""
+    current_id = getattr(current, 'option_id', None)
+    default_id = default.id if default else None
+    chosen = {}
+    for o in sorted(options, key=lambda o: (o.id != current_id, o.id != default_id, o.priority, o.id or 0)):
+        chosen.setdefault(o.label.strip().lower(), o)
+    picked = {o.id for o in chosen.values()}
+    return [o for o in options if o.id in picked]
+
+
 def build_rows(patient_id: int, flags: dict, latest: dict | None = None) -> dict:
     """What the targets screen shows.
 
@@ -87,6 +100,7 @@ def build_rows(patient_id: int, flags: dict, latest: dict | None = None) -> dict
     for m in protocols.measures():
         options = by_measure.get(m.id, [])
         default = protocols.default_option(options, flags) if m.scope == MeasureScope.protocol else None
+        options = one_per_label(options, default, current.get(m.id))
         row = {
             'measure': m, 'options': options, 'default': default,
             'why': why_text(default, flags, version), 'current': current.get(m.id),

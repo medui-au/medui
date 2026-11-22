@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% block title %}Protocol setup wizard — {{ app_name }}{% endblock %}
+{% block head %}
+<style>
+.wz { max-width: 60rem; }
+.wz h2 { margin:0; font-size:1.15rem; }
+.wz-muted { color:var(--text-muted); font-size:0.8rem; }
+.wz-card { border:1px solid var(--border-color); border-radius:0.4rem; padding:0.6rem 0.8rem; margin-bottom:0.8rem; background:var(--bg-primary); }
+.wz-card h3 { margin:0 0 0.35rem; font-size:0.98rem; }
+.wz-card h4 { margin:0.6rem 0 0.25rem; font-size:0.86rem; }
+.wz-q { border-top:1px solid var(--border-color); padding:0.45rem 0 0.3rem; }
+.wz-opt { margin:0.2rem 0 0.2rem 0.2rem; font-size:0.85rem; }
+.wz-cite { font-size:0.76rem; color:var(--text-secondary); margin:0.05rem 0 0.1rem 1.5rem; }
+.wz-cite q { font-style:italic; }
+.wz-use { display:flex; gap:1rem; font-size:0.85rem; margin-bottom:0.2rem; }
+.wz-missing { border:1px solid var(--warning); border-radius:0.4rem; padding:0.5rem 0.75rem; margin-bottom:0.8rem; font-size:0.82rem; }
+.wz-row { display:grid; grid-template-columns: 1fr auto; gap:0.4rem; align-items:start; border-top:1px solid var(--border-color); padding:0.35rem 0; font-size:0.84rem; }
+.wz-row .ch { white-space:nowrap; }
+.wz-row details { font-size:0.78rem; color:var(--text-secondary); }
+.wz-off { opacity:0.45; }
+.wz-section { font-size:1rem; margin:1.2rem 0 0.4rem; }
+</style>
+{% endblock %}
+{% block content %}
+{% macro chk(name, value) %}{{ 'checked' if answers and answers.get(name) == value }}{% endmacro %}
+{% macro cites(o) %}
+  {% for g, row, sec, quote in o.cites %}
+    <div class="wz-cite">{% if row.url %}<a href="{{ row.url }}" target="_blank" rel="noopener">{{ row.title }}</a>{% else %}{{ row.title }}{% endif %}{% if row.edition %}, {{ row.edition }}{% endif %}{% if sec %} · {{ sec }}{% endif %}{% if quote %}: <q>{{ quote }}</q>{% endif %}</div>
+  {% endfor %}
+{% endmacro %}
+<div class="wz">
+<h2>Set up the practice protocol{{ help('practice-protocols.wizard') }}</h2>
+<p class="wz-muted">Each question offers options supported by Australian guidelines, with the passage each one rests on.
+Nothing is chosen for you: answer every question. Your answers become a <b>draft</b> version, which changes nothing
+until an administrator has read it through on the Practice Protocols screen, edited what the practice wants changed,
+and approved it. A GP still chooses every patient's target; the protocol only decides which option is preselected.</p>
+
+{% if draft %}
+<div class="wz-missing">There is already a draft (version {{ draft.version }}). Approve or discard it on the
+<a href="{{ url_for('protocols.index', tab='versions') }}">Versions tab</a> before running the wizard.</div>
+{% else %}
+{% if live %}<p class="wz-muted">Version {{ live.version }} is in use. The wizard builds a new draft from scratch; version {{ live.version }} stays in use until the draft is approved.</p>{% endif %}
+{% if q.missing_guidelines %}<p class="wz-muted">{{ q.missing_guidelines }} of the guidelines cited here are not yet in your guideline library: building the draft adds them.</p>{% endif %}
+
+{% if missing %}
+<div class="wz-missing"><b>Still to answer:</b>
+  <ul style="margin:0.2rem 0 0 1rem; padding:0;">{% for m in missing %}<li>{{ m }}</li>{% endfor %}</ul></div>
+{% endif %}
+
+<form method="post" action="{{ url_for('protocols.wizard_build') }}" data-unsaved-guard>
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+<h3 class="wz-section">1. Practice targets</h3>
+<p class="wz-muted">For each measure: use it in the protocol or leave it out. If you use it, choose the target for each patient
+group. MedUI preselects the first group's choice whose conditions are coded in the patient's record.</p>
+{% for m in q.protocol %}
+<div class="wz-card" id="wz-m-{{ m.key }}">
+  <h3>{{ m.label }}</h3>
+  <div class="wz-use">
+    <label><input type="radio" name="m_{{ m.key }}" value="use" {{ chk('m_' ~ m.key, 'use') }} onchange="wzUse('{{ m.key }}', true)"> Use in the protocol</label>
+    <label><input type="radio" name="m_{{ m.key }}" value="leave" {{ chk('m_' ~ m.key, 'leave') }} onchange="wzUse('{{ m.key }}', false)"> Leave out</label>
+  </div>
+  <div class="wz-groups" id="wz-g-{{ m.key }}">
+  {% for g in m.groups %}
+    {% set name = 'g_' ~ m.key ~ '_' ~ g.key %}
+    <div class="wz-q">
+      <h4>{{ g.label }}</h4>
+      {% for o in m.options %}
+        <div class="wz-opt"><label><input type="radio" name="{{ name }}" value="{{ o.code }}" {{ chk(name, o.code) }}> {{ o.label }}</label></div>
+        {{ cites(o) }}
+      {% endfor %}
+      {% if g.rule is not none %}
+        <div class="wz-opt"><label><input type="radio" name="{{ name }}" value="{{ GP_SETS }}" {{ chk(name, GP_SETS) }}> GP sets individually (no practice target for this group)</label></div>
+      {% else %}
+        <div class="wz-muted">Offered to the GP but never preselected.</div>
+      {% endif %}
+    </div>
+  {% endfor %}
+  </div>
+</div>
+{% endfor %}
+
+<h3 class="wz-section">2. Measures a GP may set for an individual patient</h3>
+<p class="wz-muted">Not part of the protocol and never preselected: offered on a patient's targets screen when the GP adds the measure.</p>
+<div class="wz-card">
+{% for m in q.individual %}
+  <div class="wz-row">
+    <div><b>{{ m.label }}</b>{% for o in m.options %}: {{ o.label }}{{ cites(o) }}{% endfor %}</div>
+    <div class="ch"><label><input type="radio" name="i_{{ m.key }}" value="keep" {{ chk('i_' ~ m.key, 'keep') }}> Offer</label>
+      <label><input type="radio" name="i_{{ m.key }}" value="drop" {{ chk('i_' ~ m.key, 'drop') }}> Leave out</label></div>
+  </div>
+{% endfor %}
+</div>
+
+<h3 class="wz-section">3. Condition wording</h3>
+<p class="wz-muted">Example goals, monitoring and patient information for each condition, from a general practice's care-plan
+library, de-identified. Keep the ones you want as a starting point: every word can be edited in the draft. No targets,
+named medicines or doses are in the patient text.
+<button type="button" class="btn btn-secondary btn-sm" onclick="wzAll('mod_', 'keep')">Keep all</button>
+<button type="button" class="btn btn-secondary btn-sm" onclick="wzAll('mod_', 'drop')">Drop all</button></p>
+<div class="wz-card">
+{% for m in q.modules %}
+  <div class="wz-row">
+    <div><b>{{ m.label }}</b> <span class="wz-muted">({{ m.rule }})</span>
+      <details><summary>Read it</summary>
+        {% for f, label in [('goals','Goals'), ('measures_text','Measures'), ('monitoring','Monitoring'), ('patient_info','Patient information'), ('safety_netting','When to see the GP sooner'), ('gp_reference','GP reference')] %}
+          {% if m.fields.get(f) %}<div><b>{{ label }}:</b> {{ m.fields[f] }}</div>{% endif %}
+        {% endfor %}
+        {% if m.fields.get('services') %}<div><b>Services:</b> {{ m.fields['services'] | join(', ') }}</div>{% endif %}
+      </details></div>
+    <div class="ch"><label><input type="radio" name="mod_{{ m.key }}" value="keep" {{ chk('mod_' ~ m.key, 'keep') }}> Keep</label>
+      <label><input type="radio" name="mod_{{ m.key }}" value="drop" {{ chk('mod_' ~ m.key, 'drop') }}> Drop</label></div>
+  </div>
+{% endfor %}
+</div>
+
+<h3 class="wz-section">4. Prevention lines</h3>
+<p class="wz-muted">Lines added to a plan when the patient's age, sex or coded conditions match.
+<button type="button" class="btn btn-secondary btn-sm" onclick="wzAll('prev_', 'keep')">Include all</button>
+<button type="button" class="btn btn-secondary btn-sm" onclick="wzAll('prev_', 'drop')">Leave all out</button></p>
+<div class="wz-card">
+{% for p in q.prevention %}
+  <div class="wz-row">
+    <div><b>{{ p.label }}</b>: {{ p.wording }} <span class="wz-muted">{{ p.source }}</span></div>
+    <div class="ch"><label><input type="radio" name="prev_{{ p.key }}" value="keep" {{ chk('prev_' ~ p.key, 'keep') }}> Include</label>
+      <label><input type="radio" name="prev_{{ p.key }}" value="drop" {{ chk('prev_' ~ p.key, 'drop') }}> Leave out</label></div>
+  </div>
+{% endfor %}
+</div>
+
+<h3 class="wz-section">5. Build the draft</h3>
+<div class="wz-card">
+  <label class="wz-muted" for="wz-note">Note for the version history (optional)</label>
+  <input class="form-control" id="wz-note" name="note" value="{{ answers.get('note', '') if answers else '' }}" placeholder="Built with the setup wizard">
+  <p class="wz-muted" style="margin-top:0.5rem;">The guidelines cited above are added to the guideline library if they aren't there.
+  The next step is the draft itself: read it, edit it, then approve it on the Versions tab with the next review date.</p>
+  <button class="btn btn-primary">Build the draft</button>
+</div>
+</form>
+{% endif %}
+</div>
+<script src="{{ url_for('static', filename='js/unsaved_guard.js') }}"></script>
+<script>
+function wzUse(key, on) {
+  const box = document.getElementById('wz-g-' + key);
+  box.classList.toggle('wz-off', !on);
+  box.querySelectorAll('input').forEach(i => { i.disabled = !on; });
+}
+function wzAll(prefix, value) {
+  document.querySelectorAll('input[type=radio][name^="' + prefix + '"][value="' + value + '"]').forEach(i => { i.checked = true; i.dispatchEvent(new Event('change', {bubbles: true})); });
+}
+document.querySelectorAll('input[type=radio][name^="m_"]:checked').forEach(i => wzUse(i.name.slice(2), i.value === 'use'));
+</script>
+{% endblock %}

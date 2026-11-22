@@ -139,12 +139,54 @@ def draft_approve():
     try:
         raw = (request.form.get('review_due_on') or '').strip()
         due = date.fromisoformat(raw) if raw else None
+        if not request.form.get('attest'):
+            raise svc.ProtocolError("Tick the sign-off box: approving says the protocol is the practice's own, reviewed decisions.")
         v = svc.approve(current_user, due, request.form.get('note', ''))
         flash(f'Version {v.version} approved and now in use.', 'success')
         return _back('versions', v.id)
     except ValueError as e:
         flash(str(e) if isinstance(e, svc.ProtocolError) else 'The review date must be a date.', 'error')
         return _back('versions')
+
+
+@bp.get('/wizard')
+@login_required
+@admin_required
+def wizard():
+    """The setup wizard (ADR-182): build a draft protocol from the option catalogue."""
+    from app.services import protocol_wizard as wiz
+    return render_template('protocols/wizard.html', q=wiz.questions(), draft=svc.draft_version(),
+                           live=svc.live_version(), answers=None, missing=[], GP_SETS=wiz.GP_SETS)
+
+
+@bp.post('/wizard')
+@login_required
+@admin_required
+def wizard_build():
+    from app.services import protocol_wizard as wiz
+    answers, missing = wiz.read_answers(request.form)
+    if missing:
+        flash(f'{len(missing)} question(s) still need an answer: they are marked below.', 'error')
+        return render_template('protocols/wizard.html', q=wiz.questions(), draft=svc.draft_version(),
+                               live=svc.live_version(), answers=request.form, missing=missing, GP_SETS=wiz.GP_SETS), 400
+    try:
+        v = wiz.build_draft(current_user, answers, request.form.get('note', '').strip())
+    except svc.ProtocolError as e:
+        flash(str(e), 'error')
+        return redirect(url_for('protocols.wizard'))
+    flash(f'Draft version {v.version} built from your answers. Read it through, edit what the practice wants '
+          f'changed, then approve it on the Versions tab.', 'success')
+    return _back('measures', v.id)
+
+
+@bp.post('/guidelines/seed')
+@login_required
+@admin_required
+def guidelines_seed():
+    from app.services.protocol_wizard import seed_guidelines
+    added, existing = seed_guidelines(current_user.id)
+    flash(f'Guideline library: {added} added, {existing} already there.', 'success')
+    return _back('guidelines')
 
 
 # ── Options ───────────────────────────────────────────────────────────────────

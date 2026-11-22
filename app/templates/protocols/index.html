@@ -49,8 +49,10 @@ only where this protocol's rule matches a condition coded in the patient's recor
 {% if not can_edit %}{% if is_admin %} To change anything, start a new draft (Versions tab).{% else %} Only an administrator can change the protocol.{% endif %}{% endif %}</p>
 
 {% if not version %}
-<div class="pp-card">No protocol yet.{% if is_admin %} Start a draft on the Versions tab, add the practice's guidelines,
-then its measures' options and condition wording, and approve it.{% endif %}</div>
+<div class="pp-card">No protocol yet.{% if is_admin %}
+  <a class="btn btn-primary btn-sm" href="{{ url_for('protocols.wizard') }}">Set up with the wizard</a>
+  <span class="pp-muted">One question per measure, from Australian guidelines, with nothing chosen for you. It builds a draft
+  for the practice to read, edit and approve. Or start an empty draft on the Versions tab and build it by hand.</span>{% endif %}</div>
 {% endif %}
 
 <nav class="pp-tabs">
@@ -239,6 +241,11 @@ edition arrives; the options that cite it are then due for review.</p>
   </tbody>
 </table>
 {% if is_admin %}
+<form method="post" action="{{ url_for('protocols.guidelines_seed') }}" style="margin-top:0.6rem;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button class="btn btn-secondary btn-sm">Add the Australian guidelines the wizard cites</button>
+  <span class="pp-muted">Adds only the ones not already here (matched by title); never changes a guideline you have edited.</span>
+</form>
 {% set g = None %}
 <details class="pp-edit" style="margin-top:0.6rem;"><summary>Add a guideline</summary>
   <form method="post" action="{{ url_for('protocols.guideline_save') }}" class="pp-form">
@@ -282,6 +289,9 @@ edition arrives; the options that cite it are then due for review.</p>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label>Next review</label><input class="form-control" type="date" name="review_due_on" value="{{ default_review.isoformat() }}" style="max-width:12rem;">
       <label>Note</label><input class="form-control" name="note" value="{{ draft.change_note or '' }}">
+      <div class="full"><label style="color:var(--text-primary);"><input type="checkbox" name="attest" value="1" required>
+        I have read this version through. Its targets, wording and prevention lines are the practice's own decisions,
+        reviewed against the guidelines it cites, and I approve it on the practice's behalf.</label></div>
       <div class="full"><button class="btn btn-primary btn-sm">Approve version {{ draft.version }}</button></div>
     </form>
     <form method="post" action="{{ url_for('protocols.draft_discard') }}" onsubmit="return confirm('Discard draft version {{ draft.version }}? Its changes are lost.');" style="margin-top:0.4rem;">
@@ -295,6 +305,8 @@ edition arrives; the options that cite it are then due for review.</p>
       <label>What will change</label><input class="form-control" name="note">
       <div class="full"><button class="btn btn-primary btn-sm">Start draft</button></div>
     </form>
+    <p class="pp-muted" style="margin-top:0.5rem;">Or <a href="{{ url_for('protocols.wizard') }}">set up with the wizard</a>: a new draft
+    built from your answers to one question per measure (it doesn't copy the version in use).</p>
   {% endif %}
 </div>
 {% endif %}

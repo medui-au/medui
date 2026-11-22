@@ -92,3 +92,12 @@ def seed_v1_command():
                '{citations} citations, {guidelines} guidelines, {modules} modules, {prevention} prevention lines.'
                .format(**out))
     click.echo('An administrator approves it on Admin → Practice Protocols → Versions.')
+
+
+@protocol_cli.command('seed-guidelines')
+def seed_guidelines_command():
+    """Add the Australian guidelines the protocol wizard cites to the guideline library (insert-only:
+    a guideline already there, matched by title, is left as it is)."""
+    from app.services.protocol_wizard import seed_guidelines
+    added, existing = seed_guidelines()
+    click.echo(f'Guideline library: {added} added, {existing} already there.')

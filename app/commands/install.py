@@ -95,10 +95,14 @@ def seeds(dry_run, include_reference_data):
 
 def _seed_gpccmp_pipeline():
     """The GPCCMP drafting prompts and workflow (new rows only, matched by name), as a draft with no
-    model: an administrator chooses its model in the Pipeline Designer and makes it active."""
+    model: an administrator chooses its model in the Pipeline Designer and makes it active. Also the
+    Australian guidelines the protocol setup wizard cites (new rows only, matched by title)."""
     from app.commands.gpccmp import seed_pipeline
+    from app.services.protocol_wizard import seed_guidelines
     made = seed_pipeline()['made']
     click.echo('GPCCMP drafting: ' + (', '.join(made) + ' added (draft, no model)' if made else 'already there'))
+    added, existing = seed_guidelines()
+    click.echo(f'Guideline library (for Practice Protocols): {added} added, {existing} already there')
 
 
 _RESYNC_HEADINGS = (

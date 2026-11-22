@@ -215,11 +215,13 @@ cloud models. See [seed data](seed-data.md).
 
 The GPCCMP screens (Patient Data → GPCCMP: Targets & Plan) start with **no practice protocol**:
 MedUI ships no targets of its own. Before doctors use them, an administrator builds the practice's
-protocol in **Admin → Practice Protocols**: start a draft on the Versions tab, add the guidelines
-the practice follows, then each measure's target options (with the patient group, the rule that
-preselects it from coded conditions, and the reason), the wording for each condition and the
-prevention lines, and approve it with a review date. The clinical content is the practice's own and
-its responsibility. Patient targets and plan decisions work without AI. The AI draft uses the
+protocol in **Admin → Practice Protocols**. The quickest way is **Set up with the wizard**: one
+question per measure and patient group, choosing among options from Australian guidelines (each
+shown with the passage it rests on), plus example condition wording and prevention lines to keep or
+drop. Nothing is chosen in advance. The wizard writes a **draft**: read it through, edit what the
+practice wants changed, and approve it with a review date and the sign-off. The protocol can also
+be built by hand from an empty draft (Versions tab). `install seeds` adds the cited guidelines to the
+guideline library (new ones only). The clinical content is the practice's own and its responsibility. Patient targets and plan decisions work without AI. The AI draft uses the
 seeded workflow *GP Chronic Condition Management Plan (draft)*: give it a model and activate it as
 above. In-app help: Practice protocols, Patient targets, GPCCMP plan decisions.
 

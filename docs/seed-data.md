@@ -112,7 +112,12 @@ The **GP Chronic Condition Management Plan (draft)** workflow and its own system
 are added by `install seeds` and `install resync-seeds` (new rows only, matched by name), as a draft
 with no model. It drafts only the wording of each issue from the doctor's recorded decisions and
 the practice's own protocol; MedUI writes the targets, prevention, review and consent itself and
-checks the draft. No practice protocol is seeded: each practice builds its own.
+checks the draft. No practice protocol is seeded: each practice builds its own, by hand or with
+the protocol setup wizard. The same commands add the Australian guidelines the wizard cites to the
+guideline library (new rows only, matched by title; an edited guideline is never changed). The
+wizard's options, example condition wording (from a general practice's care-plan library,
+de-identified) and prevention lines are in `app/services/protocol_catalogue.py` and are used only
+when an administrator runs the wizard.
 
 Message templates are inactive. Review their text and configure this practice's
 identity and delivery settings before activating them. Practice-specific phone,

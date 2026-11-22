@@ -59,10 +59,38 @@ codes count as each condition is **Admin → Mapping Tables → condition_codes*
 The rule only chooses what is shown first. The GP confirms or changes every target, and MedUI
 records which they did.
 
+## Setting up with the wizard {#wizard}
+
+A practice with no protocol yet can build its first one with **Set up with the wizard** (on the
+empty screen, or under Versions). The wizard asks one question at a time:
+
+1. **Practice targets**: for each measure, use it or leave it out. If you use it, choose the target
+   for each patient group (for example, LDL cholesterol for people with established coronary
+   disease, for people with diabetes, CKD or familial hypercholesterolaemia, and for everyone else).
+   Each choice shows the Australian guidelines it rests on, with the section and a short quote.
+   **GP sets individually** means the practice sets no target for that group.
+2. **Individual measures** (uACR, urate, waist, weight): offer them to GPs for one patient, or leave them out.
+3. **Condition wording**: example goals, monitoring and patient information for each condition,
+   from a general practice's care-plan library, de-identified. Keep or drop each one.
+4. **Prevention lines**: include or leave out each screening and prevention line.
+
+Nothing is chosen for you, and every question needs an answer. **Build the draft** makes a new
+draft version from your answers and adds the guidelines it cites to the library. The draft
+changes nothing until it is approved: read it through on each tab, edit what the practice wants
+changed (every option, module and line can be edited), then approve it. The guidelines and
+wording are a starting point, current when MedUI was released; the practice checks them against
+the current editions and stays responsible for the protocol it approves.
+
+**Guidelines → Add the Australian guidelines the wizard cites** adds the same guidelines without
+running the wizard. It only adds ones that aren't there (matched by title) and never changes a
+guideline the practice has edited.
+
 ## Drafts and approval {#versions}
 
 The version in use is never edited. To change the protocol, start a **draft** (a copy of the
-version in use), change it, then **approve** it with the next review date (normally 12 months).
+version in use), change it, then **approve** it with the next review date (normally 12 months). Approving asks you to tick a
+sign-off: that you have read the version through and that its targets, wording and prevention lines
+are the practice's own decisions, reviewed against the guidelines it cites.
 Approving retires the previous version; retired versions stay readable, so every target set
 under them can be traced to the exact option and wording. Discarding a draft loses its changes.
 

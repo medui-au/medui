@@ -3,6 +3,24 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.57.0 — pre-release (November 2026)
+
+**Upgrade from 0.56.0**: `./upgrade.sh`. No migrations. The seed resync adds the guidelines the
+protocol setup wizard cites to the guideline library (new ones only). A MINOR release: a new function.
+
+- **Protocol setup wizard** (Admin → Practice Protocols → Set up with the wizard): builds a first
+  practice protocol from one question per measure and patient group. The options come from
+  Australian guidelines, each with its section and a short quote. Example condition wording
+  (de-identified) and prevention lines can be kept or dropped. Nothing is pre-chosen and every
+  question needs an answer. The result is a **draft**, which the practice reads, edits and approves.
+  Still no protocol is shipped.
+- **Guideline library**: `install seeds`, `install resync-seeds`, `flask protocol seed-guidelines`
+  and a button on the Guidelines tab add those guidelines, new ones only.
+- **Approve** now needs a sign-off: the version has been read through, and it is the practice's own,
+  reviewed decisions.
+- A patient's targets screen lists each target option once, even when the protocol uses it for
+  more than one patient group.
+
 ## 0.56.0 — pre-release (November 2026)
 
 **Upgrade from 0.55.1**: `./upgrade.sh` runs the three new migrations (new tables only) and the seed

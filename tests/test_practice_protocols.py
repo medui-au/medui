@@ -208,6 +208,8 @@ def test_admin_edits_and_approves_on_the_screen(ctx):
     assert opt.label == 'Invented label'                     # nothing saved from a bad form
     due = (date.today() + timedelta(days=365)).isoformat()
     assert adm.post('/admin/protocols/draft/approve', data={'review_due_on': due}).status_code == 302
+    assert svc.live_version() is None                        # not without the sign-off box
+    assert adm.post('/admin/protocols/draft/approve', data={'review_due_on': due, 'attest': '1'}).status_code == 302
     assert svc.live_version().version == 1
 
 
