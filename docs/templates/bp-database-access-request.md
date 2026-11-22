@@ -22,12 +22,11 @@ grant access and on what terms; follow whatever process and conditions it sets.*
 | `BPSPatients` | The patient record: demographics, history, results, medications, appointments |
 | `BPSDocumentsInbox` | Documents and results waiting in clinicians' inboxes |
 | `BPSDocuments` (each numbered store, e.g. `BPSDocuments1`) | The contents of filed documents |
-| `BPSDrugs` (optional) | The names Best Practice uses for past-history items, so conditions are shown by name. MedUI works without it. |
 
 ## Suggested wording: purpose of access
 
 > [Practice name] requests read-only access to its Bp Premier databases (`BPSPatients`,
-> `BPSDocumentsInbox` and the `BPSDocuments` databases[, and `BPSDrugs` for condition names]) for
+> `BPSDocumentsInbox` and the `BPSDocuments` databases) for
 > use by MedUI, open-source software that the practice installs and runs on its own premises.
 >
 > The access would allow the practice's clinicians and staff to read and summarise information

@@ -32,6 +32,7 @@ QUERY_REGISTRY: dict[str, str] = {
     'patient_pathology_trends':     'patient_pathology_trends.sql',
     'patient_history_codes':        'patient_history_codes.sql',
     'condition_term_names':         'condition_term_names.sql',
+    'condition_item_texts':         'condition_item_texts.sql',
     'patient_marker_results':       'patient_marker_results.sql',
     # Criterion review (ADR-109): practice-wide, the active patients seen in 24 months
     'review_cohort':                'review_cohort.sql',

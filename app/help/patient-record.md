@@ -22,8 +22,14 @@ Mapping Tables → condition_codes**, one row per condition and code (diabetes, 
 on, conditions that affect how results read, such as iron_deficiency, and the
 [population chart](#population-chart)'s filters). Delete a row to stop a code counting,
 add one to make it count; changes show within five minutes. It starts with the codes MedUI has
-always used. The bp_item column shows Best Practice's own name for each code, filled in
-automatically.
+always used. Two columns name each code, for reading only; MedUI fills them in where they are
+blank and never uses them to decide anything:
+
+- **bp_item**: Best Practice's own dictionary name(s) for the code, synonyms separated by " / ".
+  It needs read access to BP's BPSDrugs database; without it the column stays blank.
+- **practice_item**: the wording most often recorded for the code in this practice's past
+  history. Wording used by fewer than 3 entries is never used, so one patient's own text can't
+  become a name. Codes nobody at the practice has used stay blank.
 
 Recorded CKD shows the stage only if one was recorded, the year it was recorded, and the
 latest eGFR: *CKD stage 3B (recorded 2021) · eGFR 24, Mar 2026*. A recorded stage can fall

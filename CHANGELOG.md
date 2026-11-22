@@ -3,6 +3,20 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.58.0 — pre-release (November 2026)
+
+**Upgrade from 0.57.2**: `./upgrade.sh`. No migrations: the condition codes table gets its new column
+the first time it is read.
+
+- **Condition names without BPSDrugs.** Admin → Mapping Tables → condition_codes names each code in
+  two columns, for reading only. **bp_item**: Best Practice's dictionary names, which need read
+  access to `BPSDrugs`. **practice_item** (new): the wording most often recorded for the code in the
+  practice's own past history, from `BPSPatients`, taken only when at least 3 entries use it. Each
+  fills on its own and stays blank if its source can't be read. Which codes count as each condition
+  is unchanged: always the item code.
+- The request to Best Practice for database access no longer asks for `BPSDrugs`: MedUI needs only
+  `BPSPatients`, `BPSDocumentsInbox` and the `BPSDocuments` databases.
+
 ## 0.57.2 — pre-release (November 2026)
 
 **Upgrade from 0.57.1**: `./upgrade.sh`. Nothing in the app changes.

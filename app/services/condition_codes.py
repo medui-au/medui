@@ -13,10 +13,20 @@ import time
 from flask import current_app
 
 TABLE = 'condition_codes'
-COLUMNS = (('condition', 'TEXT'), ('item_code', 'INTEGER'), ('bp_item', 'TEXT'), ('note', 'TEXT'))
+COLUMNS = (('condition', 'TEXT'), ('item_code', 'INTEGER'), ('bp_item', 'TEXT'), ('practice_item', 'TEXT'),
+           ('note', 'TEXT'))
 _TTL = 300
 _mem: tuple[dict, float] | None = None
-_names_filled = False      # bp_item filled from BP's dictionary once per process
+_names_filled = False      # bp_item and practice_item filled once per process
+_columns_checked = False   # practice_item added to an older table once per process
+PRACTICE_MIN_ENTRIES = 3   # a recorded text names a code only if this many entries use it
+DESCRIPTION = (
+    'Which Best Practice past-history item codes count as each condition: the Disease '
+    'Profile badges, and conditions that affect how results read (see the influences table), '
+    'ADR-108. One row per condition and code; delete a row to stop a code counting, add one to '
+    'make it count. For reading only, filled in automatically where blank: bp_item is Best '
+    "Practice's dictionary name(s) for the code (needs read access to BPSDrugs), practice_item "
+    'the wording most often recorded for it at this practice (used by at least 3 entries).')
 
 # condition → (codes, note). Exactly the lists in patient_disease_profile.sql before ADR-108.
 DEFAULTS: dict[str, tuple[tuple[int, ...], str]] = {
@@ -106,20 +116,26 @@ def ensure_added_conditions() -> list[str]:
     return added
 
 
+def _ensure_columns() -> None:
+    """Add practice_item to a table made before ADR-183, once per process."""
+    global _columns_checked
+    if _columns_checked:
+        return
+    from app.services import mapping_service
+    if 'practice_item' not in {c['column_name'] for c in mapping_service.get_schema(TABLE)}:
+        mapping_service.column_add(TABLE, 'practice_item', 'TEXT')
+        mapping_service.update_settings(TABLE, description=DESCRIPTION)
+    _columns_checked = True
+
+
 def ensure_table() -> bool:
     """Create and fill the table if it isn't there. True if it was created now."""
     from app.services import mapping_service
     if mapping_service.get_table(TABLE):
         ensure_added_conditions()
+        _ensure_columns()
         return False
-    mapping_service.create_table(
-        TABLE, 'Condition codes (Disease Profile)',
-        'Which Best Practice past-history item codes count as each condition: the Disease '
-        'Profile badges, and conditions that affect how results read (see the influences table), '
-        'ADR-108. One row '
-        'per condition and code; delete a row to stop a code counting, add one to make it count. '
-        'bp_item is Best Practice\'s dictionary name(s) for the code, filled in automatically, '
-        'for reading only.')
+    mapping_service.create_table(TABLE, 'Condition codes (Disease Profile)', DESCRIPTION)
     for col, col_type in COLUMNS:
         mapping_service.column_add(TABLE, col, col_type)
     for condition, (codes, note) in DEFAULTS.items():
@@ -147,7 +163,7 @@ def codes() -> dict[str, frozenset]:
         db.session.rollback()
         current_app.logger.error('condition_codes unreadable, using the built-in lists: %s', exc)
         return _defaults()
-    _fill_bp_items(rows)
+    _fill_names(rows)
     found: dict[str, set] = {}
     for row in rows:
         condition = str(row.get('condition') or '').strip().lower()
@@ -162,28 +178,9 @@ def codes() -> dict[str, frozenset]:
     return result
 
 
-def _fill_bp_items(rows: list[dict]) -> None:
-    """Fill blank bp_item cells with BP's current names for the code (its dictionary,
-    BPSDrugs.TERMNAMES, never a patient's item text, which can be edited). Once per
-    process, and only if there are blanks; skipped quietly if BP is unavailable."""
-    global _names_filled
-    blanks = [r for r in rows if not str(r.get('bp_item') or '').strip() and r.get('item_code') is not None]
-    if _names_filled or not blanks:
-        return
-    _names_filled = True
-    from sqlalchemy.exc import SQLAlchemyError
-    from app.extensions import db
-    from app.services import mapping_service
-    from app.sql.query_loader import ReadOnlySession, load_query
-    conn_str = current_app.config.get('BPSDB_URI')
-    if not conn_str:
-        return
-    try:
-        with ReadOnlySession(conn_str) as session:
-            terms = session.execute(load_query('condition_term_names'))
-    except Exception as exc:  # BPSDB boundary: the names are for reading only
-        current_app.logger.warning('condition_codes: BP term names unavailable: %s', exc)
-        return
+def bp_names(terms: list[dict]) -> dict[int, str]:
+    """{code: name} from BP's dictionary (BPSDrugs.TERMNAMES rows): every current synonym,
+    joined with " / "; a retired term's names, marked, when it has no current one."""
     current: dict[int, list[str]] = {}
     retired: dict[int, list[str]] = {}
     for t in terms:
@@ -191,20 +188,75 @@ def _fill_bp_items(rows: list[dict]) -> None:
         if name:
             bucket = current if _int(t.get('RECORDSTATUS')) == 1 else retired
             bucket.setdefault(_int(t.get('TERMID')), []).append(name)
+    out = {}
+    for code in set(current) | set(retired):
+        if current.get(code):
+            out[code] = ' / '.join(dict.fromkeys(current[code]))[:270]
+        else:   # a term BP has retired, still on patients' records
+            out[code] = ' / '.join(dict.fromkeys(retired[code]))[:270] + ' (no longer current in BP)'
+    return out
+
+
+def practice_names(texts: list[dict], minimum: int = PRACTICE_MIN_ENTRIES) -> dict[int, str]:
+    """{code: the text most often recorded for it} from condition_item_texts rows
+    (ITEMCODE, ITEMTEXT, N). A text used by fewer than `minimum` entries never names a code."""
+    best: dict[int, tuple[int, str]] = {}
+    for t in texts:
+        code, text, n = _int(t.get('ITEMCODE')), (t.get('ITEMTEXT') or '').strip(), _int(t.get('N')) or 0
+        if code is None or not text or n < minimum:
+            continue
+        if code not in best or n > best[code][0] or (n == best[code][0] and text < best[code][1]):
+            best[code] = (n, text)
+    return {code: text[:270] for code, (n, text) in best.items()}
+
+
+def _read_bp(query: str) -> list[dict] | None:
+    """One BP query for the names; None (logged) if BP or that database can't be read."""
+    from app.sql.query_loader import ReadOnlySession, load_query
+    conn_str = current_app.config.get('BPSDB_URI')
+    if not conn_str:
+        return None
     try:
-        for r in blanks:
-            code = _int(r.get('item_code'))
-            found, suffix = current.get(code), ''
-            if not found and retired.get(code):
-                # A term BP has retired, still on patients' records.
-                found, suffix = retired[code], ' (no longer current in BP)'
-            if found:
-                text = (' / '.join(dict.fromkeys(found))[:270] + suffix)
-                mapping_service.cell_update(TABLE, r['id'], 'bp_item', text)
-                r['bp_item'] = text
-    except (ValueError, SQLAlchemyError) as exc:
-        db.session.rollback()
-        current_app.logger.warning('condition_codes: bp_item not filled: %s', exc)
+        with ReadOnlySession(conn_str) as session:
+            return session.execute(load_query(query))
+    except Exception as exc:  # BPSDB boundary: the names are for reading only
+        current_app.logger.warning('condition_codes: %s unavailable: %s', query, exc)
+        return None
+
+
+def _fill_names(rows: list[dict]) -> None:
+    """Fill blank bp_item and practice_item cells (ADR-183), once per process and only if
+    there are blanks. Each column has its own source and fills on its own: bp_item from BP's
+    dictionary (BPSDrugs, which a practice may not have access to), practice_item from the
+    practice's own past-history wording (BPSPatients). A source that can't be read leaves its
+    column blank. A cell that already has text is never changed."""
+    global _names_filled
+    sources = (('bp_item', 'condition_term_names', bp_names),
+               ('practice_item', 'condition_item_texts', practice_names))
+    wanted = [(col, q, fn) for col, q, fn in sources
+              if any(not str(r.get(col) or '').strip() and r.get('item_code') is not None for r in rows)]
+    if _names_filled or not wanted:
+        return
+    _names_filled = True
+    from sqlalchemy.exc import SQLAlchemyError
+    from app.extensions import db
+    from app.services import mapping_service
+    for col, query, build in wanted:
+        found = _read_bp(query)
+        if found is None:
+            continue
+        names = build(found)
+        try:
+            for r in rows:
+                if str(r.get(col) or '').strip() or r.get('item_code') is None:
+                    continue
+                text = names.get(_int(r.get('item_code')))
+                if text:
+                    mapping_service.cell_update(TABLE, r['id'], col, text)
+                    r[col] = text
+        except (ValueError, SQLAlchemyError) as exc:
+            db.session.rollback()
+            current_app.logger.warning('condition_codes: %s not filled: %s', col, exc)
 
 
 # PASTHISTORY.STATUSCODE values that count as active (2 is inactive).
