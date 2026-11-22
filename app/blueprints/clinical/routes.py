@@ -639,6 +639,8 @@ def ai_panel(patient_id: int):
 
     # ── Handle document badge links (?auto=sum|exp|txt&doc_type=…&doc_id=…) ──────
     auto = request.args.get('auto', '').strip().lower()
+    if auto == 'exp' and not current_app.config.get('EXP_LINKS_ENABLED'):
+        auto = ''          # [EXP] is hidden (ADR-185): a typed or saved link starts nothing
     auto_run = None
     doc_load = None
 

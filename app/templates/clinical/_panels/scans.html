@@ -34,10 +34,12 @@
                            target="_blank" rel="noopener"
                            style="font-size:0.65rem; color:var(--accent); text-decoration:none; margin-left:0.2rem;"
                            title="Summarise with AI">[SUM]</a>
+                        {% if config.EXP_LINKS_ENABLED %}
                         <a href="{{ url_for('clinical.ai_panel', patient_id=patient_id) }}?auto=exp&doc_type=scan&doc_id={{ row.get('DocumentId') }}&label={{ (row.get('Detail') or row.get('Subject') or '') | urlencode }}"
                            target="_blank" rel="noopener"
                            style="font-size:0.65rem; color:var(--accent); text-decoration:none; margin-left:0.2rem;"
                            title="Summarise with AI">[EXP]</a>
+                        {% endif %}
                         {% endif %}
                     </span>
                     {% else %}

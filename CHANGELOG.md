@@ -3,6 +3,14 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.59.1 — pre-release (November 2026)
+
+**Upgrade from 0.59.0**: `./upgrade.sh`. No migrations.
+
+- The **[EXP]** links beside documents and results are no longer shown; [SUM] and [TXT] are
+  unchanged. The wiring is kept for a future purpose: `EXP_LINKS_ENABLED=true` in `.env` (then
+  recreate the app container) shows them again. While it is off, an [EXP] address starts nothing.
+
 ## 0.59.0 — pre-release (November 2026)
 
 **Upgrade from 0.58.1**: `./upgrade.sh` runs one migration (two new tables only). A policy already

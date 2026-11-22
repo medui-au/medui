@@ -54,6 +54,9 @@ class Config:
     SESSION_COOKIE_SECURE = _bool('SESSION_COOKIE_SECURE')
     PATIENT_API_ENABLED = _bool('PATIENT_API_ENABLED')
     PATIENT_API_KEYS = [v for v in [os.environ.get('PATIENT_API_KEY')] if v]
+    # The [EXP] document links: hidden, wiring kept for a future purpose. Set
+    # EXP_LINKS_ENABLED=true to show them again; while off, ?auto=exp starts nothing.
+    EXP_LINKS_ENABLED = _bool('EXP_LINKS_ENABLED')
     PBS_API_KEY = os.environ.get('PBS_API_KEY', '')
     OCR_ENABLED = _bool('OCR_ENABLED', True)   # missing (an older .env): on, as before
     OCR_SERVICE_URL = os.environ.get('OCR_SERVICE_URL', '')

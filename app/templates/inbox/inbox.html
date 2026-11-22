@@ -243,10 +243,12 @@ body, html { height: 100%; overflow: hidden; }
                target="_blank" rel="noopener"
                style="font-size:0.63rem; color:var(--accent); text-decoration:none; margin-left:0.2rem;"
                title="Summarise with AI">[SUM]</a>
+            {% if config.EXP_LINKS_ENABLED %}
             <a href="/clinical/patient/{{ item.internal_id }}/ai?auto=exp&doc_type=inbox&doc_id={{ item.report_id }}&label={{ item.test_name | urlencode }}"
                target="_blank" rel="noopener"
                style="font-size:0.63rem; color:var(--accent); text-decoration:none; margin-left:0.2rem;"
                title="Summarise with AI">[EXP]</a>
+            {% endif %}
             {% if item.content_size %}
             <span style="font-size:0.63rem; color:var(--text-muted); margin-left:0.35rem;">{{ item.content_size | filesize }}</span>
             {% endif %}

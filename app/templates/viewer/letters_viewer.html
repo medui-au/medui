@@ -109,7 +109,9 @@ body, html { height: 100%; overflow: hidden; }
       <div id="ai-actions" style="display:none; gap:0.3rem; flex-shrink:0;">
         <a id="ai-txt" class="ai-btn" href="#" target="_blank" rel="noopener">[TXT]</a>
         <a id="ai-sum" class="ai-btn" href="#" target="_blank" rel="noopener">[SUM]</a>
+        {% if config.EXP_LINKS_ENABLED %}
         <a id="ai-exp" class="ai-btn" href="#" target="_blank" rel="noopener">[EXP]</a>
+        {% endif %}
       </div>
     </div>
     <div id="viewer-placeholder" class="vwr-placeholder">Select a letter from the list to view it.</div>
@@ -137,8 +139,10 @@ body, html { height: 100%; overflow: hidden; }
                href="{{ url_for('clinical.ai_panel', patient_id=patient.patient_id) }}?auto=txt&doc_type=letter&doc_id={{ l.RecordId }}&label={{ (l.Subject or '') | urlencode }}">[TXT]</a>
             <a class="ai-btn" target="_blank" rel="noopener"
                href="{{ url_for('clinical.ai_panel', patient_id=patient.patient_id) }}?auto=sum&doc_type=letter&doc_id={{ l.RecordId }}&label={{ (l.Subject or '') | urlencode }}">[SUM]</a>
+            {% if config.EXP_LINKS_ENABLED %}
             <a class="ai-btn" target="_blank" rel="noopener"
                href="{{ url_for('clinical.ai_panel', patient_id=patient.patient_id) }}?auto=exp&doc_type=letter&doc_id={{ l.RecordId }}&label={{ (l.Subject or '') | urlencode }}">[EXP]</a>
+            {% endif %}
             {% endif %}
           </div>
         </div>
@@ -171,7 +175,7 @@ body, html { height: 100%; overflow: hidden; }
     const dp   = `doc_type=letter&doc_id=${el.dataset.recordId}&label=${encodeURIComponent(el.dataset.title || '')}`;
     document.getElementById('ai-txt').href = `${base}?auto=txt&${dp}`;
     document.getElementById('ai-sum').href = `${base}?auto=sum&${dp}`;
-    document.getElementById('ai-exp').href = `${base}?auto=exp&${dp}`;
+    { const exp = document.getElementById('ai-exp'); if (exp) exp.href = `${base}?auto=exp&${dp}`; }
     aiBar.style.display  = 'flex';
   }
 

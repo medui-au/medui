@@ -41,10 +41,12 @@
                            target="_blank" rel="noopener"
                            style="font-size:0.65rem; color:var(--accent); text-decoration:none; margin-left:0.2rem;"
                            title="Summarise with AI">[SUM]</a>
+                        {% if config.EXP_LINKS_ENABLED %}
                         <a href="{{ url_for('clinical.ai_panel', patient_id=patient_id) }}?auto=exp&doc_type=path&doc_id={{ _rid }}&inbox={{ _inbox }}&label={{ row.get('TestName','') | urlencode }}"
                            target="_blank" rel="noopener"
                            style="font-size:0.65rem; color:var(--accent); text-decoration:none; margin-left:0.2rem;"
                            title="Summarise with AI">[EXP]</a>
+                        {% endif %}
                         {% endif %}
                     </span>
                     {% endif %}
