@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}GPCCMP draft — {{ patient.get('SURNAME','') | upper }}, {{ patient.get('FIRSTNAME','') }} — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+.gx-head h2 { margin:0 0 0.3rem; font-size:1.15rem; }
+.gx-muted { color:var(--text-muted); font-size:0.8rem; }
+.gx-steps { font-size:0.8rem; color:var(--text-muted); margin-bottom:0.6rem; }
+.gx-steps b { color:var(--text-primary); }
+.gx-card { border:1px solid var(--border-color); border-radius:0.4rem; padding:0.6rem 0.75rem; margin-bottom:0.7rem; background:var(--bg-primary); }
+.gx-check { font-size:0.84rem; padding:0.2rem 0; }
+.gx-ok { color:var(--success); font-weight:700; }
+.gx-bad { color:var(--danger); font-weight:700; }
+.gx-detail { font-size:0.78rem; color:var(--text-secondary); margin-left:1.4rem; }
+.gx-spin { display:inline-block; width:0.9rem; height:0.9rem; border:2px solid var(--border-color); border-top-color:var(--accent); border-radius:50%; animation: gxs 0.8s linear infinite; vertical-align:middle; }
+@keyframes gxs { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="workspace">
+  <aside class="workspace-sidebar">
+    <div class="card" style="padding:0.6rem;">{% include 'clinical/_demographics.html' %}</div>
+    {% include 'clinical/_patient_tools.html' %}
+  </aside>
+  <section class="workspace-main">
+    <div class="gx-head"><h2>GPCCMP: AI draft{{ help('gpccmp-plan.draft') }}</h2></div>
+    <div class="gx-steps"><a href="{{ url_for('gpccmp.patient_targets', patient_id=patient_id) }}">1. Targets</a> →
+      <a href="{{ url_for('gpccmp.plan_decisions', patient_id=patient_id) }}">2. Plan decisions</a> → <b>3. AI draft</b></div>
+
+    {% if session.status.value == 'drafted' and session.careplan_id %}
+      <div class="gx-card">
+        <b>The draft is ready.</b>{% if used.get('model') %} <span class="gx-muted">Drafted by: {{ used.model }}{{ '' if used.get('model_chosen') else ' (pipeline default)' }}</span>{% endif %}<br>
+        <span class="gx-muted">MedUI wrote the history, targets, prevention, review and consent itself; the AI wrote only the wording for each issue and the safety-netting, from your decisions and the practice protocol.</span>
+        <div style="margin-top:0.5rem; display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
+          <a class="btn btn-primary btn-sm" href="{{ url_for('careplan.edit', plan_id=session.careplan_id) }}">Open the draft care plan</a>
+          <form method="post" action="{{ url_for('gpccmp.draft_again', session_id=session.id) }}" style="margin:0;"
+                onsubmit="return confirm('Void this draft and ask the AI again?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% set selected_model = used.get('model_id') if used.get('model_chosen') else None %}{% include 'gpccmp/_model_select.html' %}
+            <button class="btn btn-secondary btn-sm">Draft again</button>
+          </form>
+          <span class="gx-muted">Edit, file, print or send it to Best Practice from the care plan screen.</span>
+        </div>
+      </div>
+      <div class="gx-card">
+        <b>MedUI's checks on the AI's text</b>
+        <span class="gx-muted">{% if failed %}{{ failed | length }} to look at before filing.{% else %}all passed.{% endif %} These compare the draft with your decisions; they don't check clinical content.</span>
+        {% for c in checks %}
+          <div class="gx-check"><span class="{{ 'gx-ok' if c.ok else 'gx-bad' }}">{{ '✓' if c.ok else '✗' }}</span> {{ c.label }}</div>
+          {% for d in c.details %}<div class="gx-detail">{{ d }}</div>{% endfor %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="gx-card" id="gx-running">
+        <span class="gx-spin"></span> <span id="gx-msg">The AI is drafting the plan from your decisions{% if used.get('model') %} ({{ used.model }}){% endif %}. This usually takes under a minute…</span>
+      </div>
+      <form method="post" action="{{ url_for('gpccmp.draft_again', session_id=session.id) }}" id="gx-retry" style="display:none;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% set selected_model = used.get('model_id') if used.get('model_chosen') else None %}{% include 'gpccmp/_model_select.html' %}
+        <button class="btn btn-secondary btn-sm">Try again</button>
+      </form>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if not (session.status.value == 'drafted' and session.careplan_id) %}
+<script>
+(function poll() {
+  fetch('{{ url_for('gpccmp.draft_status', session_id=session.id) }}').then(r => r.json()).then(d => {
+    if (d.state === 'done') { window.location = d.url; return; }
+    if (d.state === 'failed') {
+      document.getElementById('gx-msg').textContent = d.error || 'The draft failed.';
+      document.querySelector('.gx-spin').style.display = 'none';
+      document.getElementById('gx-retry').style.display = '';
+      return;
+    }
+    setTimeout(poll, 3000);
+  }).catch(() => setTimeout(poll, 5000));
+})();
+</script>
+{% endif %}
+{% endblock %}

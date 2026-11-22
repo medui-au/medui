@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Targets to review — {{ app_name }}{% endblock %}
+{% block content %}
+<div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+  <h2 style="margin:0; font-size:1.15rem;">Targets to review{{ help('practice-protocols.review') }}</h2>
+  <a class="btn btn-secondary btn-sm" href="{{ url_for('protocols.index', tab='versions') }}">Back to Practice Protocols</a>
+</div>
+<p style="color:var(--text-muted); font-size:0.82rem;">Patients' current targets set under a protocol option that{% if live %} protocol v{{ live.version }}{% endif %}
+no longer has or now words differently, or that cites a guideline since marked superseded. Nothing changes by itself: the patient's GP
+reviews the target at the next plan or review. Individual targets are the GP's own and aren't listed.</p>
+<table style="width:100%; border-collapse:collapse; font-size:0.84rem;">
+  <thead><tr style="text-align:left;"><th>Patient</th><th>Measure</th><th>Target</th><th>Set</th><th>Why it's listed</th></tr></thead>
+  <tbody>
+  {% for it in items %}{% set t = it.target %}
+    <tr style="border-top:1px solid var(--border-color); vertical-align:top;">
+      <td><a href="{{ url_for('gpccmp.patient_targets', patient_id=t.patient_id) }}">Patient {{ t.patient_id }}</a></td>
+      <td>{{ t.measure.label }}</td><td>{{ t.value_text }}</td>
+      <td>{{ t.set_at | localdt('%d/%m/%Y') }} · {{ t.set_by.display_name or t.set_by.username }}{% if t.protocol_version %} · v{{ t.protocol_version.version }}{% endif %}</td>
+      <td>{{ it.reasons | join('; ') }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5" style="color:var(--text-muted); padding-top:0.5rem;">No targets to review.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

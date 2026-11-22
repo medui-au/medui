@@ -2,7 +2,7 @@
 title: My settings
 area: Settings
 roles: [reception, nurse, doctor, admin]
-reviewed: 2026-11-10
+reviewed: 2026-11-21
 related: [logging-in, ai-drafts]
 ---
 
@@ -17,6 +17,10 @@ lets you use, see [logging in and access](help:logging-in.access).
   reads, so drafts use it too. Leave it blank to use your Best Practice name. Best Practice
   itself isn't changed. Redaction catches both names before anything goes to a cloud AI model.
 - **Theme**, and your **email signature** for emails from Comms.
+- **Patient record:** two results badges for the Disease Profile, each worded as its rule, off
+  until you tick them and shown only to you (see
+  [the Disease Profile](help:patient-record.disease-profile)). The practice can't set or lock
+  them.
 - For doctors: whether the AI's instructions start **expanded**, **Review every request before
   sending to cloud AI** (see [the Sending tab](help:ai-drafts.sending)), and the models and
   workflow you last chose for the chatbots and scribe, which MedUI remembers for next time.

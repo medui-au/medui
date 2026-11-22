@@ -26,6 +26,10 @@
                style="width:100%; text-align:left; box-sizing:border-box; padding:0.17rem 0.4rem; font-size:0.75rem;">📨 Comms</a></li>
         <li><a href="{{ url_for('clinical.progress_notes', patient_id=patient.patient_id) }}" class="btn btn-outline"
                style="width:100%; text-align:left; box-sizing:border-box; padding:0.17rem 0.4rem; font-size:0.75rem;">📝 Progress Notes</a></li>
+        {% if current_user.has_level(3) %}
+        <li><a href="{{ url_for('gpccmp.patient_targets', patient_id=patient.patient_id) }}" class="btn btn-outline"
+               style="width:100%; text-align:left; box-sizing:border-box; padding:0.17rem 0.4rem; font-size:0.75rem;">🎯 Targets</a></li>
+        {% endif %}
     </ul>
     {% endif %}
 </div>

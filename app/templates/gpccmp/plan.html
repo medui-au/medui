@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+{% block title %}GPCCMP decisions — {{ patient.get('SURNAME','') | upper }}, {{ patient.get('FIRSTNAME','') }} — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+.gd-head { display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; margin-bottom:0.3rem; }
+.gd-head h2 { margin:0; font-size:1.15rem; }
+.gd-muted { color:var(--text-muted); font-size:0.8rem; }
+.gd-card { border:1px solid var(--border-color); border-radius:0.4rem; padding:0.6rem 0.75rem; margin-bottom:0.7rem; background:var(--bg-primary); }
+.gd-card h3 { margin:0 0 0.35rem; font-size:0.95rem; }
+.gd-steps { font-size:0.8rem; color:var(--text-muted); margin-bottom:0.6rem; }
+.gd-steps b { color:var(--text-primary); }
+.gd-issue { border-top:1px solid var(--border-color); padding:0.45rem 0; }
+.gd-issue:first-of-type { border-top:none; }
+.gd-issue > label { font-weight:600; font-size:0.88rem; cursor:pointer; }
+.gd-coded { font-size:0.7rem; color:var(--accent); margin-left:0.3rem; }
+.gd-detail { margin:0.3rem 0 0 1.4rem; display:grid; grid-template-columns: 8.5rem 1fr; gap:0.3rem 0.6rem; font-size:0.8rem; align-items:start; }
+.gd-detail label { color:var(--text-secondary); padding-top:0.3rem; }
+.gd-detail textarea { min-height:2.6rem; font-size:0.8rem; }
+.gd-svc { display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap; margin-bottom:0.2rem; }
+.gd-svc input[type=text] { font-size:0.78rem; max-width:20rem; }
+.gd-ref { font-size:0.76rem; color:var(--text-secondary); }
+.gd-row { display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center; font-size:0.84rem; margin:0.2rem 0; }
+.gd-pre { white-space:pre-wrap; font-family:var(--font-mono, monospace); font-size:0.76rem; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:0.35rem; padding:0.5rem; }
+.gd-warn { color:var(--warning); font-size:0.82rem; }
+.gd-hidden { display:none; }
+.gd-actions { display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap; margin-top:0.4rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="workspace">
+  <aside class="workspace-sidebar">
+    <div class="card" style="padding:0.6rem;">{% include 'clinical/_demographics.html' %}</div>
+    {% include 'clinical/_patient_tools.html' %}
+  </aside>
+  <section class="workspace-main">
+    <div class="gd-head">
+      <h2>GPCCMP: plan decisions{{ help('gpccmp-plan.overview') }}</h2>
+      <span class="gd-muted">{{ 'confirmed' if session.status.value == 'ready' else 'not confirmed yet' }}{% if version %} · practice protocol v{{ version.version }}{% endif %}</span>
+    </div>
+    <div class="gd-steps"><a href="{{ url_for('gpccmp.patient_targets', patient_id=patient_id) }}">1. Targets</a> → <b>2. Plan decisions</b> → 3. AI draft</div>
+    <p class="gd-muted">Everything on this page is your decision. The AI will only organise and word the plan from it and from the record:
+    it may not change or add to anything here. Issues are ticked where the practice protocol has a module for a condition coded in the record;
+    untick or add as you decide.</p>
+
+    {% if d.get('carried_from') %}
+    <div class="gd-card" style="border-color:var(--accent);">
+      <b>Started from the plan of {{ d.carried_from.date }}{% if d.carried_from.by %} ({{ d.carried_from.by }}){% endif %}.</b>
+      <span class="gd-muted">Issues, goals, your directions, services, modifiers and the review interval are carried over for you to check
+      and edit. Consent is never carried: record it afresh for this plan. Conditions coded since then are added and marked new.</span>
+    </div>
+    {% endif %}
+    <form method="post" action="{{ url_for('gpccmp.plan_decisions_save', patient_id=patient_id) }}" data-unsaved-guard>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="gd-card">
+        <h3>Plan type</h3>
+        {% for k, label in plan_types.items() %}
+          <label class="gd-row"><input type="radio" name="plan_type" value="{{ k }}" {{ 'checked' if default_type == k }} onchange="gdReview()"> {{ label }}</label>
+        {% endfor %}
+        {% if eligibility %}<div class="gd-muted">From the billing record: {{ {'965': 'a new plan (965) is due', '967': 'a review (967) is due', 'Neither': 'neither a new plan nor a review is due yet', 'None Prior': 'no earlier plan billed'}.get(eligibility, eligibility) }}. This is a fact from Medicare billing; the choice is yours.</div>{% endif %}
+      </div>
+
+      <div class="gd-card gd-review">
+        <h3>Progress since the last plan</h3>
+        <div class="gd-muted">For a review, record progress against each goal below: the judgement is yours. MedUI shows each target beside the
+        last recorded value and never says whether it is met.{% if not has_previous %} No earlier plan was found for this patient.{% endif %}</div>
+        {% for t in target_sentences %}<div class="gd-row">{{ t }}</div>{% else %}<div class="gd-muted">No targets set.</div>{% endfor %}
+      </div>
+
+      <div class="gd-card">
+        <h3>Targets</h3>
+        {% if targets_set %}
+          <div class="gd-row">{% for t in targets_set %}<span>{{ t.measure.label }}: <b>{{ t.value_text }}</b></span>{{ ' · ' if not loop.last }}{% endfor %}</div>
+        {% else %}<div class="gd-warn">No targets set yet. The plan will say "GP to set" for each target.</div>{% endif %}
+        <a class="gd-muted" href="{{ url_for('gpccmp.patient_targets', patient_id=patient_id) }}">Set or change targets</a>
+      </div>
+
+      <div class="gd-card">
+        <h3>Issues in this plan</h3>
+        {% if not issues %}<div class="gd-muted">No approved practice protocol: add the issues yourself below.</div>{% endif %}
+        {% for it in issues %}
+          {% set c = chosen.get(it.key) %}
+          {% set on = c or (not d and it.coded) %}
+          <div class="gd-issue">
+            <label><input type="checkbox" name="issue" value="{{ it.key }}" {{ 'checked' if on }} onchange="gdToggle('{{ it.key }}', this.checked)"> {{ it.label }}</label>
+            {% if it.coded %}<span class="gd-coded">coded in the record</span>{% endif %}
+            {% if c and c.get('new_since_last') %}<span class="gd-coded" style="color:var(--warning);">new since the last plan</span>{% endif %}
+            <div class="gd-detail{{ '' if on else ' gd-hidden' }}" id="gd-d-{{ it.key }}">
+              {% if it.module.goals %}<label>Protocol goal</label><div class="gd-ref">{{ it.module.goals }}</div>{% endif %}
+              <label class="gd-review">Previous goal</label><div class="gd-ref gd-review">{{ prev_goal.get(it.key) or 'None recorded' }}</div>
+              <label class="gd-review">Progress</label>
+              <div class="gd-review gd-svc">
+                <select class="form-control" name="progress_{{ it.key }}" style="max-width:12rem;">
+                  <option value="">Choose…</option>{% for w in progress_words %}<option value="{{ w }}" {{ 'selected' if c and c.get('progress') == w }}>{{ w }}</option>{% endfor %}
+                </select>
+                <input type="text" class="form-control" name="progress_note_{{ it.key }}" placeholder="Note (optional)" value="{{ c.get('progress_note', '') if c else '' }}">
+              </div>
+              <label>Goal in the patient's words</label><input class="form-control" name="goal_{{ it.key }}" value="{{ c.goal if c else '' }}" placeholder="Optional: otherwise the protocol goal is proposed">
+              <label>Your directions</label><textarea class="form-control" name="dir_{{ it.key }}" placeholder="What was agreed, including any medicine decisions">{{ c.directions if c else '' }}</textarea>
+              <label>Services / referrals</label>
+              <div>
+                {% set picked = (c.services if c else []) %}
+                {% for s in it.services %}
+                  {% set p = (picked | selectattr('name', 'equalto', s) | list) %}
+                  <div class="gd-svc"><label><input type="checkbox" name="svc_{{ it.key }}_{{ loop.index0 }}" {{ 'checked' if p }}> {{ s }}</label>
+                    <input type="text" class="form-control" name="svcp_{{ it.key }}_{{ loop.index0 }}" placeholder="Purpose" value="{{ p[0].purpose if p else '' }}"></div>
+                {% endfor %}
+                {% set others = (picked | rejectattr('name', 'in', it.services) | list) %}
+                <div class="gd-svc"><input type="text" class="form-control" name="svc_other_{{ it.key }}" placeholder="Other service" value="{{ others[0].name if others else '' }}">
+                  <input type="text" class="form-control" name="svcp_other_{{ it.key }}" placeholder="Purpose" value="{{ others[0].purpose if others else '' }}"></div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+        <h3 style="margin-top:0.6rem;">Other issues</h3>
+        {% for n in range(max_free) %}
+          {% set f = free[n] if n < free | length else None %}
+          <div class="gd-issue{{ '' if f or n == free | length else ' gd-hidden' }}" id="gd-free-{{ n }}">
+            <div class="gd-detail" style="margin-left:0;">
+              <label>Issue</label><input class="form-control" name="free_label_{{ n }}" value="{{ f.label if f else '' }}" placeholder="As discussed, e.g. Left knee pain">
+              <label class="gd-review">Progress</label>
+              <div class="gd-review gd-svc">
+                <select class="form-control" name="free_progress_{{ n }}" style="max-width:12rem;">
+                  <option value="">Choose…</option>{% for w in progress_words %}<option value="{{ w }}" {{ 'selected' if f and f.get('progress') == w }}>{{ w }}</option>{% endfor %}
+                </select>
+                <input type="text" class="form-control" name="free_progress_note_{{ n }}" placeholder="Note (optional)" value="{{ f.get('progress_note', '') if f else '' }}">
+              </div>
+              <label>Goal (patient's words)</label><input class="form-control" name="free_goal_{{ n }}" value="{{ f.goal if f else '' }}">
+              <label>Your directions</label><textarea class="form-control" name="free_dir_{{ n }}">{{ f.directions if f else '' }}</textarea>
+              <label>Service / referral</label>
+              <div class="gd-svc"><input type="text" class="form-control" name="free_svc_{{ n }}" value="{{ f.services[0].name if f and f.services else '' }}" placeholder="Service">
+                <input type="text" class="form-control" name="free_svcp_{{ n }}" value="{{ f.services[0].purpose if f and f.services else '' }}" placeholder="Purpose"></div>
+            </div>
+          </div>
+        {% endfor %}
+        <button type="button" class="btn btn-secondary btn-sm" onclick="gdMore()" id="gd-more">Add another issue</button>
+      </div>
+
+      <div class="gd-card">
+        <h3>Modifiers</h3>
+        {% set mods = d.get('modifiers', {}) %}
+        {% for k, label in modifiers.items() %}
+          <label class="gd-row"><input type="checkbox" name="mod_{{ k }}" {{ 'checked' if mods.get(k) }}> {{ label }}</label>
+        {% endfor %}
+        <div class="gd-detail" style="margin-left:0;">
+          <label>Carer / substitute decision-maker</label><input class="form-control" name="mod_carer" value="{{ mods.get('carer', '') }}" placeholder="Role, e.g. daughter (needed with cognitive impairment)">
+          <label>Conditions limiting adherence</label><input class="form-control" name="mod_adherence" value="{{ mods.get('adherence', '') }}">
+          <label>Declined by the patient</label><input class="form-control" name="mod_declined" value="{{ mods.get('declined', '') }}">
+        </div>
+      </div>
+
+      <div class="gd-card">
+        <h3>Review and consent</h3>
+        <div class="gd-row">Review in
+          <select class="form-control" name="review_interval" style="max-width:10rem;">
+            {% for r in intervals %}<option {{ 'selected' if r == d.get('review_interval', default_review) }}>{{ r }}</option>{% endfor %}
+          </select></div>
+        {% set c = d.get('consent', {}) %}
+        {% for k, label in consent.items() %}
+          <label class="gd-row"><input type="checkbox" name="consent_{{ k }}" {{ 'checked' if c.get(k) }}> {{ label }}</label>
+        {% endfor %}
+        <div class="gd-detail" style="margin-left:0;"><label>Information withheld</label><input class="form-control" name="consent_withheld" value="{{ c.get('withheld', '') }}"></div>
+        <div class="gd-muted">Tick consent only once it is given. Anything unticked appears in the plan as "not recorded", for you to complete with the patient.</div>
+      </div>
+
+      <div class="gd-card">
+        <h3>Other notes for the plan</h3>
+        <textarea class="form-control" name="notes" style="min-height:3rem;">{{ d.get('notes', '') }}</textarea>
+        <div class="gd-row" style="margin-top:0.4rem;">Format
+          <select class="form-control" name="format" style="max-width:10rem;">{% for k, label in formats.items() %}<option value="{{ k }}">{{ label }}</option>{% endfor %}</select></div>
+      </div>
+
+      {% if problems %}<div class="gd-warn">Before you can proceed: {{ problems | join(' ') }}</div>{% endif %}
+      <div class="gd-actions">
+        <button class="btn btn-secondary btn-sm" name="action" value="save">Save decisions</button>
+        {% if config.AI_ENABLED and current_user.can_use_ai %}
+        {% set selected_model = None %}{% include 'gpccmp/_model_select.html' %}
+        <button class="btn btn-primary btn-sm" name="action" value="draft">Proceed with GPCCMP →</button>
+        {% else %}
+        <span class="gd-muted">Drafting the plan with AI needs AI switched on and AI access; your decisions are saved.</span>
+        {% endif %}
+      </div>
+      {% if config.AI_ENABLED and current_user.can_use_ai %}
+      <div class="gd-muted" style="margin-top:0.3rem;">Both buttons save what is on this page first. <b>Save decisions</b> keeps your work to come back to;
+      <b>Proceed with GPCCMP</b> checks it is complete, confirms it and drafts the plan with AI from exactly what you see here.</div>
+      {% endif %}
+    </form>
+    {% if open_plan %}
+    <div class="gd-card" style="border-color:var(--warning); margin-top:0.5rem;">
+      <b>A care plan draft is already open for this patient</b> (plan {{ open_plan.id }}, started {{ open_plan.created_at | localdt('%d/%m/%Y') }}).
+      A patient can have one open draft, so file or discard it before drafting with AI.
+      <a class="btn btn-secondary btn-sm" href="{{ url_for('careplan.edit', plan_id=open_plan.id) }}" style="margin-left:0.4rem;">Open it</a>
+      <span class="gd-muted">Use <b>File plan…</b> to keep it, or <b>Discard</b> to void it; then come back here.</span>
+    </div>
+    {% endif %}
+    <form method="post" action="{{ url_for('gpccmp.plan_decisions_abandon', patient_id=patient_id) }}" onsubmit="return confirm('Discard these plan decisions?');" style="margin-top:0.4rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-danger btn-sm">Discard decisions</button>
+    </form>
+
+    {% if preview %}
+    <div class="gd-card" style="margin-top:0.8rem;">
+      <h3>What the AI will be given (preview)</h3>
+      <div class="gd-muted">Your decisions as MedUI will hand them to the AI, with the patient's record and the practice protocol's wording for these issues. It carries no names or identifiers.</div>
+      <div class="gd-pre">{{ preview }}</div>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/unsaved_guard.js') }}"></script>
+<script>
+function gdToggle(key, on) {
+  document.getElementById('gd-d-' + key).classList.toggle('gd-hidden', !on);
+}
+function gdReview() {
+  const r = document.querySelector('input[name="plan_type"][value="review"]');
+  const on = !!(r && r.checked);
+  document.querySelectorAll('.gd-review').forEach(el => { el.style.display = on ? '' : 'none'; });
+}
+document.addEventListener('DOMContentLoaded', gdReview);
+gdReview();
+function gdMore() {
+  const next = document.querySelector('[id^="gd-free-"].gd-hidden');
+  if (next) { next.classList.remove('gd-hidden'); next.querySelector('input').focus(); }
+  if (!document.querySelector('[id^="gd-free-"].gd-hidden')) document.getElementById('gd-more').classList.add('gd-hidden');
+}
+</script>
+{% endblock %}

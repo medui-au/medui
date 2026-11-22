@@ -44,7 +44,7 @@ It needs no network path to Best Practice.
 | Virtualisation enabled in the BIOS/UEFI | WSL2 | Usually already on. |
 | Internet access | The install | Ubuntu image, Ubuntu packages, GitHub, Docker Hub, Microsoft's SQL Server image. |
 | An administrator's approval, at up to three points | Installing WSL if it is missing; opening SSH to the network; opening HTTPS to the trainees' PCs | You do **not** run the script as administrator (section 3). |
-| A GitHub token | Downloading MedUI and the demo data while the repositories are private | A fine-grained token with read-only **Contents** access to **both** `medui-au/medui` and `medui-au/medui_demodata`. The script checks both before installing anything. Revoke it afterwards. |
+| A GitHub token | Downloading MedUI and the demo data while the repositories are private | A fine-grained token with read-only **Contents** access to **both** `medui_os` and `medui_demodata`. The script checks both before installing anything. Revoke it afterwards. |
 | Microsoft's SQL Server licence terms | The demo's SQL Server | You are asked to accept them ([aka.ms/useterms](https://aka.ms/useterms)). SQL Server Express is free. |
 | A password for the demo users | Logging in as the demo practice's staff | One password, shared by all the demo's staff logins. Choose one you can give to trainees. |
 | A username and password for MedUI's own administrator | Your first login | Username not a number; password at least 12 characters. |

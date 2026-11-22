@@ -22,7 +22,7 @@
       {% set export_url = url_for('careplan.export', plan_id=plan.id) %}
       <button class="btn btn-outline btn-sm" data-cp-send="copy" data-export-url="{{ export_url }}" title="Copy the plan (formatted and plain text)">Copy</button>
       <button class="btn btn-outline btn-sm" data-cp-send="email" data-export-url="{{ export_url }}" title="Email the plan to the patient from Comms">Email</button>
-      <button class="btn btn-outline btn-sm" data-cp-send="bp" data-export-url="{{ export_url }}" title="File the plan in the patient's Best Practice record from Comms">BP →</button>
+      <button class="btn btn-outline btn-sm" data-cp-send="bp" data-export-url="{{ export_url }}" data-bp-url="{{ url_for('careplan.export_bp', plan_id=plan.id) }}" title="Send the plan to the patient's Best Practice record as a PIT file">BP →</button><span class="cp-bp-tick" style="display:none; color:var(--success); font-size:0.82rem; font-weight:700;">✓</span>
       <button class="btn btn-outline btn-sm" id="cp-fetch">Fetch values…</button>
       <button class="btn btn-outline btn-sm" id="cp-check">Check</button>
       <button class="btn btn-primary btn-sm" id="cp-file">File plan…</button>

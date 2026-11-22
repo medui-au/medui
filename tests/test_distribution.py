@@ -180,12 +180,15 @@ def test_admin_bootstrap_and_core_pages(installed_app):
     # Flagged AI requests (upstream ADR-103): opens, with the practice-responsibility statement.
     flagged = client.get('/admin/flagged-ai')
     assert flagged.status_code == 200 and 'must be included in' in flagged.get_data(as_text=True)
-    # Results-based badges and the criterion review start off (upstream ADR-104/107/109).
+    # The criterion review starts off (upstream ADR-109, ADR-165); the results badges are each
+    # user's own setting, off until ticked (upstream ADR-166), with no practice switch.
     from app.models.system_setting import SystemSetting
+    from app.services import egfr_criterion, hba1c_criterion, user_settings_service
     with installed_app.app_context():
-        for key in ('clinical.egfr_criterion_badge', 'clinical.hba1c_criterion_badge',
-                    'clinical.criterion_review'):
-            assert SystemSetting.get(key) is False, key
+        assert SystemSetting.get('clinical.criterion_review') is False
+        for key in (hba1c_criterion.BADGE_PREF_KEY, egfr_criterion.BADGE_PREF_KEY):
+            pref = user_settings_service.REGISTRY[key]
+            assert pref.default is False and not pref.lockable, key
     assert client.get('/doctor/criterion-review').status_code == 404
     assert 'Criterion Review' not in home
 
@@ -511,12 +514,19 @@ def test_remaining_prompts_confined():
     assert 'Patient Explanation' not in summary and 'directly inferred' not in summary
     assert 'Outstanding items recorded' in up['*Consultation To Do List']['prompt_text']
     assert up['Default Info Sheet Prompt']['system_prompt_name'] == 'Record Questions (factual)'
-    assert 'Summarize and Explain Clinical Document [EXP]' not in up and 'Summarise Clinical Document [EXP]' in up
+    # The [EXP] label fix (0.55.0): no "[EXP]" or "Explain" in the prompt name or the workflow
+    # description; the classifier stays [EXP], which the document links look up.
+    assert 'Summarize and Explain Clinical Document [EXP]' not in up and 'Summarise Clinical Document [EXP]' not in up
+    assert 'Summarise Clinical Document (with record context)' in up
     # The [SUM] and [EXP] document buttons each need an active-able pipeline with that classifier.
     pipes = {p['classifier']: p for p in starter['pipelines']}
     assert {'[SUM]', '[EXP]'} <= set(pipes)
     sum_prompt = next(s['config']['user_prompt_name'] for s in pipes['[SUM]']['steps'] if s['node_type'] == 'prompt_assembly')
     assert sum_prompt in up
+    exp = pipes['[EXP]']
+    exp_prompt = next(s['config']['user_prompt_name'] for s in exp['steps'] if s['node_type'] == 'prompt_assembly')
+    assert exp_prompt in up and exp['name'] == 'Summarise Document'
+    assert 'Explain' not in (exp['description'] or '')
 
 
 def test_no_undefined_names():

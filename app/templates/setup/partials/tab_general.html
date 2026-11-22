@@ -93,32 +93,18 @@
             <form hx-post="{{ url_for('setup.general_patient_record_save') }}"
                   hx-target="#setup-content" hx-swap="innerHTML" style="max-width:560px;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <label style="display:flex; gap:0.5rem; align-items:flex-start; font-size:var(--text-sm); margin-bottom:0.3rem;">
-                    <input type="checkbox" name="egfr_criterion_badge" {{ 'checked' if egfr_criterion_badge }} style="margin-top:0.2rem;">
-                    <span><strong>Disease Profile: show "eGFR &lt; 60 for 3+ months"</strong> where CKD isn't recorded</span>
-                </label>
-                <p style="margin:0 0 0.75rem 1.5rem; font-size:0.7rem; color:var(--text-muted);">
-                    Shown when at least two eGFR results below 60, at least 90 days apart, have no result of 60 or
-                    more between them. It describes the results; whether the patient has CKD is the doctor's decision.
-                    Off: the Disease Profile shows recorded CKD only.
-                </p>
-                <label style="display:flex; gap:0.5rem; align-items:flex-start; font-size:var(--text-sm); margin-bottom:0.3rem;">
-                    <input type="checkbox" name="hba1c_criterion_badge" {{ 'checked' if hba1c_criterion_badge }} style="margin-top:0.2rem;">
-                    <span><strong>Disease Profile: show "HbA1c ≥ 6.5% on 2 occasions"</strong> where diabetes isn't recorded</span>
-                </label>
-                <p style="margin:0 0 0.75rem 1.5rem; font-size:0.7rem; color:var(--text-muted);">
-                    Adults only. Shown when HbA1c is 6.5% (48 mmol/mol) or more on two different days. Recorded
-                    conditions that affect how HbA1c reads are explained in its tooltip (Admin → Mapping Tables →
-                    influences). It describes the results; whether the
-                    patient has diabetes is the doctor's decision. Off: recorded diabetes only.
+                <p style="margin:0 0 0.75rem 0; font-size:0.7rem; color:var(--text-muted);">
+                    The Disease Profile's HbA1c and eGFR results badges are each user's own choice, in
+                    My Settings → Patient record: off until that user ticks them, and shown only to them.
                 </p>
                 <label style="display:flex; gap:0.5rem; align-items:flex-start; font-size:var(--text-sm); margin-bottom:0.3rem;">
                     <input type="checkbox" name="criterion_review" {{ 'checked' if criterion_review }} style="margin-top:0.2rem;">
                     <span><strong>Doctor Data: Criterion Review</strong></span>
                 </label>
                 <p style="margin:0 0 0.75rem 1.5rem; font-size:0.7rem; color:var(--text-muted);">
-                    A list of patients whose results meet the HbA1c or eGFR criterion where the diagnosis isn't
-                    recorded, for doctors to review (each doctor sees the patients whose last visit was with them).
+                    A record-coding audit: patients whose results meet the published HbA1c or eGFR criterion where
+                    the condition isn't coded in the record, for doctors to review (each doctor sees the patients
+                    whose last visit was with them). A criterion met is not a diagnosis.
                     Off: the page and its menu item are removed.
                 </p>
                 <button type="submit" class="btn btn-primary" style="font-size:var(--text-sm);">Save</button>

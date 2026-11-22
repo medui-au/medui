@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+{% block title %}Practice Protocols — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+.pp-head { display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; margin-bottom:0.4rem; }
+.pp-head h2 { margin:0; font-size:1.15rem; }
+.pp-tag { font-size:0.72rem; padding:0.05rem 0.45rem; border-radius:0.6rem; border:1px solid var(--border-color); background:var(--bg-secondary); }
+.pp-tag.draft { border-color:var(--warning); color:var(--warning); }
+.pp-tag.approved { border-color:var(--success); color:var(--success); }
+.pp-muted { color:var(--text-muted); font-size:0.8rem; }
+.pp-tabs { display:flex; gap:0.25rem; border-bottom:1px solid var(--border-color); margin:0.6rem 0 0.8rem; flex-wrap:wrap; }
+.pp-tabs a { padding:0.35rem 0.75rem; font-size:0.85rem; text-decoration:none; color:var(--text-secondary); border:1px solid transparent; border-bottom:none; border-radius:0.35rem 0.35rem 0 0; }
+.pp-tabs a.on { color:var(--text-primary); border-color:var(--border-color); background:var(--bg-primary); margin-bottom:-1px; }
+.pp-card { border:1px solid var(--border-color); border-radius:0.4rem; padding:0.6rem 0.75rem; margin-bottom:0.75rem; background:var(--bg-primary); }
+.pp-card h3 { margin:0 0 0.3rem; font-size:0.95rem; }
+.pp-opt { border-top:1px solid var(--border-color); padding:0.5rem 0 0.4rem; }
+.pp-opt:first-of-type { border-top:none; }
+.pp-opt .lbl { font-weight:600; font-size:0.88rem; }
+.pp-kv { font-size:0.8rem; margin:0.15rem 0; }
+.pp-kv b { color:var(--text-secondary); font-weight:600; }
+.pp-cite { font-size:0.78rem; margin:0.2rem 0 0.2rem 0.8rem; color:var(--text-secondary); }
+.pp-cite q { font-style:italic; }
+.pp-form { display:grid; grid-template-columns: 9rem 1fr; gap:0.35rem 0.6rem; margin-top:0.4rem; font-size:0.8rem; align-items:start; }
+.pp-form label { color:var(--text-secondary); padding-top:0.3rem; }
+.pp-form textarea { min-height:3.2rem; font-size:0.8rem; }
+.pp-form .full { grid-column: 1 / -1; }
+details.pp-edit > summary { cursor:pointer; font-size:0.78rem; color:var(--accent); margin-top:0.25rem; }
+.pp-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+.pp-table th, .pp-table td { padding:0.35rem; border-bottom:1px solid var(--border-color); text-align:left; vertical-align:top; }
+.pp-inline { display:inline; }
+.pp-mono { font-family:var(--font-mono, monospace); font-size:0.76rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pp-head">
+  <h2>Practice Protocols{{ help('practice-protocols.overview') }}</h2>
+  {% if version %}
+    <span class="pp-tag {{ version.status.value }}">Version {{ version.version }} · {{ version.status.value }}</span>
+    {% if version.status.value == 'approved' and version.review_due_on %}<span class="pp-muted">next review {{ version.review_due_on.strftime('%d/%m/%Y') }}</span>{% endif %}
+  {% endif %}
+  {% if live and version and version.id != live.id %}<a class="pp-muted" href="{{ url_for('protocols.index', tab=tab, v=live.id) }}">view the version in use (v{{ live.version }})</a>{% endif %}
+  {% if draft and version and version.id != draft.id %}<a class="pp-muted" href="{{ url_for('protocols.index', tab=tab, v=draft.id) }}">view the draft (v{{ draft.version }})</a>{% endif %}
+</div>
+<p class="pp-muted">The practice's own target options, wording and prevention lines for GP Chronic Condition
+Management Plans. A GP sees these options for each patient and makes the choice; MedUI preselects an option
+only where this protocol's rule matches a condition coded in the patient's record.
+{% if not can_edit %}{% if is_admin %} To change anything, start a new draft (Versions tab).{% else %} Only an administrator can change the protocol.{% endif %}{% endif %}</p>
+
+{% if not version %}
+<div class="pp-card">No protocol yet.{% if is_admin %} Start a draft on the Versions tab, add the practice's guidelines,
+then its measures' options and condition wording, and approve it.{% endif %}</div>
+{% endif %}
+
+<nav class="pp-tabs">
+  {% for t, label in [('measures','Measures and targets'), ('modules','Condition modules'), ('prevention','Prevention lines'), ('guidelines','Guidelines'), ('versions','Versions')] %}
+  <a href="{{ url_for('protocols.index', tab=t, v=version.id if version else None) }}" class="{{ 'on' if tab == t }}">{{ label }}</a>
+  {% endfor %}
+</nav>
+
+{# ── Measures and targets ─────────────────────────────────────────────────── #}
+{% if tab == 'measures' and version %}
+{% for m in measures %}
+  {% set opts = options.get(m.id, []) %}
+  <div class="pp-card" id="m-{{ m.id }}">
+    <h3>{{ m.label }}{% if m.unit %} <span class="pp-muted">({{ m.unit }})</span>{% endif %}
+      <span class="pp-tag">{{ scope_label(m.scope) }}</span></h3>
+    {% if m.scope.value == 'individual' %}<div class="pp-muted">Set by a GP for an individual patient, outside the GPCCMP protocol.</div>{% endif %}
+    <div class="pp-kv"><b>Latest value from:</b> {% if m.token_key %}<span class="pp-mono">{{ m.token_key }}</span> (care-plan result token)
+      {% if link[m.id] == 'unchecked' %} <span class="pp-tag">codes not checked</span>{% elif link[m.id] == 'mismatch' %} <span class="pp-tag draft">does not match this measure: its latest value isn't shown</span>{% elif link[m.id] == 'missing' %} <span class="pp-tag">token not found: no latest value until one is linked</span>{% endif %}
+      {% else %}no result token linked{% endif %}</div>
+    {% if is_admin %}
+    <details class="pp-edit"><summary>Edit measure</summary>
+      <form method="post" action="{{ url_for('protocols.measure_save', measure_id=m.id) }}" class="pp-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="v" value="{{ version.id }}">
+        <label>Label</label><input class="form-control" name="label" value="{{ m.label }}">
+        <label>Unit</label><input class="form-control" name="unit" value="{{ m.unit or '' }}" style="max-width:10rem;">
+        <label>Result token</label>
+        <select class="form-control" name="token_key" style="max-width:28rem;"><option value="">(none)</option>{% for t, st in token_choices[m.id] %}<option value="{{ t.key }}" {{ 'selected' if t.key == m.token_key }}>{{ t.key }}: {{ t.label }}{% if t.loinc_codes %} · {{ t.loinc_codes | join(', ') }}{% endif %}{% if t.expected_unit %} · {{ t.expected_unit }}{% endif %}{% if st == 'unchecked' %} · codes not checked{% endif %}</option>{% endfor %}</select>
+        <div class="full pp-muted">Only tokens that measure this are offered: blood pressure, alcohol and weight take their own record value; LDL-C, HbA1c,
+        urate and urine ACR only tokens whose LOINC codes are all ones known for that test, in the same unit. A measure with no known codes takes no token
+        (a matching unit alone isn't enough); ask the maintainers to add its codes.
+        Measures aren't versioned: a change here applies to every version and never changes a patient's target.</div>
+        <div class="full"><button class="btn btn-primary btn-sm">Save measure</button></div>
+      </form>
+    </details>
+    {% endif %}
+    {% for o in opts %}
+    <div class="pp-opt" id="opt-{{ o.id }}">
+      <div class="lbl">{{ o.label }}{% if o.gp_sets %} <span class="pp-tag">GP sets</span>{% endif %}</div>
+      {% if o.patient_group %}<div class="pp-kv"><b>For:</b> {{ o.patient_group }}</div>{% endif %}
+      {% if o.plan_wording %}<div class="pp-kv"><b>Plan wording:</b> {{ o.plan_wording }}</div>{% endif %}
+      <div class="pp-kv"><b>Preselected when:</b> {% if o.default_rule %}<span class="pp-mono">{{ o.default_rule | tojson }}</span> · priority {{ o.priority }}{% else %}never (the GP chooses it){% endif %}</div>
+      {% if o.rationale %}<div class="pp-kv"><b>Why:</b> {{ o.rationale }}</div>{% endif %}
+      {% for c in o.citations %}
+      <div class="pp-cite">{{ c.guideline.title }}{% if c.guideline.edition %}, {{ c.guideline.edition }}{% endif %}{% if c.section_ref %} · {{ c.section_ref }}{% endif %}{% if c.quote %}: <q>{{ c.quote }}</q>{% endif %}
+        {% if can_edit %}<form class="pp-inline" method="post" action="{{ url_for('protocols.citation_delete', citation_id=c.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-secondary btn-sm" style="padding:0 0.3rem;" title="Remove this guideline">×</button></form>{% endif %}
+      </div>
+      {% endfor %}
+      {% if can_edit %}
+      <details class="pp-edit"><summary>Edit option</summary>
+        <form method="post" action="{{ url_for('protocols.option_save', option_id=o.id) }}" class="pp-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label>Label</label><input class="form-control" name="label" value="{{ o.label }}">
+          <label>For (patient group)</label><input class="form-control" name="patient_group" value="{{ o.patient_group or '' }}">
+          <label>Plan wording</label><textarea class="form-control" name="plan_wording">{{ o.plan_wording or '' }}</textarea>
+          <label>Why (rationale)</label><textarea class="form-control" name="rationale">{{ o.rationale or '' }}</textarea>
+          <label>Preselect rule (JSON)</label><input class="form-control pp-mono" name="default_rule" value="{{ o.default_rule | tojson if o.default_rule else '' }}" placeholder='{"any": ["isIHD", "isCVA"]}'>
+          <label>Priority</label><input class="form-control" name="priority" value="{{ o.priority }}" style="max-width:6rem;">
+          <label>GP sets</label><label style="padding-top:0;"><input type="checkbox" name="gp_sets" {{ 'checked' if o.gp_sets }}> the target is left for the GP to set</label>
+          <div class="full pp-muted">Flags you can use: {{ flags | join(', ') }}. Rule parts: "any", "all", "none" (lists of flags), or {"always": true}. Lower priority numbers are tried first.</div>
+          <div class="full"><button class="btn btn-primary btn-sm">Save option</button></div>
+        </form>
+        <form method="post" action="{{ url_for('protocols.citation_add', option_id=o.id) }}" class="pp-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label>Add guideline</label>
+          <select class="form-control" name="guideline_id"><option value="">Choose…</option>{% for g in guidelines %}<option value="{{ g.id }}">{{ g.title }}{% if g.edition %} ({{ g.edition }}){% endif %}</option>{% endfor %}</select>
+          <label>Section</label><input class="form-control" name="section_ref">
+          <label>Short quote</label><textarea class="form-control" name="quote"></textarea>
+          <div class="full"><button class="btn btn-secondary btn-sm">Add guideline</button></div>
+        </form>
+        <form method="post" action="{{ url_for('protocols.option_delete', option_id=o.id) }}" onsubmit="return confirm('Remove this option from the draft?');" style="margin-top:0.3rem;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-danger btn-sm">Remove option</button>
+        </form>
+      </details>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="pp-muted">No options in this version.</div>
+    {% endfor %}
+    {% if can_edit %}
+    <details class="pp-edit"><summary>Add an option</summary>
+      <form method="post" action="{{ url_for('protocols.option_add', measure_id=m.id) }}" class="pp-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>Short code</label><input class="form-control pp-mono" name="code" placeholder="{{ m.key }}_example">
+        <label>Label</label><input class="form-control" name="label">
+        <div class="full"><button class="btn btn-secondary btn-sm">Add</button></div>
+      </form>
+    </details>
+    {% endif %}
+  </div>
+{% else %}
+  <div class="pp-card pp-muted">No measures yet.</div>
+{% endfor %}
+{% endif %}
+
+{# ── Condition modules ───────────────────────────────────────────────────── #}
+{% if tab == 'modules' and version %}
+<p class="pp-muted">The practice's wording for each condition. A plan uses a module only for issues the GP puts in
+scope. No targets here (those are on the Measures tab), and no named medicines or doses in patient text; treatment
+text belongs in "For the GP" reference text.</p>
+{% for m in version.modules %}
+  <div class="pp-card" id="mod-{{ m.id }}">
+    <h3>{{ m.label }} <span class="pp-muted pp-mono">{{ m.condition_key }}</span></h3>
+    <div class="pp-kv"><b>Applies when:</b> {% if m.applies_when %}<span class="pp-mono">{{ m.applies_when | tojson }}</span>{% else %}the GP adds it{% endif %}</div>
+    {% for f, lbl in [('goals','Goals'), ('measures_text','Measures'), ('monitoring','Standard monitoring'), ('patient_info','Patient information'), ('safety_netting','Safety-netting'), ('gp_reference','For the GP (reference)'), ('source_note','Source')] %}
+      {% if m[f] %}<div class="pp-kv"><b>{{ lbl }}:</b> {{ m[f] }}</div>{% endif %}
+    {% endfor %}
+    {% if m.services %}<div class="pp-kv"><b>Standard services:</b> {{ m.services | join(' · ') }}</div>{% endif %}
+    {% if can_edit %}
+    <details class="pp-edit"><summary>Edit module</summary>
+      <form method="post" action="{{ url_for('protocols.module_save', module_id=m.id) }}" class="pp-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>Label</label><input class="form-control" name="label" value="{{ m.label }}">
+        <label>Applies when (JSON)</label><input class="form-control pp-mono" name="applies_when" value="{{ m.applies_when | tojson if m.applies_when else '' }}">
+        {% for f, lbl in [('goals','Goals'), ('measures_text','Measures'), ('monitoring','Standard monitoring'), ('patient_info','Patient information'), ('safety_netting','Safety-netting'), ('gp_reference','For the GP (reference)'), ('source_note','Source')] %}
+        <label>{{ lbl }}</label><textarea class="form-control" name="{{ f }}">{{ m[f] or '' }}</textarea>
+        {% endfor %}
+        <label>Standard services (one per line)</label><textarea class="form-control" name="services">{{ (m.services or []) | join('\n') }}</textarea>
+        <div class="full"><button class="btn btn-primary btn-sm">Save module</button></div>
+      </form>
+    </details>
+    {% endif %}
+  </div>
+{% else %}
+  <div class="pp-card pp-muted">No modules in this version.</div>
+{% endfor %}
+{% endif %}
+
+{# ── Prevention lines ────────────────────────────────────────────────────── #}
+{% if tab == 'prevention' and version %}
+<p class="pp-muted">Lines MedUI works out from recorded age, sex, coded history and smoking: never the AI. A new plan
+lists the lines that apply, as information, never as "due" unless the record shows the last date.</p>
+{% for p in version.prevention %}
+  <div class="pp-card" id="prev-{{ p.id }}">
+    <h3>{{ p.label }} <span class="pp-muted pp-mono">{{ p.key }}</span></h3>
+    <div class="pp-kv"><b>Applies when:</b> <span class="pp-mono">{{ p.rule | tojson }}</span></div>
+    <div class="pp-kv"><b>Wording:</b> {{ p.wording }}</div>
+    {% if p.source %}<div class="pp-kv"><b>Source:</b> {{ p.source }}</div>{% endif %}
+    {% if can_edit %}
+    <details class="pp-edit"><summary>Edit line</summary>
+      <form method="post" action="{{ url_for('protocols.prevention_save', rule_id=p.id) }}" class="pp-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>Label</label><input class="form-control" name="label" value="{{ p.label }}">
+        <label>Rule (JSON)</label><input class="form-control pp-mono" name="rule" value="{{ p.rule | tojson }}">
+        <label>Wording</label><textarea class="form-control" name="wording">{{ p.wording }}</textarea>
+        <label>Source</label><textarea class="form-control" name="source">{{ p.source or '' }}</textarea>
+        <div class="full pp-muted">Rule parts: "sex" ("F"/"M"), "age_min", "age_max", "flags_any", "flags_none", "needs": "smoking_history".</div>
+        <div class="full"><button class="btn btn-primary btn-sm">Save line</button></div>
+      </form>
+    </details>
+    {% endif %}
+  </div>
+{% else %}
+  <div class="pp-card pp-muted">No prevention lines in this version.</div>
+{% endfor %}
+{% endif %}
+
+{# ── Guidelines ──────────────────────────────────────────────────────────── #}
+{% if tab == 'guidelines' %}
+<p class="pp-muted">The guideline library, shared with care-plan recipes. Mark a guideline as superseded when a new
+edition arrives; the options that cite it are then due for review.</p>
+<table class="pp-table">
+  <thead><tr><th>Guideline</th><th>Publisher</th><th>Edition</th><th>Accessed</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for g in guidelines %}
+    <tr id="g-{{ g.id }}">
+      <td>{% if g.url %}<a href="{{ g.url }}" target="_blank" rel="noopener">{{ g.title }}</a>{% else %}{{ g.title }}{% endif %}
+        {% if is_admin %}
+        <details class="pp-edit"><summary>Edit</summary>
+          <form method="post" action="{{ url_for('protocols.guideline_save', guideline_id=g.id) }}" class="pp-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="v" value="{{ version.id if version }}">
+            {% include 'protocols/_guideline_fields.html' %}
+            <label>Superseded by</label>
+            <select class="form-control" name="superseded_by_id"><option value="">(current)</option>{% for g2 in guidelines if g2.id != g.id %}<option value="{{ g2.id }}" {{ 'selected' if g.superseded_by_id == g2.id }}>{{ g2.title }}</option>{% endfor %}</select>
+            <div class="full"><button class="btn btn-primary btn-sm">Save guideline</button></div>
+          </form>
+        </details>
+        {% endif %}
+      </td>
+      <td>{{ g.publisher or '' }}</td><td>{{ g.edition or '' }}</td>
+      <td>{{ g.accessed_on.strftime('%d/%m/%Y') if g.accessed_on else '' }}</td>
+      <td>{% if g.superseded_by_id %}<span class="pp-tag">superseded</span>{% else %}current{% endif %}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5" class="pp-muted">No guidelines yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% if is_admin %}
+{% set g = None %}
+<details class="pp-edit" style="margin-top:0.6rem;"><summary>Add a guideline</summary>
+  <form method="post" action="{{ url_for('protocols.guideline_save') }}" class="pp-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="v" value="{{ version.id if version }}">
+    {% include 'protocols/_guideline_fields.html' %}
+    <div class="full"><button class="btn btn-primary btn-sm">Add guideline</button></div>
+  </form>
+</details>
+{% endif %}
+{% endif %}
+
+{# ── Versions ────────────────────────────────────────────────────────────── #}
+{% if tab == 'versions' %}
+<div style="display:flex; gap:0.6rem; margin-bottom:0.6rem; flex-wrap:wrap;">
+  {% if version %}<a class="btn btn-secondary btn-sm" href="{{ url_for('protocols.record', v=version.id) }}" target="_blank">Decision record for v{{ version.version }} (print)</a>{% endif %}
+  <a class="btn btn-secondary btn-sm" href="{{ url_for('protocols.review_targets') }}">Targets to review</a>
+</div>
+<table class="pp-table">
+  <thead><tr><th>Version</th><th>Status</th><th>Approved</th><th>Next review</th><th>Note</th></tr></thead>
+  <tbody>
+  {% for v in versions %}
+    <tr>
+      <td><a href="{{ url_for('protocols.index', tab='measures', v=v.id) }}">v{{ v.version }}</a></td>
+      <td><span class="pp-tag {{ v.status.value }}">{{ v.status.value }}</span></td>
+      <td>{% if v.approved_at %}{{ v.approved_at | localdt('%d/%m/%Y') }}{% if v.approved_by %} · {{ v.approved_by.display_name or v.approved_by.username }}{% endif %}{% endif %}</td>
+      <td>{{ v.review_due_on.strftime('%d/%m/%Y') if v.review_due_on else '' }}</td>
+      <td>{{ v.change_note or '' }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5" class="pp-muted">No versions yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% if is_admin %}
+<div class="pp-card" style="margin-top:0.8rem;">
+  {% if draft %}
+    <h3>Draft version {{ draft.version }}</h3>
+    <p class="pp-muted">Approving makes this draft the protocol in use{% if live %} and retires version {{ live.version }}{% endif %}.
+    Retired versions stay readable, so every target set under them can still be traced.</p>
+    <form method="post" action="{{ url_for('protocols.draft_approve') }}" class="pp-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Next review</label><input class="form-control" type="date" name="review_due_on" value="{{ default_review.isoformat() }}" style="max-width:12rem;">
+      <label>Note</label><input class="form-control" name="note" value="{{ draft.change_note or '' }}">
+      <div class="full"><button class="btn btn-primary btn-sm">Approve version {{ draft.version }}</button></div>
+    </form>
+    <form method="post" action="{{ url_for('protocols.draft_discard') }}" onsubmit="return confirm('Discard draft version {{ draft.version }}? Its changes are lost.');" style="margin-top:0.4rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-danger btn-sm">Discard draft</button>
+    </form>
+  {% else %}
+    <h3>Start a new draft</h3>
+    <p class="pp-muted">A copy of {% if live %}version {{ live.version }}{% else %}an empty protocol{% endif %} to change. The version in use is unchanged until the draft is approved.</p>
+    <form method="post" action="{{ url_for('protocols.draft_start') }}" class="pp-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>What will change</label><input class="form-control" name="note">
+      <div class="full"><button class="btn btn-primary btn-sm">Start draft</button></div>
+    </form>
+  {% endif %}
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

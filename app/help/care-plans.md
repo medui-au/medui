@@ -2,7 +2,7 @@
 title: Care plans
 area: Patients
 roles: [doctor, admin]
-reviewed: 2026-11-13
+reviewed: 2026-11-22
 related: [patient-record, ai-drafts]
 ---
 
@@ -21,7 +21,9 @@ a time; **Continue draft** returns to it.
 ## Writing the plan {#compose}
 
 - **Medical history:** filled from Best Practice's coded history, medications and allergies when
-  the plan is started. Edit it as you need. A heading at the start of a line, such as
+  the plan is started, with one contact: the **Emergency Contact**, or the **Next of Kin** if there
+  is none, with their relationship and phone numbers as recorded in Best Practice. Edit it as you
+  need. A heading at the start of a line, such as
   `History:` or `Social history:`, prints in bold.
 - **Rows:** each row is an **Issue**, **Goals**, **Management** and **Providers**. Choose the issue
   from the patient's coded history, the practice's standing issues (such as preventive health),
@@ -45,10 +47,13 @@ a time; **Continue draft** returns to it.
   so you can hand it over, but it isn't filed: file the plan without changing it afterwards, so
   the record holds what the patient has. Each preview is noted in the plan's record.
 - **Copy**, **Email** and **BP →** (on the draft and on the filed plan): **Copy** puts the plan on
-  the clipboard, formatted for Word or an email and as plain text elsewhere. **Email** and **BP →**
-  open Comms for this patient with the plan filled in, one section per issue; you send or file it
-  there, and Comms keeps the record. The copy filed in Best Practice is the lasting one, so send
-  the version you're happy with, then file the plan here unchanged.
+  the clipboard, formatted for Word or an email and as plain text elsewhere. **Email** opens Comms
+  for this patient with the plan filled in, one section per issue; you send it there, and Comms
+  keeps the record. **BP →** sends the plan straight to the patient's Best Practice record as a PIT
+  file, without leaving the page: a brief green tick shows it was sent. The copy filed in Best
+  Practice is the lasting one, so send the version you're happy with, then file the plan here
+  unchanged. Blank lines in the medical history and in the grid are left out of the printed and
+  sent plan, so it takes fewer pages; the draft keeps them.
 - The draft saves itself every few seconds; if it was saved from another window you're asked to
   reload. **Check** lists anything a row is missing and results with no value.
 - **File plan…** freezes the plan as it is, with the values shown, and keeps an exact copy. A filed
@@ -72,7 +77,9 @@ practice's approved ones.
 - **Copy to my recipes** makes your own editable copy of a practice or colleague's recipe.
   Administrators can save practice recipes, which every doctor is offered once approved.
 - **AI assistance** (if your practice has set up a recipe assistant): describe the recipe or paste
-  guideline wording and choose **Draft with AI**. No patient information is involved. The reply
+  guideline wording and choose **Draft with AI**. The second list chooses the model for this run
+  (the same models the AI Assistant offers); otherwise the pipeline's own model is used. No patient
+  information is involved. The reply
   fills the form for you to check; models can misquote or invent sources, so open each source
   before approving. Versions written with AI help are marked.
 - **Record tokens** are filled from the patient's record as recorded: `bp` (the latest reading,

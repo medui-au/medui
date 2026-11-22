@@ -84,7 +84,13 @@ SELECT
         ELSE CAST(ROUND((AST_ALT_Results.Age * CAST(AST_ALT_Results.AST AS FLOAT)) /
                         (CAST(Ranked_PLT_Results.PLT AS FLOAT) * SQRT(CAST(AST_ALT_Results.ALT AS FLOAT))), 2) AS VARCHAR)
     END AS ResultValue,
-    AST_ALT_Results.ReportDate AS ReportDate
+    AST_ALT_Results.ReportDate AS ReportDate,
+    -- ADR-168: the inputs, shown with each point
+    AST_ALT_Results.Age AS Age,
+    AST_ALT_Results.AST AS AST,
+    AST_ALT_Results.ALT AS ALT,
+    Ranked_PLT_Results.PLT AS PLT,
+    Ranked_PLT_Results.PLT_ReportDate AS PLTDate
 FROM AST_ALT_Results
 JOIN Ranked_PLT_Results ON AST_ALT_Results.ReportDate = Ranked_PLT_Results.ReportDate
 WHERE Ranked_PLT_Results.RN = 1

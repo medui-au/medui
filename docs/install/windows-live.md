@@ -51,7 +51,7 @@ The BP server itself can be used, if the practice's IT is comfortable with that.
 | Virtualisation enabled in the BIOS/UEFI | WSL2 | Usually already on. |
 | Internet access | The install | Ubuntu image, Ubuntu packages, GitHub, Docker Hub. |
 | An administrator's approval, at up to three points | Installing WSL if it is missing; opening SSH to the network; opening HTTPS to the workstations | You do **not** run the script as administrator (section 3). |
-| A GitHub token | Downloading MedUI while the repository is private | A fine-grained token with read-only **Contents** access to `medui-au/medui`. Revoke it afterwards. |
+| A GitHub token | Downloading MedUI while the repository is private | A fine-grained token with read-only **Contents** access to `medui_os`. Revoke it afterwards. |
 | The practice's timezone | "Today" on the day sheet | Offered from Windows; just confirm it. |
 | A username and password for MedUI's own administrator | Your first login | Username not a number; password at least 12 characters. |
 | *(Optional)* an SSH public key | Remote access for IT or a coding agent | Default location `C:\Users\<you>\.ssh\id_ed25519.pub`. |

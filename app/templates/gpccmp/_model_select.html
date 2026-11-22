@@ -1,0 +1,7 @@
+{# The model for this draft (ADR-174): the pipeline's own unless the GP chooses another. #}
+<select class="form-control" name="model_id" style="max-width:20rem; display:inline-block; font-size:0.8rem;" title="Model for this draft">
+  <option value="">Pipeline default{% if default_label %}: {{ default_label }}{% endif %}</option>
+  {% for m in models %}
+  <option value="{{ m.id }}" {{ 'selected' if selected_model and selected_model == m.id }}>{{ m.display_name or m.model_id }}{% if m.provider %} ({{ 'local' if m.provider.is_local else 'cloud' }}){% endif %}</option>
+  {% endfor %}
+</select>

@@ -24,6 +24,13 @@ from app.repositories.patient_json_repository import PatientJsonRepository
 
 _MAPPING_CACHE: dict[str, tuple[list[dict], float]] = {}
 
+# The schedule these rules follow (ADR-167): shown beside the patient-page line and in the AI
+# context, so the rule's source and version travel with the result. Change it with the rules.
+SCHEDULE = ('National Immunisation Program schedule, 2026 (from 1 July 2026; COVID-19 as updated '
+            '1 October 2026)')
+SCHEDULE_SOURCE = 'Australian Government Department of Health, health.gov.au'
+SCHEDULE_TEXT = f'{SCHEDULE}. Source: {SCHEDULE_SOURCE}.'
+
 # Notes state what the schedule says and what is recorded, for the health professional (and the
 # AI drafting for them); they don't advise the patient or say what to do (ADR-110).
 _NOT_FUNDED = 'Not funded for this age or risk group under the NIP; available privately.'
@@ -139,6 +146,7 @@ def _row(vaccine, product, eligible, basis, confirm_with_gp, matched_conditions,
         'last_dose_product':      (last['brand_name'] or last['generic_name']) if last else None,
         'dose_due_now':           due_now,
         'note':                   note,
+        'schedule':               SCHEDULE_TEXT,
     }
 
 

@@ -1,6 +1,7 @@
-/* Care plan Copy, Email and BP → (ADR-129). Buttons carry data-cp-send="copy|email|bp" and
- * data-export-url. Email and BP → open Comms for the plan's patient with the plan filled in
- * (the comms_prefill hand-over the Library uses); Comms sends or files it and keeps the record.
+/* Care plan Copy, Email and BP → (ADR-129, ADR-174). Buttons carry data-cp-send="copy|email|bp" and
+ * data-export-url. Email opens Comms for the plan's patient with the plan filled in (the
+ * comms_prefill hand-over the Library uses). BP → sends the plan to Best Practice as a PIT file
+ * in place (data-bp-url) and shows a brief green tick, as the AI Assistant's BP → does.
  * A page with unsaved work sets window.cpBeforeSend to a function returning a promise. */
 (function () {
   'use strict';
@@ -45,10 +46,25 @@
     }).catch(e => { if (w) w.close(); if (e.message !== 'conflict') alert(e.message || 'Could not open Comms.'); });
   }
 
+  function toBp(btn) {
+    const tick = btn.nextElementSibling && btn.nextElementSibling.classList.contains('cp-bp-tick')
+      ? btn.nextElementSibling : null;
+    btn.disabled = true;
+    const ready = window.cpBeforeSend ? window.cpBeforeSend() : Promise.resolve();
+    ready.then(() => fetch(btn.dataset.bpUrl, {method: 'POST', headers: {'X-CSRFToken': csrf()}}))
+      .then(r => r.json()).then(d => {
+        if (d.error) throw new Error(d.error);
+        if (tick) { tick.style.display = ''; setTimeout(() => { tick.style.display = 'none'; }, 2500); }
+      }).catch(e => { if (e.message !== 'conflict') alert(e.message || 'Sending to Best Practice failed.'); })
+      .finally(() => { btn.disabled = false; });
+  }
+
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-cp-send]');
     if (!btn) return;
     const ch = btn.dataset.cpSend;
-    if (ch === 'copy') copy(btn); else toComms(btn, ch);
+    if (ch === 'copy') copy(btn);
+    else if (ch === 'bp' && btn.dataset.bpUrl) toBp(btn);
+    else toComms(btn, ch);
   });
 }());

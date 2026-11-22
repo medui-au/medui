@@ -73,6 +73,8 @@ def _register_blueprints(app: Flask) -> None:
     from app.blueprints.my_settings import bp as my_settings_bp
     from app.blueprints.help import bp as help_bp
     from app.blueprints.careplan import bp as careplan_bp
+    from app.blueprints.protocols import bp as protocols_bp
+    from app.blueprints.gpccmp import bp as gpccmp_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -96,6 +98,8 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(charts_bp, url_prefix='/charts')
     app.register_blueprint(my_settings_bp, url_prefix='/me')
     app.register_blueprint(careplan_bp, url_prefix='/careplan')
+    app.register_blueprint(protocols_bp, url_prefix='/admin/protocols')
+    app.register_blueprint(gpccmp_bp, url_prefix='/gpccmp')
 
 
 def _register_commands(app: Flask) -> None:
@@ -109,6 +113,10 @@ def _register_commands(app: Flask) -> None:
     app.cli.add_command(install_cli)
     from app.commands.help import help_cli
     app.cli.add_command(help_cli)
+    from app.commands.protocol import protocol_cli
+    app.cli.add_command(protocol_cli)
+    from app.commands.gpccmp import gpccmp_cli
+    app.cli.add_command(gpccmp_cli)
 
 
 def _register_filters(app: Flask) -> None:

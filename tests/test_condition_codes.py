@@ -58,11 +58,11 @@ def test_no_history():
 def test_summary_never_merges_recorded_and_criterion():
     from app.services.condition_codes import summary
     s = summary({'isDiabetes': 1, 'DiabetesRecordedYear': 2019,
-                 'hba1c_criterion': {'state': 'met'}, 'egfr_criterion': {'state': 'met', 'run': [1, 2]}})
+                 'hba1c_badge': {'state': 'met'}, 'egfr_badge': {'state': 'met', 'latest': {'value': '54'}}})
     assert s['diabetes']['status'] == 'recorded'
     assert s['ckd']['status'] == 'criterion_met'
     assert summary({})['diabetes']['status'] == 'none'
-    s2 = summary({'hba1c_criterion': {'state': 'met', 'days': [], 'influences': [{'condition': 'iron_deficiency'}]}})
+    s2 = summary({'hba1c_badge': {'state': 'met', 'results': [], 'influences': [{'condition': 'iron_deficiency'}]}})
     assert s2['diabetes']['status'] == 'criterion_met' and s2['diabetes']['influences']
 
 

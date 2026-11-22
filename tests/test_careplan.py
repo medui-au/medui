@@ -391,3 +391,30 @@ def test_care_plans_are_for_doctors(ctx):
         s['_user_id'] = str(nurse.id)
         s['_fresh'] = True
     assert client.get('/careplan/recipes').status_code == 403
+
+
+def test_contact_line_prefers_the_emergency_contact():
+    """ADR-180: one contact in the header, the Emergency Contact else the Next of Kin. The query
+    orders them; the line is built from the first row. Invented people."""
+    ec = {'FIRSTNAME': 'Jo', 'SURNAME': 'Example', 'RELATIONSHIP': 'Daughter', 'PHONE1': '0400 000 001',
+          'PHONE2': '0400 000 001', 'TYPE': 2}
+    assert svc.contact_line([ec]) == 'Emergency contact: Jo Example (Daughter), 0400 000 001'
+    nok = {'FIRSTNAME': 'Sam', 'SURNAME': 'Example', 'RELATIONSHIP': '', 'PHONE1': '', 'PHONE2': '07 0000 0002', 'TYPE': 1}
+    assert svc.contact_line([nok]) == 'Next of kin: Sam Example, 07 0000 0002'
+    assert svc.contact_line([]) == '' and svc.contact_line([{'FIRSTNAME': ' ', 'SURNAME': '', 'TYPE': 2}]) == ''
+
+
+def test_header_adds_the_contact_after_allergies(monkeypatch):
+    sections = {'patient_medications': [], 'patient_allergies': [],
+                'patient_careplan_contact': [{'FIRSTNAME': 'Jo', 'SURNAME': 'Example', 'RELATIONSHIP': 'Son',
+                                              'PHONE1': '0400 000 003', 'PHONE2': '', 'TYPE': 2}]}
+    monkeypatch.setattr(svc, 'coded_history', lambda pid: [{'label': 'Gout', 'year': '2020', 'key': 'gout'}])
+    monkeypatch.setattr(svc, '_bp_section', lambda pid, name, params=1: sections[name])
+    assert svc.default_header(1) == ('History: Gout (2020)\nAllergies: none recorded\n'
+                                     'Emergency contact: Jo Example (Son), 0400 000 003')
+
+
+def test_the_contact_query_puts_the_emergency_contact_first():
+    from pathlib import Path
+    sql = (Path(__file__).resolve().parent.parent / 'app' / 'sql' / 'patient_careplan_contact.sql').read_text()
+    assert 'TOP 1' in sql and 'ORDER BY TYPE DESC, NextofKinid DESC' in sql and 'recordstatus = 1' in sql

@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.extensions import db
+from app.services import egfr_criterion, hba1c_criterion
 from app.models.system_setting import SystemSetting
 from app.models.user_preference import UserPreference
 
@@ -83,9 +84,22 @@ REGISTRY: dict[str, Preference] = {p.key: p for p in (
                section='Scribe', on_page=False, requires_ai=True),
     Preference('scribe.chunk_interval_ms', 'Transcription interval', 'int', None,
                section='Scribe', on_page=False, requires_ai=True),
+    # ADR-166: rules a user chooses to display on the Disease Profile. Purely personal, by the
+    # maintainer and clinical lead's decision: off until the user ticks them, never lockable,
+    # no practice default. The label is the rule itself and must match the code.
+    Preference(hba1c_criterion.BADGE_PREF_KEY, hba1c_criterion.BADGE_RULE, 'bool', False,
+               section='Patient record',
+               help='The badge shows those results with their dates, for the patients you view. '
+                    'It describes the results; whether the patient has diabetes, and recording '
+                    'it, is your decision.'),
+    Preference(egfr_criterion.BADGE_PREF_KEY, egfr_criterion.BADGE_RULE, 'bool', False,
+               section='Patient record',
+               help='The badge shows that result with its date, for the patients you view. A '
+                    'result of exactly 59 is not below 59, although KDIGO counts 59 as G3a. '
+                    'Whether the patient has CKD, and recording it, is your decision.'),
 )}
 
-SECTION_ORDER = ('Display', 'Communications', 'AI', 'Scribe', 'General')
+SECTION_ORDER = ('Display', 'Communications', 'Patient record', 'AI', 'Scribe', 'General')
 
 
 # ── Practice layer ────────────────────────────────────────────────────────────

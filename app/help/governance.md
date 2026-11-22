@@ -2,7 +2,7 @@
 title: Complaints, adverse events and the AI-use policy
 area: Governance
 roles: [reception, nurse, doctor, admin]
-reviewed: 2026-11-20
+reviewed: 2026-11-21
 related: []
 ---
 
@@ -43,3 +43,9 @@ approved. Its **Appendix A** lists the AI providers and models enabled at the mo
 printed or downloaded: whether each runs on the practice's computers or in the cloud, and what
 each model is used for. **Print or save as PDF** and **Download (.md)** keep a dated copy, for the
 practice's document management, whenever the policy is approved or a provider or model changes.
+
+The template (updated 21 November 2026) covers the questions users type, guideline content
+suggested by AI, the practice's own prompts and care-plan recipes, and medicolegally sensitive
+discussions, which the practitioner documents personally. A policy the practice has already saved
+keeps its own wording: download it, compare it with the template, and copy across what the
+practice wants (**Edit → Start again from the template** replaces the saved wording).

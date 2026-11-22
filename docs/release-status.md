@@ -1,6 +1,6 @@
 # Release status
 
-**Version 0.54.0, pre-release (November 2026).** Synced with the upstream MedUI application, with
+**Version 0.56.0, pre-release (November 2026).** Synced with the upstream MedUI application, with
 the redaction core 0.2.20. Scope: a new practice installation, not migration of existing MedUI data.
 Each release is described in the [changelog](../CHANGELOG.md); this page is the summary of what
 is in place and what is left before a release to another practice.
@@ -38,7 +38,11 @@ is in place and what is left before a release to another practice.
   practice.
 - Seeded prompts confined after the wording audit: no result grading, risk classification,
   targets, or screening and vaccination advice. Results are shown with the laboratory's own
-  flags and ranges; results-based badges and the criterion review are included but **off**.
+  flags and ranges. The HbA1c and eGFR results badges are rules each user chooses to display
+  (off until ticked); the criterion review, a record-coding audit, is included but **off**.
+  FIB-4 and the NIP line show their formula or schedule, inputs and source.
+- The intended purpose names what MedUI is for and not for, including published calculations,
+  record-quality audits and rules a user chooses to display ([intended purpose](intended_purpose.md)).
 - Off-label guard in the general chatbot, and a list of flagged requests for the practice
   (**Admin → Flagged AI Requests**).
 - Governance: a usage record (Application Usage, My Usage) and a privacy review of what was
@@ -61,16 +65,16 @@ is in place and what is left before a release to another practice.
 - **Demo:** installed from MedUI's demo databases, and earlier from BP's sample databases.
 - **The development host:** fresh installs, re-runs with data unchanged, upgrades and rollbacks
   rehearsed on throwaway installations, HTTPS end to end.
-- **Tests:** 449 passing, including the database tests against a throwaway PostgreSQL.
+- **Tests:** 612 passing, including the database tests against a throwaway PostgreSQL.
 
 No claim of clinical validation is made by these installation and startup tests.
 
 ## Before release to another practice
 
 **Regulatory and intended purpose** (TGA position: plans kept with the maintainers)
-- FIB-4 and NIP eligibility: show the formula or schedule, inputs, source and version next
-  to the results.
 - The AI information sheet in the docs, with version and support contact.
+- Seeded prompt wording against the intended purpose (cited guideline content, no tailoring to
+  the patient), after testing old and new wording side by side.
 
 **Validation**
 - Validate seeded drug and vaccine identifiers and clinical rules for receiving practices.

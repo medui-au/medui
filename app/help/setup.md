@@ -26,16 +26,12 @@ setup guide.
 
 ## Patient record {#patient-record}
 
-- **Disease Profile: show "eGFR < 60 for 3+ months"** (on unless switched off). Where CKD
-  isn't recorded, the patient's Disease Profile shows this when their eGFR results meet the
-  eGFR criterion for chronic kidney disease. It describes the results; the doctor decides
-  whether to record CKD. Off: recorded CKD only. See the patient record help for the rule.
-- **Disease Profile: show "HbA1c ≥ 6.5% on 2 occasions"** (on unless switched off): the same for
-  diabetes, for adults whose HbA1c results meet the diagnostic criterion where diabetes isn't
-  recorded.
-- **Doctor Data: Criterion Review** (on unless switched off): the review list of patients whose
-  results meet one of these criteria without the diagnosis recorded. Off removes the page and its
-  menu item. See [Criterion review](help:criterion-review.overview).
+- The Disease Profile's **HbA1c and eGFR results badges** are not set here: each user chooses
+  them in My settings → Patient record, off until they tick them (see the patient record help).
+- **Doctor Data: Criterion Review** (on or off as the installation set it; switch it here): a
+  record-coding audit, listing patients whose results meet one of the published criteria where
+  the condition isn't coded in the record. A criterion met is not a diagnosis. Off removes the
+  page and its menu item. See [Criterion review](help:criterion-review.overview).
 
 ## Database {#database}
 

@@ -80,6 +80,10 @@ Copy it to make your own version.</p>
   <select id="rc-pipeline" style="width:100%; font-size:0.8rem;">
     {% for p in pipelines %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
   </select>
+  <select id="rc-model" style="width:100%; font-size:0.8rem; margin-top:0.25rem;" title="Model for this run">
+    <option value="">The pipeline's own model</option>
+    {% for m in models %}<option value="{{ m.id }}">{{ m.display_name or m.model_id }}{% if m.provider %} ({{ 'local' if m.provider.is_local else 'cloud' }}){% endif %}</option>{% endfor %}
+  </select>
   <textarea id="rc-assist-text" placeholder="e.g. Gout, recurrent flares, on allopurinol. Australian guideline urate target and lifestyle measures."></textarea>
   <button class="btn btn-outline btn-sm" id="rc-assist-run" style="margin-top:0.3rem;">Draft with AI</button>
   <div id="rc-assist-status" class="cp-muted"></div>

@@ -156,29 +156,33 @@ class PatientRepository:
         sql = load_query(query_name)
         return self._session.execute(sql, [patient_id] * param_count)
 
-    def get_disease_profile(self, patient_id: int) -> dict:
-        """Fetch disease profile + the eGFR and HbA1c criteria + BMI from demographics."""
+    def get_disease_profile(self, patient_id: int, show_hba1c_rule: bool = False,
+                            show_egfr_rule: bool = False) -> dict:
+        """Fetch disease profile + the results badges the viewing user chose + BMI.
+
+        show_hba1c_rule / show_egfr_rule: the viewing user's own settings (ADR-166); the
+        caller reads them. Off, a condition that isn't coded shows no results badge."""
         # Coded conditions (ADR-108): the patient's history items against the admin table
         # condition_codes (Admin → Mapping Tables).
         from app.services import condition_codes
         items = self._session.execute(load_query('patient_history_codes'), [patient_id])
         profile = condition_codes.profile_flags(items)
-        egfr_result = None
+        egfr_series = None
 
-        # eGFR (ADR-104): recorded CKD shows the latest eGFR beside it; otherwise the
-        # criterion badge, where the practice shows it.
+        # eGFR (ADR-104, ADR-166): recorded CKD shows the latest eGFR beside it; otherwise the
+        # last-result badge, if the viewing user chose it.
         try:
-            from app.models.system_setting import SystemSetting
             from app.services import egfr_criterion
             if profile:
                 recorded = bool(profile.get('isCKDRecorded'))
-                if recorded or SystemSetting.get(egfr_criterion.SETTING_KEY, True):
-                    series = self._session.execute(load_query('patient_egfr_series'), [patient_id, patient_id])
-                    result = egfr_result = egfr_criterion.evaluate(series)
+                if recorded or show_egfr_rule:
+                    egfr_series = self._session.execute(load_query('patient_egfr_series'),
+                                                        [patient_id, patient_id])
                     if recorded:
-                        profile['egfr_latest'] = result['latest']
+                        profile['egfr_latest'] = egfr_criterion.evaluate(egfr_series)['latest']
                     else:
-                        profile['egfr_criterion'] = result
+                        profile['egfr_badge'] = dict(egfr_criterion.evaluate_last(egfr_series),
+                                                     rule=egfr_criterion.BADGE_RULE)
         except Exception:
             pass
 
@@ -188,26 +192,27 @@ class PatientRepository:
         except Exception:
             pass
 
-        # HbA1c (ADR-107): recorded diabetes shows the latest HbA1c beside it; otherwise, for
-        # adults, the criterion badge where the practice shows it, held back where HbA1c is
-        # unreliable.
+        # HbA1c (ADR-107, ADR-166): recorded diabetes shows the latest HbA1c beside it;
+        # otherwise, for adults, the highest-of-the-last-3 badge if the viewing user chose it.
         try:
-            from app.models.system_setting import SystemSetting
-            from app.services import egfr_criterion, hba1c_criterion
+            from app.services import hba1c_criterion
             if profile:
                 recorded = bool(profile.get('isDiabetes'))
                 age = (demo or {}).get('AGE')
                 adult = isinstance(age, (int, float)) and age >= hba1c_criterion.MIN_AGE
-                show = adult and SystemSetting.get(hba1c_criterion.SETTING_KEY, True)
-                if recorded or show:
+                if recorded or (adult and show_hba1c_rule):
                     series = self._session.execute(load_query('patient_hba1c_series'), [patient_id, patient_id])
                     if recorded:
                         profile['hba1c_latest'] = hba1c_criterion.evaluate(series)['latest']
                     else:
-                        first = hba1c_criterion.evaluate(series)
-                        if first['state'] == 'met':
-                            first['influences'] = self._hba1c_influences(patient_id, profile, first, egfr_result)
-                        profile['hba1c_criterion'] = first
+                        badge = dict(hba1c_criterion.evaluate_last(series),
+                                     rule=hba1c_criterion.BADGE_RULE,
+                                     source=hba1c_criterion.BADGE_SOURCE)
+                        if badge['state'] == 'met':
+                            badge['influences'] = self._hba1c_influences(
+                                patient_id, profile, {r['date'].year for r in badge['results']},
+                                egfr_series)
+                        profile['hba1c_badge'] = badge
         except Exception:
             pass
 
@@ -228,15 +233,15 @@ class PatientRepository:
             pass
         return profile or {}
 
-    def _hba1c_influences(self, patient_id: int, profile: dict, a1c: dict, egfr_result) -> list[dict]:
+    def _hba1c_influences(self, patient_id: int, profile: dict, years: set[int], egfr_series) -> list[dict]:
         """The recorded conditions that affect how these HbA1c results read, each with its
-        influence row (wording, effect, source) and the latest results it names (ADR-108)."""
+        influence row (wording, effect, source) and the latest results it names (ADR-108).
+        years: the years of the HbA1c results shown."""
         from app.services import egfr_criterion, hba1c_criterion, influences
-        if egfr_result is None:
-            egfr_result = egfr_criterion.evaluate(self._session.execute(
-                load_query('patient_egfr_series'), [patient_id, patient_id]))
-        latest_egfr = egfr_result.get('latest')
-        years = {d['date'].year for d in a1c['days']}
+        if egfr_series is None:
+            egfr_series = self._session.execute(
+                load_query('patient_egfr_series'), [patient_id, patient_id])
+        latest_egfr = egfr_criterion.evaluate(egfr_series).get('latest')
         present = profile.get('present') or {}
         found = hba1c_criterion.conditions_affecting(present, profile.get('PregnancyYears'),
                                                      (latest_egfr or {}).get('value'), years)

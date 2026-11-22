@@ -139,6 +139,9 @@
   "Second Opinion": [
    "0a60c249585bdc7a4550f6b01e9af80667ab1a58a188a3f9cd866802130787f1"
   ],
+  "Summarise Clinical Document (with record context)": [
+   "3d29a11258be7bba6a60e1957a875d9a23c549de75f6158fe1934c0d291ea780"
+  ],
   "Summarise Clinical Document [EXP]": [
    "3d29a11258be7bba6a60e1957a875d9a23c549de75f6158fe1934c0d291ea780"
   ],
@@ -209,7 +212,8 @@
    "5bc6724e72020e846b47629223f93fde3870d6a41947cfddcfedd767ad17cf95"
   ],
   "Summarise Document": [
-   "af169504c809098c509ce96ffa23873bbe6d92c6b9de07760cd07b13b6f5d7a1"
+   "af169504c809098c509ce96ffa23873bbe6d92c6b9de07760cd07b13b6f5d7a1",
+   "0c9ca2c004a8e6b623b0b5d832be8f997e44d7d9b2d92a2ab980bdbb6f91c3be"
   ],
   "Summarize and Explain Document": [
    "fe21578c45bc5561a4c85b77b870e33a988cbaa7d10af49e481e074211b53b24"

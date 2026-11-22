@@ -191,6 +191,21 @@ def coded_history(patient_id: int) -> list[dict]:
     return out
 
 
+def contact_line(rows: list[dict]) -> str:
+    """One contact for the plan's header (ADR-180): the Emergency Contact, else the Next of Kin,
+    with relationship and phone numbers, as recorded in BP. '' if there is none."""
+    if not rows:
+        return ''
+    r = rows[0]
+    name = ' '.join(x for x in ((r.get('FIRSTNAME') or '').strip(), (r.get('SURNAME') or '').strip()) if x)
+    if not name:
+        return ''
+    kind = 'Emergency contact' if str(r.get('TYPE')) == '2' else 'Next of kin'
+    rel = (r.get('RELATIONSHIP') or '').strip()
+    phones = ', '.join(dict.fromkeys(p for p in ((r.get('PHONE1') or '').strip(), (r.get('PHONE2') or '').strip()) if p))
+    return f"{kind}: {name}" + (f" ({rel})" if rel else '') + (f", {phones}" if phones else '')
+
+
 def default_header(patient_id: int) -> str:
     """A starting medical-history header from BP, for the doctor to edit."""
     parts = []
@@ -208,6 +223,9 @@ def default_header(patient_id: int) -> str:
         parts.append('Allergies: ' + ('; '.join(
             ' '.join(filter(None, [a.get('ItemName'), f"({a['Reaction']})" if a.get('Reaction') else None]))
             for a in allergies) if allergies else 'none recorded'))
+        contact = contact_line(_bp_section(patient_id, 'patient_careplan_contact'))
+        if contact:
+            parts.append(contact)
     except Exception as exc:  # BP unreachable: the doctor writes the header
         current_app.logger.warning('careplan header from BP failed: %s', type(exc).__name__)
     return '\n'.join(parts)
@@ -761,7 +779,35 @@ def header_html(text: str) -> Markup:
     return Markup('\n').join(lines)
 
 
+def no_blank_lines(text) -> str:
+    """The text without empty or whitespace-only lines, so a printed plan takes fewer pages
+    (ADR-174 addendum). Only the document is tightened; the draft keeps what was typed."""
+    return '\n'.join(line.rstrip() for line in str(text or '').split('\n') if line.strip())
+
+
+# The GPCCMP draft's source tags and its explanation line (ADR-174) are for the GP reviewing the
+# draft; the printed, sent and filed plan leaves them out. The run keeps the tagged AI reply.
+_SOURCE_TAG_RE = re.compile(r'[ \t]*\[(?:Discussed|Record|Protocol)\]')
+_DRAFT_LINE_PREFIX = 'DRAFT GP Chronic Condition Management Plan.'
+
+
+def for_document(text) -> str:
+    """Text as it appears in the printed and sent plan: no source tags, no draft line, no blank lines."""
+    lines = [_SOURCE_TAG_RE.sub('', line) for line in str(text or '').split('\n')
+             if not line.strip().startswith(_DRAFT_LINE_PREFIX)]
+    return no_blank_lines('\n'.join(lines))
+
+
+def compact(data: dict) -> dict:
+    """A copy of a plan's data for the document: blank lines, source tags and the draft line
+    removed from the header and every grid cell. The draft itself is unchanged."""
+    rows = [{**r, **{f: for_document(r.get(f)) for f in ('issue_label', 'goals', 'management', 'providers')}}
+            for r in data.get('rows', [])]
+    return {**data, 'header': for_document(data.get('header')), 'rows': rows}
+
+
 def render_document(plan: Careplan, data: dict, patient: dict, author_name: str, filed_at: datetime | None) -> str:
+    data = compact(data)
     values = data.get('values', {})
     rows = [{**r, **{f: render_text(r.get(f), values, r.get('targets') or {}) for f in ('goals', 'management')}}
             for r in data.get('rows', []) if r.get('issue_label')]
@@ -785,6 +831,7 @@ def plan_markdown(plan: Careplan, data: dict, patient: dict, author_name: str,
                   filed_at: datetime | None) -> str:
     """The plan as Markdown in sections (one per issue) for Best Practice and email. PIT's RTF
     has no tables, and sections read better on a phone; the words are the filed document's."""
+    data = compact(data)
     f = current_app.jinja_env.filters
     values = data.get('values', {})
     meta = ' '.join(filter(None, [(patient.get('FIRSTNAME') or '').strip(), (patient.get('SURNAME') or '').strip()]))
@@ -843,6 +890,20 @@ def export_plan(plan: Careplan, user, patient: dict, channel: str) -> dict:
     day = current_app.jinja_env.filters['localdt'](when or _now(), '%d/%m/%Y')
     return {'markdown': md, 'text': markdown_to_text(md), 'html': html,
             'label': f'GP Chronic Condition Management Plan {day}'}
+
+
+def export_plan_to_bp(plan: Careplan, user, patient: dict) -> dict:
+    """The plan as a PIT file in the patient's Best Practice record, sent in place (ADR-174):
+    the same text the Comms route would file, without going through Comms."""
+    from app.utils.pit_utils import send_as_pit
+    out = export_plan(plan, user, patient, 'bp')
+    if not send_as_pit(patient=patient, pit_label=out['label'], body=out['text'], user=user):
+        raise CareplanError('Sending to Best Practice failed. Check the PIT folder in Setup → Messaging.')
+    if plan.status == CareplanStatus.filed:
+        plan.bp_exported, plan.bp_exported_at = True, _now()
+    _event('sent_to_bp', user.id, careplan_id=plan.id, status=plan.status.value)
+    db.session.commit()
+    return {'ok': True}
 
 
 def draft_document(plan: Careplan, user, patient: dict) -> str:

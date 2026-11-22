@@ -269,6 +269,7 @@
             const parsedData = data.data.map(p => ({
                 x: moment(p.x, 'YYYY-MM-DD').toDate(),
                 y: p.y,
+                inputs: p.inputs,   // FIB-4 only (ADR-168)
             }));
 
             if (parsedData.length === 0) continue;
@@ -385,6 +386,7 @@
                                         return `${ctx.dataset.label}: ${ctx.parsed.y} ${data.units || ''}`;
                                     return `Value: ${ctx.parsed.y} ${data.units || ''}`;
                                 },
+                                afterLabel: ctx => (ctx.raw && ctx.raw.inputs) ? `From: ${ctx.raw.inputs}` : '',
                             },
                             backgroundColor: 'rgba(0,0,0,0.8)',
                             padding: 10, cornerRadius: 4,

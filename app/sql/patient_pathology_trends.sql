@@ -76,7 +76,7 @@ FIB4_Ranked AS (
         CAST(a.ReportDate AS DATE) AS REPORTDATE,
         'FIB-4' AS RESULTNAME,
         CAST(ROUND((CAST(a.Age AS FLOAT) * CAST(a.AST AS FLOAT)) / (CAST(r.PLT AS FLOAT) * SQRT(CAST(a.ALT AS FLOAT))), 2) AS varchar(10)) AS RESULTVALUE,
-        CASE WHEN (CAST(a.Age AS FLOAT) * CAST(a.AST AS FLOAT)) / (CAST(r.PLT AS FLOAT) * SQRT(CAST(a.ALT AS FLOAT))) > 1.45 THEN '+' ELSE '' END AS ABNORMALFLAG,
+        '' AS ABNORMALFLAG,  -- ADR-168: no cut-off or flag of MedUI's own on a calculated FIB-4
         ROW_NUMBER() OVER (ORDER BY a.ReportDate DESC) AS FibRank
     FROM AST_ALT_Results a
     JOIN Ranked_PLT_Results r ON a.ReportDate = r.ReportDate

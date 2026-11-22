@@ -31,7 +31,7 @@ same computer.
 | 8 GB of memory or more | The demo's SQL Server | It takes up to 2 GB on top of MedUI. Under 6 GB the script warns. |
 | Your own login with `sudo` | Installing packages | **Not root**: the script refuses to run as root, and asks for your `sudo` password when it needs it. |
 | About 12 GB of free disk; internet access | The install | Ubuntu packages, GitHub, Docker Hub, and about 1.6 GB for Microsoft's SQL Server image. |
-| A GitHub token | Downloading MedUI and the demo data while the repositories are private | Read-only **Contents** access to **both** `medui-au/medui` and `medui-au/medui_demodata`. Revoke it afterwards. |
+| A GitHub token | Downloading MedUI and the demo data while the repositories are private | Read-only **Contents** access to **both** `medui_os` and `medui_demodata`. Revoke it afterwards. |
 | Microsoft's SQL Server licence terms | The demo's SQL Server | You are asked to accept them ([aka.ms/useterms](https://aka.ms/useterms)). SQL Server Express is free. |
 | A password for the demo users | Logging in as the demo practice's staff | One password, shared by all the demo's staff logins. Choose one you can give to trainees. |
 | The practice's timezone | "Today" on the day sheet | A server is often set to UTC, so check it. |
@@ -55,7 +55,7 @@ While the repository is private, git asks for a username (your GitHub username) 
 folder. If `git` is missing: `sudo apt install -y git`. If the download fails:
 [troubleshooting](../troubleshooting.md#downloading-medui-git-clone).
 
-While `medui-au/medui_demodata` is private, the installer needs the token too. This line asks for it
+While `medui_demodata` is private, the installer needs the token too. This line asks for it
 without showing it, runs the installer, then forgets it:
 
 ```bash

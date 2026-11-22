@@ -37,6 +37,8 @@ Diagnosis: HbA1c ≥ 6.5% (48 mmol/mol), confirmed on a different day (RACGP; AD
             ('isVasculopathy','Vasculopathy', 'warning'),
             ('isCovid19',     'COVID-19',     'info'),
             ('isPacemaker',   'Pacemaker',    'accent-primary'),
+            ('isFH',          'Familial hypercholesterolaemia', 'warning'),
+            ('isRevascularisation', 'Revascularisation', 'danger'),
         ] %}
         {% set state = namespace(active_count=0) %}
         {% for key, label, css_class in conditions %}
@@ -68,39 +70,45 @@ Diagnosis: HbA1c ≥ 6.5% (48 mmol/mol), confirmed on a different day (RACGP; AD
             {% endif %}
         {% endfor %}
 
-        {# eGFR criterion (ADR-104): describes the results, shown only where CKD isn't recorded.
-           Neutral and outlined, so it reads as a description of the results, not a diagnosis. #}
-        {% set egfr = profile_dict.get('egfr_criterion') %}
-        {% if egfr and egfr.state in ('met', 'met_previously') %}
-            {% set run = egfr.run %}
-            {% set tip %}eGFR below 60 from {{ run[0].date | clinical_date }} to {{ run[-1].date | clinical_date }} ({{ run | length }} results: {{ run | map(attribute='value') | join(', ') }}).{% if egfr.state == 'met_previously' %} Latest eGFR {{ egfr.latest.value }} ({{ egfr.latest.date | clinical_date }}).{% endif %} This meets the eGFR criterion for chronic kidney disease (KDIGO: below 60 for more than 3 months). No CKD diagnosis is recorded.
+        {# eGFR badge (ADR-166): a rule the viewing user chose to display (My settings), shown
+           only where CKD isn't coded. Neutral and outlined: the label is the result, the
+           tooltip the rule and its source; not a diagnosis. #}
+        {% set egfr = profile_dict.get('egfr_badge') %}
+        {% if egfr and egfr.state == 'met' %}
+            {% set tip %}Latest eGFR {{ egfr.latest.value }} ({{ egfr.latest.date | clinical_date }}). No CKD is coded in the record.
+
+Shown because you chose this rule in My settings: {{ egfr.rule }}. A result of exactly 59 is not below 59; KDIGO's G3a (below 60) includes it. KDIGO defines CKD by an eGFR below 60 for more than 3 months, or other markers of kidney damage: one result is not a diagnosis.
 
 {{ ckd_reference }}{% endset %}
             <span title="{{ tip }}"
                   style="font-size:0.7rem; padding:0.1rem 0.4rem; border-radius:0.25rem;
                          font-weight:600; border:1px solid var(--text-muted); color:var(--text-primary);
                          background:transparent; vertical-align:top; cursor:help;">
-                eGFR &lt; 60 for 3+ months{% if egfr.state == 'met_previously' %} (to {{ run[-1].date.strftime('%b %Y') }}){% endif %}
+                eGFR {{ egfr.latest.value }} ({{ egfr.latest.date.strftime('%b %Y') }})
             </span>
             {% set state.active_count = state.active_count + 1 %}
         {% endif %}
 
-        {# HbA1c criterion (ADR-107): describes the results, shown only where diabetes isn't
-           recorded, for adults; held back where HbA1c is unreliable. #}
-        {% set a1c = profile_dict.get('hba1c_criterion') %}
+        {# HbA1c badge (ADR-166): a rule the viewing user chose (highest of the last 3 at or
+           above 6.5% / 48 mmol/mol), shown only where diabetes isn't coded, for adults. The label
+           is the 3 results with dates, in % (ADR-170: a mmol/mol result converted by the IFCC–NGSP
+           master equation; the tooltip gives the laboratory's mmol/mol value). #}
+        {% set a1c = profile_dict.get('hba1c_badge') %}
         {% if a1c and a1c.state == 'met' %}
-            {% set tip %}{% for d in a1c.days[-2:] %}HbA1c {{ d.pct }}{% if d.unit == 'mmol/mol' %} ({{ d.value }} mmol/mol){% endif %} ({{ d.date | clinical_date }}){{ ' and ' if not loop.last }}{% endfor %}{% if a1c.days | length > 2 %} ({{ a1c.days | length }} days in all){% endif %}. Two results at or above 6.5% (48 mmol/mol) on different days meet the HbA1c criterion for diabetes (RACGP; Australian Diabetes Society 2015). No diabetes diagnosis is recorded.{% for inf in a1c.influences or [] %}
+            {% set tip %}{% for d in a1c.results %}HbA1c {{ d.pct }}{% if d.unit == 'mmol/mol' %} (laboratory: {{ d.value }} mmol/mol){% endif %} ({{ d.date | clinical_date }}){{ '; ' if not loop.last }}{% endfor %}. No diabetes is coded in the record.
 
-{{ inf.condition | replace('_', ' ') | capitalize }} is recorded{% if inf.year %} ({{ inf.year }}){% endif %}{% if inf.effect %}, which {{ {'may raise': 'may raise', 'may lower': 'may lower', 'either': 'may move'}.get(inf.effect, inf.effect) }} HbA1c{% endif %}. {{ inf.wording }}{% for name, r in inf.results %} Latest {{ {'b12': 'B12', 'egfr': 'eGFR'}.get(name, name) }}: {% if r %}{{ r.value }} {{ r.units }}{% if r.range %} (range {{ r.range }}){% endif %}{% if r.flag %} [{{ r.flag }}]{% endif %}, {{ r.date | clinical_date }}{% else %}none recorded{% endif %}.{% endfor %}{% if inf.source %} ({{ inf.source }}){% endif %}{% endfor %}{% if a1c.latest %}
+Shown because you chose this rule in My settings: {{ a1c.rule }}. {{ a1c.source }}: a badge is not a diagnosis.{% for inf in a1c.influences or [] %}
 
-Latest HbA1c {{ a1c.latest.pct }}{% if a1c.latest.unit == 'mmol/mol' %} ({{ a1c.latest.value }} mmol/mol){% endif %} ({{ a1c.latest.date | clinical_date }}).{% endif %} HbA1c is unreliable in haemoglobinopathy, haemolysis, iron deficiency, advanced CKD, pregnancy and after a recent transfusion or iron infusion (RACGP).
+{{ inf.condition | replace('_', ' ') | capitalize }} is recorded{% if inf.year %} ({{ inf.year }}){% endif %}{% if inf.effect %}, which {{ {'may raise': 'may raise', 'may lower': 'may lower', 'either': 'may move'}.get(inf.effect, inf.effect) }} HbA1c{% endif %}. {{ inf.wording }}{% for name, r in inf.results %} Latest {{ {'b12': 'B12', 'egfr': 'eGFR'}.get(name, name) }}: {% if r %}{{ r.value }} {{ r.units }}{% if r.range %} (range {{ r.range }}){% endif %}{% if r.flag %} [{{ r.flag }}]{% endif %}, {{ r.date | clinical_date }}{% else %}none recorded{% endif %}.{% endfor %}{% if inf.source %} ({{ inf.source }}){% endif %}{% endfor %}
+
+HbA1c is unreliable in haemoglobinopathy, haemolysis, iron deficiency, advanced CKD, pregnancy and after a recent transfusion or iron infusion (RACGP).
 
 {{ hba1c_reference }}{% endset %}
             <span title="{{ tip }}"
                   style="font-size:0.7rem; padding:0.1rem 0.4rem; border-radius:0.25rem;
                          font-weight:600; border:1px solid var(--text-muted); color:var(--text-primary);
                          background:transparent; vertical-align:top; cursor:help;">
-                HbA1c ≥ 6.5% on 2 occasions
+                HbA1c {% for d in a1c.results %}{{ d.pct }} ({{ d.date.strftime('%b %Y') }}){{ ' · ' if not loop.last }}{% endfor %}
             </span>
             {% set state.active_count = state.active_count + 1 %}
         {% endif %}

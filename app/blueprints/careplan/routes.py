@@ -219,6 +219,22 @@ def export(plan_id: int):
     return jsonify(out)
 
 
+@bp.post('/plan/<int:plan_id>/export-bp')
+@login_required
+@doctor_required
+def export_bp(plan_id: int):
+    """BP →: the plan to Best Practice as a PIT file, in place (ADR-174)."""
+    plan = _plan(plan_id)
+    try:
+        out = svc.export_plan_to_bp(plan, current_user, _patient(plan.patient_id))
+    except svc.CareplanError as e:
+        return _error(e)
+    except Exception as e:  # the PIT share boundary
+        current_app.logger.error('care plan PIT export failed plan=%s: %s', plan_id, type(e).__name__)
+        return _error(RuntimeError('Sending to Best Practice failed. Check the PIT folder in Setup → Messaging.'), 500)
+    return jsonify(out)
+
+
 @bp.post('/row-to-recipe')
 @login_required
 @doctor_required
@@ -232,6 +248,11 @@ def row_to_recipe():
 
 
 # ── Recipe library (Doctor Data) ──────────────────────────────────────────────
+
+def _models():
+    from app.services import model_choice
+    return model_choice.available_models()
+
 
 def _assist_pipelines():
     from app.models.pipeline import Pipeline, PipelineStatus
@@ -273,7 +294,8 @@ def recipe_edit(recipe_id: int | None = None):
     return render_template('careplan/recipe_edit.html', recipe=recipe, payload=payload, targets=targets,
                            editable=editable, can_practice=svc.can_publish_practice(current_user),
                            token_labels={k: t.label for k, t in svc.active_tokens().items()},
-                           pipelines=_assist_pipelines() if current_user.can_use_ai else [])
+                           pipelines=_assist_pipelines() if current_user.can_use_ai else [],
+                           models=_models() if current_user.can_use_ai else [])
 
 
 @bp.post('/recipes/save')
@@ -324,9 +346,17 @@ def recipe_assist():
         return _error('Type a description or paste guideline wording first.')
     if pipeline_id not in allowed:
         return _error('Choose a recipe assistant pipeline.')
+    from app.services import model_choice
+    try:
+        model = model_choice.chosen(body.get('model_id'))      # ADR-178: the doctor's choice for this run
+    except ValueError as e:
+        return _error(e)
+    inputs = {'user_prompt': text}
+    if model is not None:
+        inputs['model_id_override'] = model.id
     try:
         run_id = PipelineEngine.run(pipeline_id=pipeline_id, patient_id=None, user_id=current_user.id,
-                                    input_data={'user_prompt': text}, model_is_local=False)
+                                    input_data=inputs, model_is_local=False)
     except ValueError as e:
         return _error(e)
     return jsonify({'run_id': run_id, 'stream_url': url_for('pipeline_run.run_stream', run_id=run_id)})

@@ -1,0 +1,7 @@
+<label>Title</label><input class="form-control" name="title" value="{{ g.title if g else '' }}">
+<label>Publisher</label><input class="form-control" name="publisher" value="{{ (g.publisher or '') if g else '' }}">
+<label>Edition</label><input class="form-control" name="edition" value="{{ (g.edition or '') if g else '' }}">
+<label>Published</label><input class="form-control" type="date" name="published_on" value="{{ g.published_on.isoformat() if g and g.published_on else '' }}" style="max-width:12rem;">
+<label>URL</label><input class="form-control" name="url" value="{{ (g.url or '') if g else '' }}">
+<label>Accessed</label><input class="form-control" type="date" name="accessed_on" value="{{ g.accessed_on.isoformat() if g and g.accessed_on else '' }}" style="max-width:12rem;">
+<label>Licence note</label><input class="form-control" name="licence_note" value="{{ (g.licence_note or '') if g else '' }}">

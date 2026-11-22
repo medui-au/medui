@@ -22,9 +22,11 @@ class ClinicalService:
             return PatientRepository(sess).get_demographics(patient_id)
 
     @staticmethod
-    def get_disease_profile(patient_id: int) -> dict:
+    def get_disease_profile(patient_id: int, show_hba1c_rule: bool = False,
+                            show_egfr_rule: bool = False) -> dict:
         with ClinicalService._session() as sess:
-            return PatientRepository(sess).get_disease_profile(patient_id)
+            return PatientRepository(sess).get_disease_profile(
+                patient_id, show_hba1c_rule=show_hba1c_rule, show_egfr_rule=show_egfr_rule)
 
     @staticmethod
     def get_family_history(patient_id: int) -> dict:

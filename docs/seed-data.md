@@ -108,6 +108,12 @@ and activate only the workflows the practice wants. Some standalone prompts are
 provided as library material without a corresponding workflow. Clinical wording
 is inherited and has not been clinically validated by the packaging tests.
 
+The **GP Chronic Condition Management Plan (draft)** workflow and its own system and user prompts
+are added by `install seeds` and `install resync-seeds` (new rows only, matched by name), as a draft
+with no model. It drafts only the wording of each issue from the doctor's recorded decisions and
+the practice's own protocol; MedUI writes the targets, prevention, review and consent itself and
+checks the draft. No practice protocol is seeded: each practice builds its own.
+
 Message templates are inactive. Review their text and configure this practice's
 identity and delivery settings before activating them. Practice-specific phone,
 website and facility references have been removed or generalised.

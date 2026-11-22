@@ -37,7 +37,7 @@ For a demo (invented patients, never BP), see [Ubuntu, demo](ubuntu-demo.md) ins
 | About 10 GB of free disk; internet access | The install | Ubuntu packages, GitHub, Docker Hub. |
 | A network path to the Best Practice SQL Server | Reading BP | |
 | A fixed address or DHCP reservation, and a name workstations can resolve | HTTPS | MedUI's certificate is made for that name and address. |
-| A GitHub token | Downloading MedUI while the repository is private | Read-only **Contents** access to `medui-au/medui`. Revoke it afterwards. |
+| A GitHub token | Downloading MedUI while the repository is private | Read-only **Contents** access to `medui_os`. Revoke it afterwards. |
 | The practice's timezone | "Today" on the day sheet | A server is often set to UTC, so check it. |
 | A username and password for MedUI's own administrator | Your first login | Username not a number; password at least 12 characters. |
 

@@ -25,11 +25,13 @@
 <div class="cr-wrap">
   <h1>Criterion review{{ help('criterion-review.overview') }}</h1>
   <p class="cr-intro">
-    Patients whose results meet a diagnostic criterion where the diagnosis isn't recorded, for a
-    doctor to review. A criterion met is not a diagnosis: whether the patient has the condition,
-    and recording it in Best Practice, is the doctor's decision. Active patients seen in the last
-    24 months; the same rules and codes as the Disease Profile badges
-    (Admin → Mapping Tables → condition_codes, influences).
+    A record-coding audit: patients whose results meet a published criterion where the condition
+    isn't coded in the record, for a doctor to review. Each row shows the results, their dates and
+    the criterion's source. A criterion met is not a diagnosis: whether the patient has the
+    condition, and recording it in Best Practice, is the doctor's decision. Active patients seen in the last
+    24 months; the condition codes are the Disease Profile's (Admin → Mapping Tables →
+    condition_codes, influences). The Disease Profile's results badges are rules each user
+    chooses, and differ from these criteria.
     {% if is_admin %}Showing: <strong>{{ display_name }}</strong> (by the doctor of the last visit).
     {% else %}Your patients: those whose last visit was with you.{% endif %}
   </p>
@@ -46,12 +48,12 @@
   {% if error %}<p class="cr-err">Best Practice couldn't be read: {{ error }}</p>{% endif %}
   <div class="cr-counts">
     {% if is_admin %}<span class="cr-chip">{{ cohort }} patients checked</span>{% endif %}
-    <span class="cr-chip">HbA1c criterion, diabetes not recorded: {{ diabetes | length }}</span>
-    <span class="cr-chip">eGFR criterion, CKD not recorded: {{ ckd | length }}</span>
-    {% if is_admin and not selected_doctor_id %}<span class="cr-chip">Recorded (practice): diabetes {{ recorded.diabetes }}, CKD {{ recorded.ckd }}</span>{% endif %}
+    <span class="cr-chip">HbA1c criterion, diabetes not coded: {{ diabetes | length }}</span>
+    <span class="cr-chip">eGFR criterion, CKD not coded: {{ ckd | length }}</span>
+    {% if is_admin and not selected_doctor_id %}<span class="cr-chip">Coded (practice): diabetes {{ recorded.diabetes }}, CKD {{ recorded.ckd }}</span>{% endif %}
   </div>
 
-  <h2 class="cr-h2">HbA1c ≥ 6.5% on 2 occasions, diabetes not recorded (adults)</h2>
+  <h2 class="cr-h2">HbA1c ≥ 6.5% on 2 occasions, diabetes not coded (adults)</h2>
   <p class="cr-note">Two results at or above 6.5% (48 mmol/mol) on different days (RACGP; ADS 2015).</p>
   {% if diabetes %}
   <table class="cr-table">
@@ -75,7 +77,7 @@
   </table>
   {% else %}<p class="cr-note">None.</p>{% endif %}
 
-  <h2 class="cr-h2">eGFR &lt; 60 for 3+ months, CKD not recorded</h2>
+  <h2 class="cr-h2">eGFR &lt; 60 for 3+ months, CKD not coded</h2>
   <p class="cr-note">At least two eGFR results below 60, the first and last 90 days or more apart, none of 60 or more between (KDIGO).
     "Previously": the latest eGFR is now 60 or more.</p>
   {% if ckd %}

@@ -7,6 +7,7 @@ _SQL_DIR = Path(__file__).parent
 QUERY_REGISTRY: dict[str, str] = {
     # Patient — demographics & core data
     'patient_get_demographics':     'patient_get_demographics.sql',
+    'patient_careplan_contact':     'patient_careplan_contact.sql',
     'find_patient_by_mobile':       'find_patient_by_mobile.sql',
     'patient_search':               'patient_search.sql',
     'patient_search_full':          'patient_search_full.sql',

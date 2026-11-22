@@ -211,6 +211,18 @@ A cloud model works only with workflows whose redaction policy is `redact_all`
 (all seeded workflows are). `redact_pii_only` and `redact_none` are refused for
 cloud models. See [seed data](seed-data.md).
 
+#### GP Chronic Condition Management Plans
+
+The GPCCMP screens (Patient Data → GPCCMP: Targets & Plan) start with **no practice protocol**:
+MedUI ships no targets of its own. Before doctors use them, an administrator builds the practice's
+protocol in **Admin → Practice Protocols**: start a draft on the Versions tab, add the guidelines
+the practice follows, then each measure's target options (with the patient group, the rule that
+preselects it from coded conditions, and the reason), the wording for each condition and the
+prevention lines, and approve it with a review date. The clinical content is the practice's own and
+its responsibility. Patient targets and plan decisions work without AI. The AI draft uses the
+seeded workflow *GP Chronic Condition Management Plan (draft)*: give it a model and activate it as
+above. In-app help: Practice protocols, Patient targets, GPCCMP plan decisions.
+
 ### 8. AI guardrails (Application Setup → AI scope)
 
 Three layers start **on** in this edition, and each can be changed here:

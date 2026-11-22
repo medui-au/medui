@@ -32,10 +32,17 @@ TASKS: dict = {
     'schedule.daysheet':                ('daysheet.open', 'clinical'),
     'clinical.med_mapping_approve':     ('medmap.approve', 'clinical'),
     'clinical.results_rollup_generate': ('results_rollup.generate', 'clinical'),
+    'gpccmp.patient_targets':           ('targets.view', 'clinical'),
+    'gpccmp.patient_targets_save':      ('targets.set', 'clinical'),
+    'gpccmp.plan_decisions':            ('gpccmp.decisions_view', 'clinical'),
+    'gpccmp.plan_decisions_save':       ('gpccmp.decisions_save', 'clinical'),
+    'gpccmp.plan_draft_start':          ('gpccmp.draft', 'clinical'),
+    'gpccmp.draft_again':               ('gpccmp.redraft', 'clinical'),
 
     # ── Exports to Best Practice ─────────────────────────────────────────────
     'clinical.ai_export_pit':           ('export.pit', 'export'),
     'voice.scribe_export_pit':          ('export.pit', 'export'),
+    'careplan.export_bp':               ('export.pit', 'export'),
     'clinical_comms.api_export_pit':    ('export.pit', 'export'),
     'doc_library.pit_export':           ('export.pit', 'export'),
 

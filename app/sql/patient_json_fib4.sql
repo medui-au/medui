@@ -32,7 +32,7 @@ PivotResults AS (
 ),
 RankedPLT AS (
     SELECT 
-        a.InternalId, a.ReportDate, a.Age, a.AST, a.ALT, plt.Val AS PLT,
+        a.InternalId, a.ReportDate, a.Age, a.AST, a.ALT, plt.Val AS PLT, plt.ReportDate AS PLTDate,
         ROW_NUMBER() OVER (PARTITION BY a.ReportDate ORDER BY ABS(DATEDIFF(DAY, plt.ReportDate, a.ReportDate)) ASC) AS rn
     FROM PivotResults a
     JOIN RawData plt ON a.InternalId = plt.InternalId 
@@ -43,11 +43,15 @@ SELECT TOP(4)
     r.InternalId AS INTERNALID,
     CONVERT(VARCHAR(10), r.ReportDate, 23) AS REPORTDATE,
     '98488-0' AS LOINCCODE,
-    'FIB-4' AS RESULTNAME,
+    -- ADR-168: calculated by MedUI, labelled as such, with its inputs and formula; no
+    -- cut-off, range or flag of MedUI's own.
+    'FIB-4 (calculated by MedUI, not a laboratory result)' AS RESULTNAME,
     CAST(Calc.Score AS VARCHAR(10)) AS RESULTVALUE,
-    '' AS UNITS,
-    '0-1.45' AS [RANGE],
-    CASE WHEN Calc.Score > 1.45 THEN '+' ELSE '' END AS ABNORMALFLAG
+    CONCAT('from age ', CAST(r.Age AS VARCHAR(10)), ', AST ', CAST(r.AST AS VARCHAR(20)),
+           ', ALT ', CAST(r.ALT AS VARCHAR(20)), ', platelets ', CAST(r.PLT AS VARCHAR(20)),
+           ' (', CONVERT(VARCHAR(10), r.PLTDate, 23), '); age x AST / (platelets x sqrt(ALT)), Sterling et al., Hepatology 2006; AST and ALT from the same day, platelets from the nearest result within 30 days') AS UNITS,
+    '' AS [RANGE],
+    '' AS ABNORMALFLAG
 FROM RankedPLT r
 CROSS APPLY (
     SELECT ROUND((r.Age * r.AST) / (NULLIF(r.PLT, 0) * SQRT(NULLIF(r.ALT, 0))), 2) AS Score

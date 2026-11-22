@@ -167,3 +167,16 @@ def test_everyone_reads_only_administrators_edit(ctx):
 def test_governance_menu_links_the_policy(ctx):
     html = _client(ctx, ctx.doc).get('/governance/ai-policy/').get_data(as_text=True)
     assert 'href="/governance/ai-policy/"' in html and 'AI-use Policy' in html
+
+
+def test_template_carries_the_intended_purpose_paragraphs():
+    """ADR-169: questions typed, AI-suggested guideline content, the practice's own prompts and
+    recipes, and medicolegally sensitive discussions."""
+    text = svc.template_text()
+    for phrase in ('**Questions you type.**', '**Guideline content is AI-suggested.**',
+                   '**Prompts and care-plan recipes the practice writes**',
+                   '**Medicolegally sensitive discussions.**',
+                   'governs phrasing only', 'Admin → Flagged AI Requests'):
+        assert phrase in text, phrase
+    assert text.index('**Questions you type.**') < text.index('## 2. The clinician is responsible') \
+        < text.index('**Medicolegally sensitive discussions.**') < text.index('## 3. Patient information')

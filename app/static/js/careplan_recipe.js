@@ -121,7 +121,8 @@
     if (!text) return;
     const btn = $('rc-assist-run'), status = $('rc-assist-status'), out = $('rc-assist-out');
     btn.disabled = true; status.textContent = 'Starting…'; out.style.display = 'none'; out.textContent = '';
-    post(D.assist, {text, pipeline_id: parseInt($('rc-pipeline').value)}).then(d => {
+    const model = $('rc-model') ? $('rc-model').value : '';
+    post(D.assist, {text, pipeline_id: parseInt($('rc-pipeline').value), model_id: model ? parseInt(model) : null}).then(d => {
       if (d.error) { status.textContent = d.error; btn.disabled = false; return; }
       authoringRun = d.run_id;
       // The run stream sends named events (event: complete …), so listen for each by name.

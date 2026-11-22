@@ -95,6 +95,23 @@ def parse_range_string(range_str: str) -> tuple:
     return None, None
 
 
+# FIB-4 (ADR-168): calculated by MedUI, not reported by the laboratory. Shown with its formula,
+# how the inputs are chosen, and its source; no cut-off of MedUI's own.
+FIB4_SUBTITLE = [
+    'FIB-4 = (age x AST) / (platelets x √ALT): calculated by MedUI, not reported by the laboratory',
+    'AST and ALT from the same day; platelets from the nearest result within 30 days; age on that day',
+    'Source: Sterling et al., Hepatology 2006. No cut-off is shown; hover over a point for its inputs',
+]
+
+
+def fib4_inputs(rec: dict) -> str:
+    """The inputs behind one calculated FIB-4, from patient_charts_fib4.sql."""
+    plt_date = rec.get('PLTDate')
+    when = plt_date.strftime('%d/%m/%Y') if hasattr(plt_date, 'strftime') else (plt_date or '')
+    return (f"Age {rec.get('Age')}, AST {rec.get('AST')}, ALT {rec.get('ALT')}, "
+            f"platelets {rec.get('PLT')}" + (f' ({when})' if when else ''))
+
+
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Decimal):
@@ -222,13 +239,16 @@ class ChartService:
                     })
                 else:
                     try:
-                        data_points.append({
+                        point = {
                             'x': self._format_date(date_val),
                             'y': float(value),
                             'name': rec.get('ResultName'),
-                        })
+                        }
                     except (ValueError, TypeError):
                         continue
+                    if result_name == 'FIB4':
+                        point['inputs'] = fib4_inputs(rec)
+                    data_points.append(point)
 
             if not data_points:
                 continue
@@ -335,7 +355,7 @@ class ChartService:
             'TSH':                {'subtitle': 'Thyroid stimulating hormone',                       'units': 'mIU/L'},
             'PSA':                {'subtitle': 'Prostate specific antigen',                         'units': 'ng/mL'},
             'Ferritin':           {'subtitle': 'Ferritin',                                          'units': 'ng/mL'},
-            'FIB4':               {'subtitle': ['FIB-4 = (Age x AST) / (Platelet Count x √(ALT)), calculated by MedUI from the results'], 'units': 'calculated'},
+            'FIB4':               {'subtitle': FIB4_SUBTITLE, 'units': 'calculated'},   # ADR-168
             'Weight':             {'subtitle': [weight_info.get('subtitle', '')],                   'units': 'kg'},
             'Blood Pressure':     {'subtitle': 'Blood pressure',                                    'units': 'mmHg'},
         }

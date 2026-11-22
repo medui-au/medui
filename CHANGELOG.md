@@ -3,6 +3,103 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.56.0 — pre-release (November 2026)
+
+**Upgrade from 0.55.1**: `./upgrade.sh` runs the three new migrations (new tables only) and the seed
+resync, which adds the GPCCMP drafting workflow as a draft with no model. A MINOR release: new
+functions and new seeded prompts.
+
+GP Chronic Condition Management Plans, built so that every clinical decision is the doctor's,
+recorded as data, and the AI only words the plan:
+
+- **Practice protocols** (Admin → Practice Protocols): the practice's own target options per
+  measure, with the guidelines behind them and a rule that preselects an option from conditions
+  **coded** in the record; condition wording; prevention lines MedUI works out from age, sex and
+  coded history; a guideline library; draft and approve versions with a review date; a printable
+  decision record generated from the protocol; and a list of targets to review when an option
+  changes or a guideline is superseded. **No protocol is shipped**: each practice builds its own.
+- **Patient targets** (Patient Data → GPCCMP: Targets & Plan, and Targets in Patient Tools): each
+  patient's targets, set by their doctor (nurses can see them), with the protocol default
+  preselected and its reason, guideline background, individual targets, and a history that is
+  never overwritten. The latest result is shown beside each target, only from a result token that
+  measures it.
+- **Plan decisions**: plan type (billing eligibility shown as a fact), issues ticked from coded
+  conditions, directions, services, modifiers, review interval and consent, all the doctor's;
+  carried forward from the patient's last plan (never the consent); reviews record a progress word
+  per issue beside each target and its last value.
+- **AI draft** (needs AI switched on): **Proceed with GPCCMP** saves, checks and drafts with the new
+  workflow, with a model choice per draft. The AI writes only each issue's wording and the
+  safety-netting; MedUI writes the history, targets, prevention, review and consent itself, checks
+  the AI's text against the decisions (issues, services, no targets, judgements, consent or doses
+  of its own) and opens an ordinary care plan draft.
+- **Care plans**: BP → sends the plan to Best Practice as a PIT file in place, with a brief tick;
+  the printed and sent plan leaves out blank lines and the draft's source tags; the header adds the
+  emergency contact (else the next of kin) with phone numbers.
+- **Disease Profile**: familial hypercholesterolaemia and revascularisation are new coded
+  conditions, with badges.
+- **Recipe AI assistance** can choose the model for a run.
+- **AI-use policy** template: a paragraph on practice protocols.
+
+## 0.55.1 — pre-release (November 2026)
+
+**Upgrade from 0.55.0**; nothing to migrate or resync. A PATCH release.
+
+- **HbA1c badge in %.** The optional HbA1c badge (My settings → Patient record) now shows its 3
+  results in %. A result the laboratory reported in mmol/mol is converted with the IFCC–NGSP
+  master equation (% = 0.09148 × mmol/mol + 2.152, one decimal), and the tooltip gives the
+  laboratory's own value beside it. Whether the badge shows is still decided in each result's own
+  unit, so rounding never changes it. Help: Patient record.
+
+## 0.55.0 — pre-release (November 2026)
+
+**Upgrade from 0.54.0**; nothing to migrate. Afterwards run `flask install resync-seeds --dry-run`,
+then without `--dry-run`, for the renamed document-summary prompt (below). A MINOR release: the
+intended purpose is reworded.
+
+- **Intended purpose reworded** ([intended purpose](docs/intended_purpose.md); the same statement
+  in the README, AGENTS.md and the About page):
+
+  > MedUI is a workflow tool for appropriately registered health professionals working in a
+  > medical practice. It helps them find, organise, present, summarise and document information
+  > that is already in the patient record or was stated in the consultation, shows what named
+  > published guidance says when they ask, and streamlines practice communication and
+  > administration. AI features produce drafts for the health professional to review, edit and
+  > approve. MedUI does not diagnose, recommend treatment or investigations, triage or monitor
+  > patients; it provides information, and clinical judgement, decisions about a patient's care
+  > and the record remain the health professional's.
+
+  The full page now names what MedUI is for, including simple published calculations and
+  schedules, record-quality audits and rules a user chooses to display (each shown with its
+  values, rule and source), and what it is not for.
+- **Results badges are each user's own choice.** The Disease Profile's HbA1c and eGFR badges
+  are no longer switched on for the practice in Application Setup → General. Each user ticks
+  them in **My settings → Patient record**; they are off until ticked, shown only to that user,
+  and the practice can't set or lock them. Each tick box is worded as its rule:
+  - HbA1c, for adults where diabetes isn't coded: the highest of the last 3 results is 6.5%
+    (48 mmol/mol) or more. The badge shows the 3 results with their dates.
+  - eGFR, where CKD isn't coded: the last result is below 59. A result of exactly 59 doesn't
+    show it, although KDIGO's G3a (below 60) includes 59.
+- **Criterion review** (Doctor Data, still off unless the practice switches it on) is worded as a
+  record-coding audit: results that meet a published criterion where the condition isn't coded.
+  Its criteria are unchanged and now differ from the badges'.
+- **The NIP line** beside Immunisations is grey, gives each vaccine's last recorded dose, and its
+  tooltip names the 2026 NIP schedule and its source. The Vaccine Eligibility data block carries
+  the same schedule line.
+- **FIB-4 is shown as MedUI's calculation.** The chart says it is calculated by MedUI, not the
+  laboratory, with its formula, how its inputs are chosen and its source (Sterling et al., 2006);
+  each point shows its age, AST, ALT and platelets. AI workflows receive it labelled the same way,
+  with its inputs, and **without the 1.45 cut-off and flag** they carried before; the results
+  trends no longer flag it either.
+- **AI-use policy template:** new paragraphs on the questions users type, guideline content
+  suggested by AI, prompts and care-plan recipes the practice writes, and medicolegally
+  sensitive discussions, which the practitioner documents personally. A policy the practice
+  has already saved keeps its own wording; compare it with the template.
+- **Document summary label:** the prompt behind the **[EXP]** links is renamed *Summarise
+  Clinical Document (with record context)* and its workflow is no longer described as
+  explaining the document; the prompt text and the links are unchanged. The resync adds the
+  renamed prompt, points the workflow at it if the practice hasn't edited it, and lists the old
+  name as dropped (archive it with `--archive-dropped` once checked).
+
 ## 0.54.0 — pre-release (November 2026)
 
 **Upgrade from 0.53.5**; nothing to migrate. `./upgrade.sh` rebuilds the OCR container, which

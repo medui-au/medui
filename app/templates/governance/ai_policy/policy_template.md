@@ -21,12 +21,43 @@ AI is **not** positioned to give diagnostic or management advice to clinicians, 
 patients. It does not diagnose, recommend treatment, triage, or replace the clinician's own
 assessment, and it is not used in emergencies.
 
+**Questions you type.** You may ask AI to find and organise what is in a patient's record, and to
+tell you what named guidelines say, with sources. Don't ask it to decide for you: which diagnosis,
+which treatment or dose, whether to refer, or how urgent. Its prompts are written to answer such
+questions with the record and the guidance only, and MedUI notes requests like these for the
+practice (Admin → Flagged AI Requests).
+
+**Guideline content is AI-suggested.** Check it against the source before relying on it.
+
+**Prompts and care-plan recipes the practice writes** are the practice's responsibility. One that
+asks AI to diagnose, recommend treatment, triage or advise patients takes MedUI outside its
+intended purpose, and may make the practice the manufacturer of a medical device.
+
+**Practice protocols for care plans.** The practice's protocol (Admin → Practice Protocols) holds
+its target options, its wording for each condition and its prevention lines, with the guidelines
+behind them. It is the practice's content: an administrator approves each version, and it is
+reviewed at least every 12 months and whenever a guideline it cites changes. Where a condition is
+coded in the record, MedUI preselects the protocol's option for it; the doctor confirms or changes
+every target and makes every decision in the plan. AI only words the care plan from those
+decisions: it does not choose targets, issues, services or treatment, and MedUI checks its draft
+against the decisions before the doctor sees it.
+
 ## 2. The clinician is responsible
 
 - Everything AI produces is a **draft**. The clinician who runs the function reads it all, checks it
   against the record, and corrects it before it is saved, sent or acted on.
 - The clinician remains responsible for anything they file, send or act on, as for any other
   document they write.
+
+**Medicolegally sensitive discussions.** AI must not be used to document a consultation, or any
+part of one, that is medicolegally contentious. Examples include an adverse outcome or error, open
+disclosure, a complaint or dispute about care, or anything the practitioner expects may lead to a
+complaint, claim or regulatory inquiry. The practitioner documents these personally, in line with
+accepted ethical conduct, the Medical Board's code of conduct and the advice of their medical
+indemnity insurer. If the scribe was running, its draft for that part is discarded. The scribe's
+instruction to avoid wording that could read as an admission governs phrasing only. It never
+permits leaving out facts, and the practitioner remains responsible for the record being complete
+and accurate.
 
 ## 3. Patient information
 

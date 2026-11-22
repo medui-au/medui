@@ -175,22 +175,18 @@ FIB4_Final AS (
     a.InternalId AS INTERNALID,
     a.ReportDate AS REPORTDATE,
     'FIB-4'      AS LOINCCODE,
-    'FIB-4'      AS RESULTNAME,
+    -- ADR-168: calculated by MedUI, labelled as such, with its inputs and formula; no
+    -- cut-off, range or flag of MedUI's own.
+    'FIB-4 (calculated by MedUI, not a laboratory result)' AS RESULTNAME,
     CAST(ROUND(
       (CAST(a.Age AS FLOAT) * CAST(a.AST AS FLOAT))
       / (CAST(r.PLT AS FLOAT) * SQRT(CAST(a.ALT AS FLOAT))),
       2
     ) AS varchar(10)) AS RESULTVALUE,
-    ''       AS UNITS,
-    '0-1.45' AS [RANGE],
-    CASE
-      WHEN TRY_CAST(ROUND(
-        (CAST(a.Age AS FLOAT) * CAST(a.AST AS FLOAT))
-        / (CAST(r.PLT AS FLOAT) * SQRT(CAST(a.ALT AS FLOAT))),
-        2
-      ) AS FLOAT) > 1.45 THEN '+'
-      ELSE ''
-    END AS ABNORMALFLAG
+    CONCAT('from age ', CAST(a.Age AS VARCHAR(10)), ', AST ', a.AST, ', ALT ', a.ALT,
+           ', platelets ', r.PLT, ' (', CONVERT(VARCHAR(10), r.PLT_ReportDate, 23), '); age x AST / (platelets x sqrt(ALT)), Sterling et al., Hepatology 2006; AST and ALT from the same day, platelets from the nearest result within 30 days') AS UNITS,
+    ''       AS [RANGE],
+    ''       AS ABNORMALFLAG
   FROM AST_ALT_Results a
   JOIN Ranked_PLT_Results r ON a.ReportDate = r.ReportDate
   WHERE r.RN = 1

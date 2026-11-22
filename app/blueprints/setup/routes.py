@@ -164,9 +164,7 @@ def _general_tab_data(**extra) -> dict:
         'tz_installation': practice_time.installation_zone(),
         'tz_current': current_app.config.get('PRACTICE_TIMEZONE'),
         'tz_now': datetime.now().strftime('%a %-d %b %Y, %H:%M'),
-        # Disease Profile eGFR criterion badge (ADR-104), default on.
-        'egfr_criterion_badge': SystemSetting.get('clinical.egfr_criterion_badge', True),
-        'hba1c_criterion_badge': SystemSetting.get('clinical.hba1c_criterion_badge', True),   # ADR-107
+        # The HbA1c and eGFR results badges are each user's own setting (ADR-166), not here.
         'criterion_review': SystemSetting.get('clinical.criterion_review', True),             # ADR-109
         **extra,
     }
@@ -206,12 +204,6 @@ def general_save():
 @_require_admin
 def general_patient_record_save():
     from app.models.system_setting import SystemSetting
-    from app.services import egfr_criterion
-    SystemSetting.set(egfr_criterion.SETTING_KEY, 'egfr_criterion_badge' in request.form,
-                      description='Disease Profile: show the eGFR criterion badge (ADR-104)')
-    from app.services import hba1c_criterion
-    SystemSetting.set(hba1c_criterion.SETTING_KEY, 'hba1c_criterion_badge' in request.form,
-                      description='Disease Profile: show the HbA1c criterion badge (ADR-107)')
     from app.services import criterion_review_service
     SystemSetting.set(criterion_review_service.SETTING_KEY, 'criterion_review' in request.form,
                       description='Doctor Data: Criterion Review page and menu item (ADR-109)')

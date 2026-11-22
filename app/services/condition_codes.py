@@ -31,6 +31,10 @@ DEFAULTS: dict[str, tuple[tuple[int, ...], str]] = {
     'colon_ca_polyps':      ((2429, 2805, 2812, 453, 1036, 480), ''),
     'fh_colon_ca':          ((1074,), ''),
     'hypercholesterolaemia': ((1438, 1446, 1445), ''),
+    # ADR-171: for the practice protocols' default target options and their badges.
+    'familial_hypercholesterolaemia': ((1446,), 'Familial hypercholesterolaemia, ADR-171'),
+    'revascularisation':    ((3578, 3579, 3576, 7338, 3544, 6488),
+                             'CABG, coronary angioplasty / stent, carotid endarterectomy, iliac stent, ADR-171'),
     'cardiomyopathy':       ((496, 5180), ''),
     'covid19':              ((13338,), ''),
     'pacemaker':            ((2609, 2610, 2611, 2948, 5116, 7243, 7249, 10622), ''),
@@ -62,7 +66,14 @@ FLAGS = {
     'isFHCaColon': 'fh_colon_ca', 'isHypercholesterolaemia': 'hypercholesterolaemia',
     'isCardiomyopathy': 'cardiomyopathy', 'isCovid19': 'covid19', 'isPacemaker': 'pacemaker',
     'isCKDRecorded': 'ckd',
+    'isFH': 'familial_hypercholesterolaemia', 'isRevascularisation': 'revascularisation',
 }
+
+# Conditions added after the table was first made (ADR-171): put into an existing table once,
+# so a practice's own edits to the other conditions are kept. A condition an administrator
+# later empties is not put back.
+ADDED_LATER = ('familial_hypercholesterolaemia', 'revascularisation')
+_ADDED_KEY = 'condition_codes.added_conditions'
 # Conditions that aren't badges: reported in profile['present'] for the influences.
 PRESENT = ('haemoglobinopathy', 'haemolysis', 'iron_deficiency', 'b12_folate_deficiency',
            'asplenia', 'advanced_ckd')
@@ -72,10 +83,34 @@ def _defaults() -> dict[str, frozenset]:
     return {c: frozenset(codes) for c, (codes, _n) in DEFAULTS.items()}
 
 
+def ensure_added_conditions() -> list[str]:
+    """Insert the rows of each ADDED_LATER condition into an existing table, once ever
+    (remembered in a system setting). Returns the conditions added now."""
+    from app.models.system_setting import SystemSetting
+    from app.services import mapping_service
+    done = set(SystemSetting.get(_ADDED_KEY, []) or [])
+    todo = [c for c in ADDED_LATER if c not in done]
+    if not todo:
+        return []
+    rows, _total = mapping_service.get_rows(TABLE, page=1, per_page=10000)
+    present = {str(r.get('condition') or '').strip().lower() for r in rows}
+    added = []
+    for condition in todo:
+        if condition not in present:
+            codes_, note = DEFAULTS[condition]
+            for code in codes_:
+                mapping_service.row_insert(TABLE, {'condition': condition, 'item_code': code, 'note': note or None})
+            added.append(condition)
+    SystemSetting.set(_ADDED_KEY, sorted(done | set(todo)),
+                      description='Conditions added to condition_codes after it was made (ADR-171)')
+    return added
+
+
 def ensure_table() -> bool:
     """Create and fill the table if it isn't there. True if it was created now."""
     from app.services import mapping_service
     if mapping_service.get_table(TABLE):
+        ensure_added_conditions()
         return False
     mapping_service.create_table(
         TABLE, 'Condition codes (Disease Profile)',
@@ -90,6 +125,9 @@ def ensure_table() -> bool:
     for condition, (codes, note) in DEFAULTS.items():
         for code in codes:
             mapping_service.row_insert(TABLE, {'condition': condition, 'item_code': code, 'note': note or None})
+    from app.models.system_setting import SystemSetting
+    SystemSetting.set(_ADDED_KEY, sorted(ADDED_LATER),
+                      description='Conditions added to condition_codes after it was made (ADR-171)')
     return True
 
 
@@ -225,22 +263,21 @@ def summary(profile: dict) -> dict:
     'recorded' comes from the codes; 'criterion_met' from the results (egfr_criterion,
     hba1c_criterion), never merged with it: a criterion met is not a diagnosis."""
     out = {}
-    a1c = profile.get('hba1c_criterion') or {}
+    a1c = profile.get('hba1c_badge') or {}
     if profile.get('isDiabetes'):
         out['diabetes'] = {'status': 'recorded', 'year': profile.get('DiabetesRecordedYear'),
                            'latest': profile.get('hba1c_latest')}
     elif a1c.get('state') == 'met':
-        out['diabetes'] = {'status': 'criterion_met', 'results': a1c.get('days'), 'latest': a1c.get('latest'),
+        out['diabetes'] = {'status': 'criterion_met', 'results': a1c.get('results'), 'latest': a1c.get('latest'),
                            'influences': a1c.get('influences') or []}
     else:
         out['diabetes'] = {'status': 'none'}
-    egfr = profile.get('egfr_criterion') or {}
+    egfr = profile.get('egfr_badge') or {}
     if profile.get('isCKDRecorded'):
         out['ckd'] = {'status': 'recorded', 'year': profile.get('CKDRecordedYear'),
                       'stage': profile.get('CKDRecordedStage'), 'latest': profile.get('egfr_latest')}
-    elif egfr.get('state') in ('met', 'met_previously'):
-        out['ckd'] = {'status': 'criterion_met', 'results': egfr.get('run'), 'latest': egfr.get('latest'),
-                      'previously': egfr.get('state') == 'met_previously'}
+    elif egfr.get('state') == 'met':
+        out['ckd'] = {'status': 'criterion_met', 'results': [egfr.get('latest')], 'latest': egfr.get('latest')}
     else:
         out['ckd'] = {'status': 'none'}
     return out

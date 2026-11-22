@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% block title %}Targets — {{ patient.get('SURNAME','') | upper }}, {{ patient.get('FIRSTNAME','') }} — {{ app_name }}{% endblock %}
+
+{% block head %}
+<style>
+.tg-head { display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; margin-bottom:0.3rem; }
+.tg-head h2 { margin:0; font-size:1.15rem; }
+.tg-muted { color:var(--text-muted); font-size:0.8rem; }
+.tg-row { border:1px solid var(--border-color); border-radius:0.4rem; padding:0.55rem 0.7rem; margin-bottom:0.6rem; background:var(--bg-primary); }
+.tg-row h3 { margin:0; font-size:0.92rem; display:flex; gap:0.5rem; align-items:baseline; flex-wrap:wrap; }
+.tg-current { font-size:0.88rem; margin:0.25rem 0; }
+.tg-current b { font-weight:600; }
+.tg-basis { font-size:0.7rem; padding:0.02rem 0.4rem; border-radius:0.6rem; border:1px solid var(--border-color); background:var(--bg-secondary); }
+.tg-latest { font-size:0.8rem; color:var(--text-secondary); }
+.tg-choose { margin-top:0.4rem; padding:0.45rem 0.6rem; border:1px dashed var(--border-color); border-radius:0.35rem; background:var(--bg-secondary); }
+.tg-opt { padding:0.25rem 0; border-top:1px solid var(--border-color); font-size:0.84rem; }
+.tg-opt:first-child { border-top:none; }
+.tg-opt label { cursor:pointer; }
+.tg-why { font-size:0.72rem; color:var(--accent); margin-left:0.3rem; }
+.tg-bg { font-size:0.76rem; color:var(--text-secondary); margin:0.15rem 0 0.1rem 1.4rem; }
+.tg-bg q { font-style:italic; }
+details.tg-more > summary { cursor:pointer; font-size:0.74rem; color:var(--accent); margin-left:1.4rem; }
+.tg-ind { display:flex; gap:0.4rem; flex-wrap:wrap; margin:0.25rem 0 0 1.4rem; }
+.tg-ind input { font-size:0.8rem; }
+.tg-hist { font-size:0.76rem; color:var(--text-muted); margin-top:0.2rem; }
+.tg-actions { display:flex; gap:0.6rem; align-items:center; margin-top:0.6rem; flex-wrap:wrap; }
+.tg-hidden { display:none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="workspace">
+  <aside class="workspace-sidebar">
+    <div class="card" style="padding:0.6rem;">{% include 'clinical/_demographics.html' %}</div>
+    {% include 'clinical/_patient_tools.html' %}
+  </aside>
+  <section class="workspace-main">
+    <div class="tg-head">
+      <h2>Targets{{ help('patient-targets.overview') }}</h2>
+      {% if version %}<span class="tg-muted">Practice protocol v{{ version.version }}</span>{% endif %}
+    </div>
+    <p class="tg-muted">
+      {% if can_set %}This patient's targets. You choose each one: an option from the practice protocol, or your own
+      individual target. Where the protocol has a rule for a condition coded in the record, that option is preselected
+      and the reason is shown; nothing is saved until you press <b>Save targets</b> (or <b>Save and continue</b>).
+      {% else %}This patient's targets, set by their doctor. Only a doctor can change them.{% endif %}
+      {% if coded %}<br>Coded in the record: {{ coded | join(', ') }}.{% endif %}
+    </p>
+    {% if not version %}
+      <div class="tg-row tg-muted">There is no approved practice protocol yet{% if can_set %}: you can still set an individual target for any measure{% endif %}.
+      An administrator approves the protocol in Admin → Practice Protocols.</div>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('gpccmp.patient_targets_save', patient_id=patient_id) }}" id="tg-form" data-unsaved-guard>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      {% macro target_row(r, hidden=False) %}
+        {% set m = r.measure %}{% set cur = r.current %}
+        <div class="tg-row{{ ' tg-hidden' if hidden }}" id="tg-m{{ m.id }}" data-measure="{{ m.id }}">
+          <h3>{{ m.label }}{% if m.unit %}<span class="tg-muted">{{ m.unit }}</span>{% endif %}
+            {% if m.scope.value == 'individual' %}<span class="tg-basis">individual</span>{% endif %}</h3>
+          {% if r.latest and r.latest.value %}
+            <div class="tg-latest">Latest: {{ r.latest.value }}{% if r.latest.unit %} {{ r.latest.unit }}{% endif %}{% if r.latest.date %} ({{ r.latest.date }}){% endif %}{% if r.latest.status == 'stale' %} · older than usual{% endif %}</div>
+          {% endif %}
+          {% if cur %}
+            <div class="tg-current">Target: <b>{{ cur.value_text }}</b>
+              <span class="tg-basis">{{ {'default': 'protocol default', 'option': 'protocol option', 'individual': 'individual'}[cur.basis.value] }}</span>
+              <span class="tg-muted">set by {{ cur.set_by.display_name or cur.set_by.username }} {{ cur.set_at | localdt('%d/%m/%Y') }}{% if cur.protocol_version %} · protocol v{{ cur.protocol_version.version }}{% endif %}</span>
+              {% if cur.reason %}<div class="tg-muted">Reason: {{ cur.reason }}</div>{% endif %}
+            </div>
+            {% if can_set %}<button type="button" class="btn btn-secondary btn-sm" onclick="tgChange({{ m.id }})" id="tg-chg{{ m.id }}">Change</button>{% endif %}
+          {% endif %}
+          {% if can_set %}
+          <div class="tg-choose{{ ' tg-hidden' if cur }}" id="tg-c{{ m.id }}">
+            <input type="hidden" name="measure" value="{{ m.id }}" {{ 'disabled' if cur }}>
+            {% for o in r.options %}
+              {% set checked = (cur and cur.option_id == o.id) or (not cur and r.default and r.default.id == o.id) %}
+              <div class="tg-opt">
+                <label><input type="radio" name="choice_{{ m.id }}" value="{{ o.id }}" {{ 'checked' if checked }} {{ 'disabled' if cur }}
+                       onchange="tgPick({{ m.id }}, {{ 'true' if o.gp_sets else 'false' }})"> {{ o.label }}</label>
+                {% if r.default and r.default.id == o.id %}<span class="tg-why">Preselected · {{ r.why }}</span>{% endif %}
+                {% if o.patient_group %}<div class="tg-bg">For: {{ o.patient_group }}</div>{% endif %}
+                {% if o.rationale or o.citations %}
+                <details class="tg-more"><summary>Background</summary>
+                  {% if o.rationale %}<div class="tg-bg">{{ o.rationale }}</div>{% endif %}
+                  {% for c in o.citations %}
+                    <div class="tg-bg">{% if c.guideline.url %}<a href="{{ c.guideline.url }}" target="_blank" rel="noopener">{{ c.guideline.title }}</a>{% else %}{{ c.guideline.title }}{% endif %}{% if c.guideline.edition %}, {{ c.guideline.edition }}{% endif %}{% if c.section_ref %} · {{ c.section_ref }}{% endif %}{% if c.quote %}: <q>{{ c.quote }}</q>{% endif %}{% if c.guideline.superseded_by_id %} <span class="tg-basis">superseded</span>{% endif %}</div>
+                  {% endfor %}
+                </details>
+                {% endif %}
+              </div>
+            {% endfor %}
+            {% set ind = cur and cur.basis.value == 'individual' %}
+            <div class="tg-opt">
+              <label><input type="radio" name="choice_{{ m.id }}" value="individual" {{ 'checked' if (ind and not cur.option_id) or (not r.options) }} {{ 'disabled' if cur }}
+                     onchange="tgPick({{ m.id }}, true)"> Individual target for this patient</label>
+            </div>
+            {% if not cur %}
+            <div class="tg-opt"><label><input type="radio" name="choice_{{ m.id }}" value="" {{ 'checked' if not r.default and r.options }}> No target for now</label></div>
+            {% endif %}
+            <div class="tg-ind" id="tg-i{{ m.id }}">
+              <input class="form-control" name="value_{{ m.id }}" placeholder="Target, e.g. &lt; 150/90 mmHg" style="max-width:16rem;"
+                     value="{{ cur.value_text if ind else '' }}" {{ 'disabled' if cur }}>
+              <input class="form-control" name="reason_{{ m.id }}" placeholder="Reason (optional)" style="max-width:22rem;" {{ 'disabled' if cur }}>
+            </div>
+          </div>
+          {% endif %}
+          {% if r.history %}
+          <details class="tg-hist"><summary>Earlier targets ({{ r.history | length }})</summary>
+            {% for h in r.history %}<div>{{ h.value_text }} · {{ h.basis.value }} · {{ h.set_by.display_name or h.set_by.username }} {{ h.set_at | localdt('%d/%m/%Y') }}{% if h.superseded_at %} – {{ h.superseded_at | localdt('%d/%m/%Y') }}{% endif %}{% if h.reason %} · {{ h.reason }}{% endif %}</div>{% endfor %}
+          </details>
+          {% endif %}
+        </div>
+      {% endmacro %}
+
+      {% for r in rows %}{{ target_row(r) }}{% else %}
+        <div class="tg-row tg-muted">No targets yet{% if can_set %}: add a measure below{% endif %}.</div>
+      {% endfor %}
+      {% if can_set %}{% for r in addable %}{{ target_row(r, hidden=True) }}{% endfor %}{% endif %}
+
+      {% if can_set %}
+      <div class="tg-actions">
+        {% if addable %}
+        <select class="form-control" id="tg-add" style="max-width:18rem;" onchange="tgAdd(this)">
+          <option value="">Add a measure…</option>
+          {% for r in addable %}<option value="{{ r.measure.id }}">{{ r.measure.label }}{% if r.measure.scope.value == 'individual' %} (individual){% endif %}</option>{% endfor %}
+        </select>
+        {% endif %}
+        <button class="btn btn-secondary btn-sm" name="action" value="save">Save targets</button>
+        <span class="tg-muted">Only new and changed targets are saved; each change is kept in the history.</span>
+        <button class="btn btn-primary btn-sm" name="action" value="continue" style="margin-left:auto;">Save and continue to plan decisions →</button>
+      </div>
+      {% endif %}
+    </form>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/unsaved_guard.js') }}"></script>
+<script>
+function tgEnable(mid, on) {
+  document.querySelectorAll('#tg-c' + mid + ' input').forEach(el => { el.disabled = !on; });
+}
+function tgChange(mid) {
+  document.getElementById('tg-c' + mid).classList.remove('tg-hidden');
+  document.getElementById('tg-chg' + mid).classList.add('tg-hidden');
+  tgEnable(mid, true);
+}
+function tgPick(mid, needsValue) {
+  const v = document.querySelector('#tg-i' + mid + ' input[name="value_' + mid + '"]');
+  if (v && needsValue) v.focus();
+}
+function tgAdd(sel) {
+  const mid = sel.value;
+  if (!mid) return;
+  const row = document.getElementById('tg-m' + mid);
+  row.classList.remove('tg-hidden');
+  sel.querySelector('option[value="' + mid + '"]').remove();
+  sel.value = '';
+  row.scrollIntoView({behavior: 'smooth', block: 'center'});
+}
+// Hidden "add" rows send nothing until shown: disable their inputs.
+document.querySelectorAll('.tg-row.tg-hidden').forEach(row => {
+  row.querySelectorAll('input').forEach(el => { el.disabled = true; });
+});
+const _origAdd = tgAdd;
+tgAdd = function (sel) {
+  const mid = sel.value;
+  _origAdd(sel);
+  if (mid) tgEnable(mid, true);
+};
+</script>
+{% endblock %}

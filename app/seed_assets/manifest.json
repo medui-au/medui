@@ -3,9 +3,9 @@
   "source": "Legacy MedUI reference configuration, read-only extraction 2026-10-01; no patient records or accounts.",
   "files": {
     "reference.json": "1adc4b1faf586ba94a8d9203bdd07015d85b8508faef575bf32f95d82dc2f835",
-    "starter.json": "c26e4044f753dd098620a4b33ac9748e943e039c007e0c73b188fc8220f2d1a7",
+    "starter.json": "0e4dde27a1cc4a03e832f8d1de68cbaa50454af9de7649427547199c44c88ecd",
     "admin_lists.json": "8b116cd97d086b598ad79f5cb7e0c21eb703a841c588495d404b24246d006322",
-    "seed_history.json": "63f183a52cf367dcf45402564d43e6c774177fc8de0d98c502ea704845c2df2d"
+    "seed_history.json": "42ecdbfce13020b8121d10c1c4b99af043607add49a0a457bfb52b4e1b2a10bb"
   },
   "counts": {
     "system_prompts": 12,
@@ -34,6 +34,7 @@
     "2026-10-17: remaining AI prompts confined. Scribe: issues organised as discussed, whether or not existing diagnoses, headed by a stated or recorded diagnosis or a plain description, optionally grouped; no added diagnoses, inferred management, inferred examination findings or undiscussed actions. To-Do: items the record shows as outstanding only. Document summary: summary only (explanation mode removed; renamed Summarise Document). User Query: own factual system prompt, Record Questions (factual).",
     "Format 4 (2026-10-21): system prompts carry scope_key (the AI scope instruction: record, scribe, correspondence, general or none — none only for the text-cleanup and PII-eraser utilities); a workflow's prompt step may set scope_key and its inference step ai_notice (the on-screen notice). From upstream ADR-087/088.",
     "2026-10-24: General chatbot (Chatbot Generic) reworded from upstream (its version 6): written for a health professional, not a patient; questions outside medicine answered as fully as needed; a question with a particular patient's details gets a one-line notice and general information about the topic at the level of the question, without restating or interpreting the patient's findings; a Sources section (title, organisation, year; link only for stable official addresses; marked as AI-suggested). Keeps the JSON response format.",
-    "2026-10-24 (0.19.0): Default Info Sheet Prompt confined: writing rules and task discipline kept; result grading, clinical alert policies (diabetes thresholds, cholesterol risk categories and targets, FIB-4, PSA, BP and weight categories), preventive-health and immunisation advice, triage lines and invented-data assumptions removed; general information allowed. Health Timeline 7/10 detail describes what is recorded (no grading, targets, gaps or screening rules). Clinical Assistant (unused) dropped. Library Assistant typos fixed."
+    "2026-10-24 (0.19.0): Default Info Sheet Prompt confined: writing rules and task discipline kept; result grading, clinical alert policies (diabetes thresholds, cholesterol risk categories and targets, FIB-4, PSA, BP and weight categories), preventive-health and immunisation advice, triage lines and invented-data assumptions removed; general information allowed. Health Timeline 7/10 detail describes what is recorded (no grading, targets, gaps or screening rules). Clinical Assistant (unused) dropped. Library Assistant typos fixed.",
+    "2026-11-21 (0.55.0): label only. The [EXP] user prompt is renamed Summarise Clinical Document (with record context) and the Summarise Document workflow's description no longer says explain; prompt text unchanged; the workflow keeps its [EXP] classifier, which the document links look up. A resync adds the renamed prompt, points an unedited workflow at it and lists the old name as dropped."
   ]
 }

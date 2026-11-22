@@ -201,7 +201,7 @@
       "is_active": true
     },
     {
-      "name": "Summarise Clinical Document [EXP]",
+      "name": "Summarise Clinical Document (with record context)",
       "description": null,
       "prompt_text": "Output a summary of this correspondence as outlined in your system prompt (summary only, no explanation). Use brevity setting 4/5.\nInclude information consequential to patient management, as stated in the document.\nCompletely omit lines without useful content for example do not output lines which say:\n\"Medication Changes: None specified.\"\nand\n\"New Diagnoses: None established.\"\nFollowing the document is patient contextual information which is purely for assistance with orientation and disambiguation, not for repeating within your output.\n[CORRESPONDENCE] {{input.user_prompt}}[/CORRESPONDENCE]\n{{data.blocks}}",
       "system_prompt_name": "Medical Document Text Summarization",
@@ -636,7 +636,7 @@
     },
     {
       "name": "Summarise Document",
-      "description": "Summarize and Explain Document",
+      "description": "Summarise a clinical document, with the patient's record for orientation only",
       "classifier": "[EXP]",
       "steps": [
         {
@@ -648,7 +648,7 @@
         {
           "node_type": "prompt_assembly",
           "config": {
-            "user_prompt_name": "Summarise Clinical Document [EXP]"
+            "user_prompt_name": "Summarise Clinical Document (with record context)"
           }
         },
         {

@@ -243,7 +243,8 @@ def progress_notes():
 @bp.get('/criterion-review')
 @login_required
 def criterion_review():
-    """Results meeting a diagnostic criterion where the diagnosis isn't recorded. A doctor sees
+    """Record-coding audit (ADR-109, ADR-165): results meeting a published criterion where the
+    condition isn't coded. A doctor sees
     the patients whose last visit was with them; an administrator sees all, or one doctor's."""
     import pyodbc
     from flask import abort

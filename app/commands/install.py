@@ -17,12 +17,11 @@ def defaults():
                        'data.auto_cleanup': False, 'ui.default_theme': 'light',
                        'scope.enabled': True, 'scope.default_key': 'record',
                        'scope.check_mode': 'record', 'notice.enabled': True,
-                       # Results-based badges and the criterion review (upstream ADR-104, 107, 109)
-                       # start off in this edition: its intended purpose excludes alerts of its own.
-                       # A practice that switches them on (Setup → General → Patient Record)
-                       # keeps its choice; insert-only, so upgrades add them off too.
-                       'clinical.egfr_criterion_badge': False,
-                       'clinical.hba1c_criterion_badge': False,
+                       # The criterion review (upstream ADR-109, ADR-165), a record-coding audit,
+                       # starts off in this edition. A practice that switches it on (Setup →
+                       # General → Patient Record) keeps its choice; insert-only, so upgrades add
+                       # it off too. The results badges are each user's own setting, off until the
+                       # user ticks them (upstream ADR-166): nothing to set here.
                        'clinical.criterion_review': False}.items():
         if not SystemSetting.query.filter_by(key=key).first():
             db.session.add(SystemSetting(key=key, value=value))
@@ -89,7 +88,17 @@ def seeds(dry_run, include_reference_data):
         raise click.ClickException(f'Seed installation rolled back: {exc}') from exc
     for name, result in counts.items():
         click.echo(f"{name}: {result['added']} added, {result['skipped']} existing preserved")
+    if not dry_run:
+        _seed_gpccmp_pipeline()
     click.echo('Dry run: all changes rolled back.' if dry_run else 'Seeds installed. Workflows remain drafts; messages inactive; drug mappings require approval.')
+
+
+def _seed_gpccmp_pipeline():
+    """The GPCCMP drafting prompts and workflow (new rows only, matched by name), as a draft with no
+    model: an administrator chooses its model in the Pipeline Designer and makes it active."""
+    from app.commands.gpccmp import seed_pipeline
+    made = seed_pipeline()['made']
+    click.echo('GPCCMP drafting: ' + (', '.join(made) + ' added (draft, no model)' if made else 'already there'))
 
 
 _RESYNC_HEADINGS = (
@@ -137,5 +146,7 @@ def resync_seeds(dry_run, archive_dropped, replace):
         for r in rows:
             detail = f" — {r['note']}" if r['note'] else ''
             click.echo(f"  {labels.get(r['category'], r['category'])}: {r['name']}{detail}")
+    if not dry_run:
+        _seed_gpccmp_pipeline()
     click.echo('\nDry run: all changes rolled back.' if dry_run else
                '\nResync complete. Workflow models, data bundles and status were kept.')

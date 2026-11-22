@@ -55,3 +55,6 @@ __all__ = [
 from .careplan import (CareplanResultToken, CareplanGuideline, CareplanRecipe, CareplanRecipeVersion,
                        CareplanRecipeCitation, CareplanRecipeTarget, Careplan, CareplanRow,
                        CareplanValue, CareplanEvent)
+from .protocol import (ProtocolMeasure, ProtocolVersion, ProtocolOption, ProtocolOptionCitation,
+                       ProtocolModule, ProtocolPreventionRule, PatientTarget)
+from .gpccmp import GpccmpSession

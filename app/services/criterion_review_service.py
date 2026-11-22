@@ -1,8 +1,9 @@
-"""Results that meet a diagnostic criterion where the diagnosis isn't recorded (ADR-109).
+"""A record-coding audit: results that meet a published criterion where the condition isn't
+coded (ADR-109, wording ADR-165).
 
-Practice-wide, over active patients seen in the last 24 months: the same rules as
-the Disease Profile badges (egfr_criterion, hba1c_criterion; adults for HbA1c) and
-the same codes (condition_codes), regardless of the badges' Setup switches. Each
+Practice-wide, over active patients seen in the last 24 months: the published criteria in
+egfr_criterion.evaluate and hba1c_criterion.evaluate (adults for HbA1c), not the Disease
+Profile badges' per-user rules (ADR-166), with the same codes (condition_codes). Each
 row carries the results that met the criterion and, for HbA1c, the recorded
 conditions that affect how it reads (influences). A list for a doctor to review:
 a criterion met is not a diagnosis.

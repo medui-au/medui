@@ -50,6 +50,9 @@
                 <li><a class="dropdown-item" href="{{ url_for('clinical.ai_panel', patient_id=_pid, tab='output') }}">📋 Enter New Report</a></li>
                 <li><a class="dropdown-item" href="{{ url_for('voice.scribe') }}?patient_id={{ _pid }}">✍️ Scribe</a></li>
                 {% endif %}
+                {% if current_user.has_level(3) %}
+                <li><a class="dropdown-item" href="{{ url_for('gpccmp.patient_targets', patient_id=_pid) }}">🎯 GPCCMP: Targets &amp; Plan</a></li>
+                {% endif %}
                 {% if current_user.has_level(5) %}
                 <li><a class="dropdown-item" href="{{ url_for('careplan.patient_plan', patient_id=_pid) }}">🗂️ Care Plan</a></li>
                 {% endif %}
@@ -156,6 +159,7 @@
                 <li><a class="dropdown-item" href="{{ url_for('admin.query_manager') }}">Query Manager</a></li>
                 <li><a class="dropdown-item" href="{{ url_for('admin.bundles') }}">Data Bundles</a></li>
                 <li><a class="dropdown-item" href="{{ url_for('admin.mappings') }}">Mappings</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('protocols.index') }}">Practice Protocols</a></li>
                 <li><a class="dropdown-item" href="{{ url_for('admin.observation_anomalies') }}">Observation Anomalies</a></li>
                 <li><a class="dropdown-item" href="{{ url_for('admin.flagged_ai') }}">Flagged AI Requests</a></li>
                 {% if current_user.is_admin and privacy_review_enabled() %}

@@ -2,7 +2,7 @@
 title: Patient record
 area: Patients
 roles: [doctor, nurse]
-reviewed: 2026-11-14
+reviewed: 2026-11-22
 related: [results-outside-range, setup]
 ---
 
@@ -14,7 +14,8 @@ reads it from Best Practice and doesn't change it.
 The **Disease Profile** panel, at the bottom of the left-hand column, shows badges for
 conditions **recorded** in the patient's past history, from Best Practice's coded items
 (active items only, including a coded *Reason for visit* that Best Practice copied to past history): diabetes (type 1, type 2 or unspecified; not borderline or gestational), IHD, hypertension, atrial fibrillation, stroke, CKD,
-vasculopathy, COVID-19 and a pacemaker. A BMI over 30 is shown with the weight and its date.
+vasculopathy, COVID-19, a pacemaker, familial hypercholesterolaemia and revascularisation (CABG,
+coronary angioplasty or stent, carotid endarterectomy, iliac stent). A BMI over 30 is shown with the weight and its date.
 
 Which Best Practice item codes count as each condition is the practice's list: **Admin →
 Mapping Tables → condition_codes**, one row per condition and code (diabetes, ckd, ihd and so
@@ -30,30 +31,27 @@ out of date as the eGFR changes; the two side by side let you see whether the re
 updating. A recorded stage 1 or 2 (kidney damage with a normal eGFR) correctly sits beside an
 eGFR over 60.
 
-**"eGFR < 60 for 3+ months"** is different: it describes the results, not a recorded
-diagnosis. It appears only where CKD isn't recorded, when:
+**Results badges you choose to show.** Two badges describe results, not a recorded
+diagnosis. They are **your own choice**, in **My settings → Patient record**: off until you tick
+them, shown only to you, on the patients you view. Each tick box is worded as the rule itself,
+and the badge appears only when the patient meets it:
 
-- at least two eGFR results are below 60,
-- the first and last of them are at least 90 days apart, and
-- no eGFR of 60 or more lies between them.
+- **HbA1c**, for adults where diabetes isn't coded: *the highest of the last 3 HbA1c results is
+  6.5% (48 mmol/mol) or more*. The badge shows those 3 results with their dates, in %,
+  for example *HbA1c 6.1% (Jan 2026) · 6.8% (Jun 2026) · 6.4% (Oct 2026)*. A result the
+  laboratory reported in mmol/mol is converted to % for the badge with the IFCC–NGSP master
+  equation (% = 0.09148 × mmol/mol + 2.152, to one decimal), and the tooltip gives the
+  laboratory's own mmol/mol value beside it. A sample reported in both units counts once; a result
+  that can't be read is skipped, so the 3 are the last 3 readable ones. Each result is compared
+  with the threshold in its own unit. 6.5% (48 mmol/mol) is the diagnostic threshold in the RACGP handbook and the
+  Australian Diabetes Society's 2015 statement, which ask for confirmation on a different day.
+- **eGFR**, where CKD isn't coded: *the last eGFR is below 59*. The badge shows that result and
+  its date, for example *eGFR 54 (Oct 2026)*. Laboratories report whole numbers, so a result of
+  exactly 59 doesn't show the badge, although KDIGO's category G3a (below 60) includes 59. Values
+  are read as the laboratory wrote them: *>90* is not below 59, and a value that can't be placed
+  either side of 59 shows no badge.
 
-This is the eGFR part of the KDIGO definition of chronic kidney disease (below 60 for more
-than 3 months). Hover over the badge to see the dates and values. If the latest eGFR is now
-60 or more, the badge says *(to Mar 2025)*, for example, and the latest result is in the
-detail. Values are read as the laboratory wrote them: *>90* counts as 60 or more, and a value
-that can't be placed either side of 60 is left out.
-
-Both CKD badges' tooltips include the KDIGO 2024 categories for reference: the eGFR
-categories G1–G5 and the urine albumin/creatinine categories A1–A3. They're there to save
-looking them up; MedUI doesn't pick out a category for the patient.
-
-**"HbA1c ≥ 6.5% on 2 occasions"** works the same way for diabetes. It appears only for adults
-where diabetes isn't recorded, when HbA1c has been 6.5% (48 mmol/mol) or more on two different
-days (a sample reported in both units counts once). HbA1c is shown as %: a result the laboratory
-reported in mmol/mol is converted with the IFCC–NGSP master equation (% = 0.09148 × mmol/mol +
-2.152), with the laboratory's mmol/mol figure beside it in the tooltip. This is the diagnostic criterion in the RACGP
-handbook and the Australian Diabetes Society's 2015 statement. Later, lower results don't remove
-it. Where the record has a condition that affects how HbA1c reads, the badge is still shown,
+Where the record has a condition that affects how HbA1c reads, the HbA1c badge is still shown,
 and its tooltip says which way the condition pushes HbA1c, with the relevant latest results:
 - **may raise it** (the result may overstate glucose): iron deficiency (with ferritin and
   haemoglobin), B12 or folate deficiency (B12, folate, haemoglobin), asplenia;
@@ -63,15 +61,21 @@ and its tooltip says which way the condition pushes HbA1c, with the relevant lat
   (recorded, or a latest eGFR below 30).
 
 What each condition means here, its wording, its source and the results shown with it are the
-practice's list: **Admin → Mapping Tables → influences** (situation *hba1c_interpretation*). Transfusions and iron
-infusions are rarely recorded, so the tooltip mentions them. Recorded diabetes shows its type
-(if recorded), the year and the latest HbA1c. Both diabetes tooltips list the Australian HbA1c
-targets for reference; MedUI doesn't compare them with the patient's results.
+practice's list: **Admin → Mapping Tables → influences** (situation *hba1c_interpretation*).
+Transfusions and iron infusions are rarely recorded, so the tooltip mentions them.
 
-What you stay responsible for: the badges don't diagnose diabetes or CKD, MedUI doesn't stage
-CKD, and the eGFR badge doesn't use urine albumin. Whether the patient has diabetes or CKD, and
-recording it, is your decision. A practice manager can switch either results badge off in
-Application Setup → General.
+Recorded diabetes shows its type (if recorded), the year and the latest HbA1c. Both diabetes
+tooltips list the Australian HbA1c targets for reference, and both CKD tooltips the KDIGO 2024
+categories (eGFR G1–G5, urine albumin/creatinine A1–A3); MedUI doesn't compare them with the
+patient's results or pick out a category.
+
+The **Criterion review** page (Doctor Data) uses the published criteria instead: two HbA1c
+results of 6.5% or more on different days, and eGFR below 60 for more than 3 months. So a
+patient can be on that list without a badge, or the other way round.
+
+What you stay responsible for: a badge is a rule you chose, applied to the results; it doesn't
+diagnose diabetes or CKD, MedUI doesn't stage CKD, and the eGFR badge doesn't use urine albumin.
+Whether the patient has diabetes or CKD, and recording it, is your decision.
 
 ## Charts {#charts}
 
@@ -84,7 +88,13 @@ eGFR, urine albumin, HbA1c, TSH, PSA, ferritin, FIB-4, weight and blood pressure
 - Points above or below the band are labelled *Above range* and *Below range*. MedUI doesn't
   draw targets of its own: practice targets will come with the practice-policy work.
 - Tests the laboratory reports without a range (FIB-4, which MedUI calculates from the
-  results; weight; blood pressure) have no band. The weight caption gives the BMI and the
+  results; weight; blood pressure) have no band.
+- **FIB-4** is calculated by MedUI, not reported by the laboratory: (age × AST) / (platelets ×
+  √ALT) (Sterling et al., Hepatology 2006), from AST and ALT on the same day and the platelet
+  count nearest to that day (within 30 days), with the age on that day. The chart's caption says
+  so; hover over a point to see the age, AST, ALT and platelets it came from. MedUI shows no
+  cut-off or flag for it, and AI workflows receive it labelled as calculated, with the same
+  inputs and formula. The weight caption gives the BMI and the
   weights that correspond to BMI 20 to 25 for the recorded height.
 - **BMI** is worked out from the latest weight and the latest height, even when they were
   measured on different days (Best Practice's own BMI needs both on the same day). A height
@@ -143,11 +153,14 @@ Admin → Mapping Tables (nip_risk_mapping), and the doses recorded at this prac
   a recorded condition from the immunocompromise list, which you confirm). A Medicare card or
   eligibility is needed. Others aren't funded; the Australian Immunisation Handbook has
   recommendations for other groups.
-- Beside Immunisations, **"NIP funded, none recorded in interval: …"** names the vaccines that are
-  funded for the patient with no dose recorded within the schedule's interval.
+- Beside Immunisations, a small grey line, **"NIP-funded for this age or risk group; no dose
+  recorded within the schedule's interval: …"**, names those vaccines, each with the last dose
+  recorded here (or *none recorded*). Hover over it for the schedule it follows (the 2026 NIP
+  schedule, from 1 July 2026, with COVID-19 as updated 1 October 2026) and its source
+  (health.gov.au). It states the schedule and the record; it isn't a reminder.
 - The **Vaccine Eligibility (NIP)** data block (for AI workflows) gives, per vaccine, the basis, the
-  last recorded dose and a note stating what the schedule says and what is recorded. The notes
-  don't advise the patient.
+  last recorded dose, a note stating what the schedule says and what is recorded, and the
+  schedule's version and source. The notes don't advise the patient.
 
 What you stay responsible for: vaccines given elsewhere may not be recorded here (check the
 Australian Immunisation Register), and an at-risk condition counts only if it meets the NIP

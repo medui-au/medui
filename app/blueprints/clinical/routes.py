@@ -83,8 +83,13 @@ def patient(patient_id: int):
 @bp.get('/patient/<int:patient_id>/api/disease_profile')
 @login_required
 def api_disease_profile(patient_id: int):
+    # The results badges are rules the viewing user chose to display (ADR-166).
+    from app.services import egfr_criterion, hba1c_criterion, user_settings_service
     try:
-        profile = ClinicalService.get_disease_profile(patient_id)
+        profile = ClinicalService.get_disease_profile(
+            patient_id,
+            show_hba1c_rule=bool(user_settings_service.get(current_user, hba1c_criterion.BADGE_PREF_KEY)),
+            show_egfr_rule=bool(user_settings_service.get(current_user, egfr_criterion.BADGE_PREF_KEY)))
     except Exception as e:
         current_app.logger.error('disease_profile error for %d: %s', patient_id, e)
         profile = {}
@@ -187,11 +192,13 @@ def api_immunizations_eligibility_flags(patient_id: int):
     from app.services.patient_json_service import PatientJsonService
     try:
         rows = PatientJsonService().get_atomic_block('vaccine_eligibility', patient_id)
-        due = [r['vaccine'] for r in rows if r.get('eligible_for_funded_dose') and r.get('dose_due_now')]
+        due = [r for r in rows if r.get('eligible_for_funded_dose') and r.get('dose_due_now')]
     except Exception as e:
         current_app.logger.error('immunizations eligibility flags error for %d: %s', patient_id, e)
         due = []
-    return render_template('clinical/_panels/immunization_eligibility_flags.html', vaccines=due)
+    from app.services.vaccine_eligibility_service import SCHEDULE_TEXT
+    return render_template('clinical/_panels/immunization_eligibility_flags.html', vaccines=due,
+                           schedule=SCHEDULE_TEXT)
 
 
 @bp.get('/patient/<int:patient_id>/api/allergies')
