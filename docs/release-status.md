@@ -1,6 +1,6 @@
 # Release status
 
-**Version 0.58.0, pre-release (November 2026).** Synced with the upstream MedUI application, with
+**Version 0.59.0, pre-release (November 2026).** Synced with the upstream MedUI application, with
 the redaction core 0.2.20. Scope: a new practice installation, not migration of existing MedUI data.
 Each release is described in the [changelog](../CHANGELOG.md); this page is the summary of what
 is in place and what is left before a release to another practice.
@@ -91,8 +91,6 @@ No claim of clinical validation is made by these installation and startup tests.
   - dependencies stay permissive or weak copyleft: `test_dependency_licences` fails on a new
     GPL or AGPL dependency, so adding one is a deliberate decision;
   - no code copied in from GPL projects.
-- A final review of the [request to BP for database access](templates/bp-database-access-request.md)
-  template, wording and tone, before practices use it.
 - The public copy: a fresh history, its name and owner, and turning on private vulnerability
   reporting for [SECURITY.md](../SECURITY.md).
 - Check every role and access path; finish the optional features' screens.

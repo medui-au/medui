@@ -3,6 +3,29 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.59.0 — pre-release (November 2026)
+
+**Upgrade from 0.58.1**: `./upgrade.sh` runs one migration (two new tables only). A policy already
+saved becomes version 1 the first time it is opened. A MINOR release: a new function.
+
+- **AI-use policy versions** (Governance → AI-use policy). Every save is kept as a numbered version,
+  with an optional note of what changed and **Appendix A as it was at that moment**. **Versions**
+  lists them; any version opens, prints and downloads exactly as it was. An administrator approves
+  the latest version once, with the next review date and a ticked confirmation. **Start again from
+  the template** now opens the template in the editor and removes nothing.
+- Versions are kept in a general store for the practice's own documents (`practice_documents`,
+  `practice_document_versions`). Today it holds only the AI-use policy.
+- The template no longer asks the practice to keep copies in its document management. The docs copy
+  has a short header pointing to MedUI.
+- The suggested wording for the request to Best Practice for database access is final.
+
+## 0.58.1 — pre-release (November 2026)
+
+**Upgrade from 0.58.0**: `./upgrade.sh`. Nothing in the app changes.
+
+- The suggested wording for the request to Best Practice for database access is shorter and plainer:
+  one paragraph saying what the access is for, how AI is used, and that the application only reads.
+
 ## 0.58.0 — pre-release (November 2026)
 
 **Upgrade from 0.57.2**: `./upgrade.sh`. No migrations: the condition codes table gets its new column

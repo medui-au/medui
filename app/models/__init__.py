@@ -58,3 +58,4 @@ from .careplan import (CareplanResultToken, CareplanGuideline, CareplanRecipe, C
 from .protocol import (ProtocolMeasure, ProtocolVersion, ProtocolOption, ProtocolOptionCitation,
                        ProtocolModule, ProtocolPreventionRule, PatientTarget)
 from .gpccmp import GpccmpSession
+from .practice_document import PracticeDocument, PracticeDocumentVersion

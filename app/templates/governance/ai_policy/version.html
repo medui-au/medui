@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}AI-use policy, version {{ v.number }} — {{ app_name }}{% endblock %}
+{% block head %}
+<style>
+.policy-wrap { max-width:860px; margin:0 auto; padding:1.25rem 1.5rem; }
+.policy-bar { display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; margin-bottom:1rem; }
+.policy-bar .policy-meta { flex:1; font-size:0.78rem; color:var(--text-muted); }
+.policy-body { font-size:0.88rem; line-height:1.55; }
+.policy-body h1 { font-size:1.25rem; } .policy-body h2 { font-size:1.02rem; margin-top:1.5rem; }
+.policy-body table { border-collapse:collapse; margin:0.6rem 0; }
+.policy-body th, .policy-body td { border:1px solid var(--border-color); padding:0.3rem 0.5rem; vertical-align:top; }
+.policy-body code { font-size:0.8em; }
+@media print {
+  .topnav, .policy-bar, .policy-approve, footer, .help-panel, .alert { display:none !important; }
+  .policy-print-head { display:block !important; font-size:9pt; color:#555; margin:0 0 0.5rem; }
+  .main-content { margin-top:0 !important; }
+  .policy-wrap { max-width:none; padding:0; }
+  .policy-body { font-size:10.5pt; }
+  .policy-body a { color:inherit; text-decoration:none; }
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="policy-wrap">
+  <div class="policy-bar">
+    <span class="policy-meta">
+      <strong>Version {{ v.number }}</strong>{% if is_latest %} (in use){% else %} (an earlier version){% endif %},
+      saved{% if v.saved_by_name %} by {{ v.saved_by_name }}{% endif %} on {{ v.saved_at | localdt('%d/%m/%Y') }}.
+      {% if v.approved_at %}Approved{% if v.approved_by_name %} by {{ v.approved_by_name }}{% endif %} on {{ v.approved_at | localdt('%d/%m/%Y') }}; next review {{ v.review_due_on.strftime('%d/%m/%Y') }}.{% else %}Not approved.{% endif %}
+      {% if v.note %}What changed: {{ v.note }}.{% endif %}
+      Appendix A is the list saved with this version.
+      <a href="{{ url_for('governance.ai_policy_versions') }}">All versions</a>
+    </span>
+    <button type="button" class="btn btn-sm btn-outline" onclick="window.print()">Print or save as PDF</button>
+    <a class="btn btn-sm btn-outline" href="{{ url_for('governance.ai_policy_version_download', number=v.number) }}">Download (.md)</a>
+  </div>
+  <p class="policy-print-head" style="display:none;">AI-use policy, version {{ v.number }}{% if v.approved_at %}, approved {{ v.approved_at | localdt('%d/%m/%Y') }}{% endif %}</p>
+  <article class="policy-body">{{ body }}</article>
+</div>
+{% endblock %}

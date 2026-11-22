@@ -2,7 +2,7 @@
 title: Complaints, adverse events and the AI-use policy
 area: Governance
 roles: [reception, nurse, doctor, admin]
-reviewed: 2026-11-21
+reviewed: 2026-11-22
 related: []
 ---
 
@@ -41,11 +41,24 @@ practice's quality and accreditation records.
 read. It starts as a template; an administrator adapts it with **Edit** (in Markdown) and has it
 approved. Its **Appendix A** lists the AI providers and models enabled at the moment it is opened,
 printed or downloaded: whether each runs on the practice's computers or in the cloud, and what
-each model is used for. **Print or save as PDF** and **Download (.md)** keep a dated copy, for the
-practice's document management, whenever the policy is approved or a provider or model changes.
+each model is used for. **Print or save as PDF** and **Download (.md)** give a dated copy.
 
 The template (updated 21 November 2026) covers the questions users type, guideline content
 suggested by AI, the practice's own prompts and care-plan recipes, and medicolegally sensitive
 discussions, which the practitioner documents personally. A policy the practice has already saved
 keeps its own wording: download it, compare it with the template, and copy across what the
-practice wants (**Edit → Start again from the template** replaces the saved wording).
+practice wants (**Edit → Start again from the template** opens the template in the editor; nothing
+changes until you save, and the earlier versions are kept).
+
+## Policy versions and approval {#ai-policy-versions}
+
+Every **Save** keeps the policy as a new numbered version, with a note of what changed if you give
+one, who saved it and when, and **Appendix A as it was at that moment**. Saving the same text again
+makes no new version. **Versions** lists them all: open one to read, print or download it exactly as
+it was, with its own Appendix A. A version saved before MedUI kept versions has no Appendix A of its
+own.
+
+An administrator approves the version in use with **Approve version N**: give the next review date
+(normally within a year) and tick that the version has been read through and is approved as the
+practice's policy. MedUI records who approved it and when. An approval can't be changed: to change
+the policy, save a new version and approve that one. Only the latest version can be approved.

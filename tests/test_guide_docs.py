@@ -151,9 +151,15 @@ def test_policy_outside_the_app_points_to_it():
     assert 'train on' in text
 
 
+DOCS_POLICY_DIVIDER = '\n---\n\n'
+
+
 def test_docs_template_is_the_apps_template():
-    """The docs copy (for reading outside MedUI) is the text Governance → AI-use Policy starts
-    from; a change to one is made to both."""
+    """The docs copy (for reading outside MedUI) is a short header, a dividing line, then exactly
+    the text Governance → AI-use Policy starts from; a change to one is made to both."""
     docs = (ROOT / 'docs/templates/practice-ai-use-policy.md').read_text()
     app_copy = (ROOT / 'app/templates/governance/ai_policy/policy_template.md').read_text()
-    assert docs == app_copy
+    header, sep, rest = docs.partition(DOCS_POLICY_DIVIDER)
+    assert sep and rest == app_copy
+    assert 'best read and edited within MedUI' in header and 'Governance → AI-use policy' in header
+    assert DOCS_POLICY_DIVIDER not in app_copy

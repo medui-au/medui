@@ -1,10 +1,10 @@
 # [Practice name]: policy on the use of AI in MedUI
 
 *A starting point from MedUI. An administrator adapts it in MedUI (Governance → AI-use policy →
-Edit), replacing everything in square brackets, and has it approved. Appendix A lists the AI
-providers and models enabled at the moment the policy is opened, printed or downloaded: keep a copy
-in the practice's document management whenever the policy is approved or a provider or model
-changes. Delete this paragraph once the policy is adapted.*
+Edit), replacing everything in square brackets, and approves it there. MedUI keeps every saved
+version with Appendix A as it was when that version was saved (Governance → AI-use policy →
+Versions); on screen, Appendix A shows the AI providers and models enabled now. Delete this
+paragraph once the policy is adapted.*
 
 **Approved by:** [name, role] · **Date:** [date] · **Next review:** [date, at most a year away]
 
@@ -94,8 +94,9 @@ of the practice principal. Reading this policy is a condition of being given acc
 
 ## 7. Review
 
-This policy is reviewed every year, and whenever a provider or model is added or changed. Each
-approved version is kept, with its Appendix A, in the practice's document management.
+This policy is reviewed every year, and whenever a provider or model is added or changed. MedUI
+keeps each saved version, who approved it and when, and its Appendix A as it was when it was saved
+(Governance → AI-use policy → Versions).
 
 ## Appendix A: AI providers and models enabled
 

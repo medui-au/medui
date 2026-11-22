@@ -7,21 +7,25 @@
     Written in Markdown (<code>#</code> headings, <code>-</code> lists, <code>**bold**</code>).
     Appendix A, the AI providers and models enabled, goes where the two
     <code>medui:enabled-ai</code> marker lines are, and is filled in each time the policy is
-    opened, printed or downloaded; without the markers it goes at the end.
+    opened, printed or downloaded; without the markers it goes at the end. Each save is kept as a new
+    version, with Appendix A as it is at that moment.
   </p>
+  {% if policy.from_template %}<p style="font-size:0.8rem; margin:0 0 0.6rem;"><strong>Starting again from the template.</strong>
+    Nothing changes until you save; the earlier versions are kept.</p>{% endif %}
   <form method="post" action="{{ url_for('governance.ai_policy_save') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <textarea name="markdown" rows="32" maxlength="{{ max_length }}" required
               style="width:100%; font-family:var(--font-mono); font-size:0.8rem; line-height:1.45;
                      padding:0.6rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);
                      background:var(--bg-primary); color:var(--text-primary);">{{ policy.markdown }}</textarea>
+    <label for="pol-note" style="display:block; font-size:0.8rem; color:var(--text-muted); margin-top:0.6rem;">What changed (optional, kept with the version)</label>
+    <input id="pol-note" class="form-control" name="note" maxlength="300" style="font-size:0.82rem;">
     <div style="display:flex; gap:0.5rem; margin-top:0.7rem; align-items:center;">
-      <button type="submit" name="action" value="save" class="btn btn-primary">Save</button>
+      <button type="submit" name="action" value="save" class="btn btn-primary">Save as a new version</button>
       <a class="btn btn-outline" href="{{ url_for('governance.ai_policy') }}">Cancel</a>
       <span style="flex:1;"></span>
-      {% if not policy.is_template %}
-      <button type="submit" name="action" value="reset" class="btn btn-outline" formnovalidate
-              onclick="return confirm('Replace the practice\'s policy with the template? The current wording is removed (download it first to keep a copy).');">Start again from the template</button>
+      {% if not policy.is_template and not policy.from_template %}
+      <a class="btn btn-outline" href="{{ url_for('governance.ai_policy_edit', **{'from': 'template'}) }}">Start again from the template</a>
       {% endif %}
     </div>
   </form>

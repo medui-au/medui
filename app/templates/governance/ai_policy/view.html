@@ -11,7 +11,8 @@
 .policy-body th, .policy-body td { border:1px solid var(--border-color); padding:0.3rem 0.5rem; vertical-align:top; }
 .policy-body code { font-size:0.8em; }
 @media print {
-  .topnav, .policy-bar, footer, .help-panel, .alert { display:none !important; }
+  .topnav, .policy-bar, .policy-approve, footer, .help-panel, .alert { display:none !important; }
+  .policy-print-head { display:block !important; font-size:9pt; color:#555; margin:0 0 0.5rem; }
   .main-content { margin-top:0 !important; }
   .policy-wrap { max-width:none; padding:0; }
   .policy-body { font-size:10.5pt; }
@@ -26,16 +27,35 @@
       {% if policy.is_template %}
         The template: not yet adapted for the practice.{% if current_user.is_admin %} Edit it to make it the practice's own.{% endif %}
       {% else %}
-        Last changed{% if policy.updated_by %} by {{ policy.updated_by }}{% endif %}{% if policy.updated_at %} on {{ policy.updated_at[:10] }}{% endif %}.
+        {% set v = policy.version %}
+        Version {{ v.number }}, saved{% if v.saved_by_name %} by {{ v.saved_by_name }}{% endif %} on {{ v.saved_at | localdt('%d/%m/%Y') }}.
+        {% if v.approved_at %}Approved{% if v.approved_by_name %} by {{ v.approved_by_name }}{% endif %} on {{ v.approved_at | localdt('%d/%m/%Y') }}; next review {{ v.review_due_on.strftime('%d/%m/%Y') }}.{% else %}<strong>Not yet approved.</strong>{% endif %}
+        Appendix A below is the list as it is now.
       {% endif %}
       {{ help('governance.ai-policy') }}
     </span>
     <button type="button" class="btn btn-sm btn-outline" onclick="window.print()">Print or save as PDF</button>
     <a class="btn btn-sm btn-outline" href="{{ url_for('governance.ai_policy_download') }}">Download (.md)</a>
+    {% if n_versions %}<a class="btn btn-sm btn-outline" href="{{ url_for('governance.ai_policy_versions') }}">Versions ({{ n_versions }})</a>{% endif %}
     {% if current_user.is_admin %}
     <a class="btn btn-sm btn-primary" href="{{ url_for('governance.ai_policy_edit') }}">Edit</a>
     {% endif %}
   </div>
+  {% if current_user.is_admin and policy.version and not policy.version.approved_at %}
+  <details class="policy-approve" style="margin:-0.4rem 0 1rem; font-size:0.82rem;">
+    <summary style="cursor:pointer; color:var(--accent);">Approve version {{ policy.version.number }}</summary>
+    <form method="post" action="{{ url_for('governance.ai_policy_approve', number=policy.version.number) }}"
+          style="display:grid; grid-template-columns:8rem 1fr; gap:0.4rem 0.6rem; margin-top:0.5rem; align-items:center;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="pol-review">Next review</label>
+      <input id="pol-review" class="form-control" type="date" name="review_due_on" value="{{ default_review.isoformat() }}" style="max-width:12rem;" required>
+      <label style="grid-column:1 / -1;"><input type="checkbox" name="attest" value="1" required>
+        This version has been read through and is approved as the practice's policy. Appendix A, as saved with it, lists the AI providers and models then in use.</label>
+      <div style="grid-column:1 / -1;"><button class="btn btn-sm btn-primary">Approve version {{ policy.version.number }}</button></div>
+    </form>
+  </details>
+  {% endif %}
+  {% if policy.version %}<p class="policy-print-head" style="display:none;">AI-use policy, version {{ policy.version.number }}{% if policy.version.approved_at %}, approved {{ policy.version.approved_at | localdt('%d/%m/%Y') }}{% endif %}</p>{% endif %}
   <article class="policy-body">{{ body }}</article>
 </div>
 {% endblock %}

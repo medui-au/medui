@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}AI-use policy versions — {{ app_name }}{% endblock %}
+{% block content %}
+<div style="max-width:860px; margin:0 auto; padding:1.25rem 1.5rem;">
+  <h2 style="font-size:1.05rem; margin:0 0 0.3rem;">AI-use policy: versions{{ help('governance.ai-policy-versions') }}</h2>
+  <p style="font-size:0.8rem; color:var(--text-muted); margin:0 0 0.8rem;">Every saved version is kept, with its
+    Appendix A as it was when it was saved. <a href="{{ url_for('governance.ai_policy') }}">Back to the policy</a></p>
+  <table class="table" style="width:100%; font-size:0.84rem; border-collapse:collapse;">
+    <thead><tr><th style="text-align:left;">Version</th><th style="text-align:left;">Saved</th><th style="text-align:left;">Approved</th><th style="text-align:left;">Next review</th><th style="text-align:left;">What changed</th></tr></thead>
+    <tbody>
+    {% for v in versions %}
+      <tr style="border-top:1px solid var(--border-color);">
+        <td><a href="{{ url_for('governance.ai_policy_version', number=v.number) }}">Version {{ v.number }}</a>{% if loop.first %} <span style="color:var(--text-muted);">(in use)</span>{% endif %}</td>
+        <td>{{ v.saved_at | localdt('%d/%m/%Y') }}{% if v.saved_by_name %} · {{ v.saved_by_name }}{% endif %}</td>
+        <td>{% if v.approved_at %}{{ v.approved_at | localdt('%d/%m/%Y') }}{% if v.approved_by_name %} · {{ v.approved_by_name }}{% endif %}{% else %}<span style="color:var(--text-muted);">not approved</span>{% endif %}</td>
+        <td>{{ v.review_due_on.strftime('%d/%m/%Y') if v.review_due_on else '' }}</td>
+        <td>{{ v.note or '' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" style="color:var(--text-muted);">No version saved yet: the policy is still the template.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

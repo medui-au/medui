@@ -139,8 +139,7 @@ def test_template_until_saved_then_the_practices_own(ctx):
     assert not p['is_template'] and p['updated_by'] == 'Lead' and p['markdown'].startswith('# Invented')
     with pytest.raises(ValueError):
         svc.save('   ', ctx.lead)
-    svc.reset()
-    assert svc.get()['is_template']
+    assert svc.get()['version'].number == 1
 
 
 @needs_db
@@ -159,8 +158,9 @@ def test_everyone_reads_only_administrators_edit(ctx):
     dl = doc.get('/governance/ai-policy/download')
     assert dl.mimetype == 'text/markdown' and 'attachment; filename="ai-use-policy-' in dl.headers['Content-Disposition']
     assert dl.get_data(as_text=True).startswith('# Our policy') and '## Appendix A' in dl.get_data(as_text=True)
-    lead.post('/governance/ai-policy/edit', data={'action': 'reset'})
-    assert svc.get()['is_template']
+    page = lead.get('/governance/ai-policy/edit?from=template').get_data(as_text=True)
+    assert 'Starting again from the template' in page
+    assert not svc.get()['is_template']            # nothing changes until it is saved
 
 
 @needs_db
@@ -180,3 +180,75 @@ def test_template_carries_the_intended_purpose_paragraphs():
         assert phrase in text, phrase
     assert text.index('**Questions you type.**') < text.index('## 2. The clinician is responsible') \
         < text.index('**Medicolegally sensitive discussions.**') < text.index('## 3. Patient information')
+
+
+# ── Versions and approval (ADR-184) ───────────────────────────────────────────
+
+@needs_db
+def test_each_save_is_a_new_version_with_its_appendix(ctx, monkeypatch):
+    calls = iter(['Invented Local', 'Invented Cloud'])
+    def fake_enabled():
+        return {'ai_enabled': True, 'practice': 'Invented Clinic', 'version': None,
+                'listed_at': '1 January 2026, 09:00',
+                'providers': [{'name': next(calls), 'local': True, 'models': []}]}
+    monkeypatch.setattr(svc, 'enabled_ai', fake_enabled)
+    v1 = svc.save('# Policy\n\n<!-- medui:enabled-ai -->\n<!-- /medui:enabled-ai -->\n', ctx.lead, 'first')
+    assert v1.number == 1 and v1.note == 'first' and v1.saved_by_name == 'Lead'
+    assert svc.save(v1.markdown, ctx.lead) is None                 # same text: no new version
+    v2 = svc.save(v1.markdown + '\nA new rule.', ctx.lead)
+    assert v2.number == 2 and [v.number for v in svc.versions()] == [2, 1]
+    # Each version keeps the list as it was when it was saved.
+    assert 'Invented Local' in svc.to_html(v1.markdown, saved=svc.saved_appendix(v1))
+    html2 = svc.to_html(v2.markdown, saved=svc.saved_appendix(v2))
+    assert 'Invented Cloud' in html2 and 'when version 2 was saved' in html2
+    assert v1.markdown == svc.version(1).markdown                   # never changed
+
+
+@needs_db
+def test_approval_is_once_latest_only_and_needs_the_tick(ctx):
+    from datetime import date, timedelta
+    svc.save('# Policy one', ctx.lead)
+    svc.save('# Policy two', ctx.lead)
+    later = date.today() + timedelta(days=300)
+    with pytest.raises(ValueError):
+        svc.approve(1, ctx.lead, later)                             # not the latest
+    with pytest.raises(ValueError):
+        svc.approve(2, ctx.lead, date.today())                      # review date must be in the future
+    lead, doc = _client(ctx, ctx.lead), _client(ctx, ctx.doc)
+    assert doc.post('/governance/ai-policy/version/2/approve', data={'review_due_on': later.isoformat(), 'attest': '1'}).status_code == 403
+    lead.post('/governance/ai-policy/version/2/approve', data={'review_due_on': later.isoformat()})
+    assert svc.version(2).approved_at is None                       # no tick, no approval
+    lead.post('/governance/ai-policy/version/2/approve', data={'review_due_on': later.isoformat(), 'attest': '1'})
+    v = svc.version(2)
+    assert v.approved_by_name == 'Lead' and v.review_due_on == later
+    with pytest.raises(ValueError):
+        svc.approve(2, ctx.lead, later)                             # once only
+    page = doc.get('/governance/ai-policy/').get_data(as_text=True)
+    assert 'Version 2' in page and 'Approved by Lead' in page and 'Versions (2)' in page
+
+
+@needs_db
+def test_everyone_reads_earlier_versions(ctx):
+    svc.save('# Old wording\n\nInvented old rule.', ctx.lead)
+    svc.save('# New wording', ctx.lead)
+    doc = _client(ctx, ctx.doc)
+    listing = doc.get('/governance/ai-policy/versions').get_data(as_text=True)
+    assert 'Version 1' in listing and 'Version 2' in listing and '(in use)' in listing
+    old = doc.get('/governance/ai-policy/version/1').get_data(as_text=True)
+    assert 'Invented old rule.' in old and 'an earlier version' in old
+    dl = doc.get('/governance/ai-policy/version/1/download')
+    assert 'ai-use-policy-version-1.md' in dl.headers['Content-Disposition']
+    assert doc.get('/governance/ai-policy/version/9').status_code == 404
+
+
+@needs_db
+def test_a_policy_saved_before_versions_becomes_version_1(ctx):
+    from app.models.system_setting import SystemSetting
+    SystemSetting.set(svc.SETTING_KEY, {'markdown': '# Invented earlier policy', 'updated_by': 'Lead',
+                                        'updated_at': '2026-11-20T10:00:00+00:00'})
+    p = svc.get()
+    assert p['version'].number == 1 and p['markdown'] == '# Invented earlier policy'
+    assert svc.saved_appendix(p['version']) is None
+    page = _client(ctx, ctx.doc).get('/governance/ai-policy/version/1').get_data(as_text=True)
+    assert 'saved before MedUI kept a copy of Appendix A' in page
+    assert len(svc.versions()) == 1                                 # carried over once

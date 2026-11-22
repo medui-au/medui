@@ -3,17 +3,21 @@
 The wording is the practice's own: administrators edit it in MedUI, starting from the template
 beside the governance templates. Appendix A, between the two marker comments, is filled in each
 time the policy is shown, printed or downloaded, with the AI providers and models enabled then.
+
+Every save is kept as a numbered version in the practice document store (ADR-184), with Appendix A
+as it was at that moment; a version can be approved once, with the next review date.
 """
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from flask import current_app
 from markupsafe import Markup, escape
 
-SETTING_KEY = 'governance.ai_policy'
+SETTING_KEY = 'governance.ai_policy'        # before ADR-184: carried over as version 1
+DOC_KEY = 'ai_use_policy'
 TEMPLATE = (Path(__file__).resolve().parent.parent
             / 'templates' / 'governance' / 'ai_policy' / 'policy_template.md')
 MARKERS = re.compile(r'<!-- medui:enabled-ai -->.*?<!-- /medui:enabled-ai -->', re.S)
@@ -25,35 +29,122 @@ def template_text() -> str:
     return TEMPLATE.read_text(encoding='utf-8')
 
 
-def get() -> dict:
-    """The policy: the practice's saved text, or the template until one is saved."""
+def _user_name(user) -> str | None:
+    return getattr(user, 'display_name', None) or getattr(user, 'username', None)
+
+
+def _document(create: bool = False):
+    from app.extensions import db
+    from app.models.practice_document import PracticeDocument
+    doc = PracticeDocument.query.filter_by(key=DOC_KEY).first()
+    if doc is None and create:
+        doc = PracticeDocument(key=DOC_KEY, kind='policy', title='AI-use policy')
+        db.session.add(doc)
+        db.session.flush()
+    return doc
+
+
+def _carry_over() -> None:
+    """The policy saved before versions were kept becomes version 1, once."""
+    from app.extensions import db
+    from app.models.practice_document import PracticeDocumentVersion
     from app.models.system_setting import SystemSetting
+    doc = _document()
+    if doc is not None and doc.versions:
+        return
     saved = SystemSetting.get(SETTING_KEY)
-    if isinstance(saved, dict) and (saved.get('markdown') or '').strip():
-        return {'markdown': saved['markdown'], 'is_template': False,
-                'updated_by': saved.get('updated_by'), 'updated_at': saved.get('updated_at')}
-    return {'markdown': template_text(), 'is_template': True, 'updated_by': None,
+    if not (isinstance(saved, dict) and (saved.get('markdown') or '').strip()):
+        return
+    try:
+        when = datetime.fromisoformat(saved.get('updated_at') or '').astimezone(timezone.utc).replace(tzinfo=None)
+    except (TypeError, ValueError):
+        when = datetime.now(timezone.utc).replace(tzinfo=None)
+    doc = _document(create=True)
+    db.session.add(PracticeDocumentVersion(
+        document_id=doc.id, number=1, markdown=saved['markdown'], saved_by_name=saved.get('updated_by'),
+        saved_at=when, note='The policy as saved before MedUI kept versions'))
+    db.session.commit()
+
+
+def versions() -> list:
+    """Every saved version, newest first."""
+    _carry_over()
+    doc = _document()
+    return list(reversed(doc.versions)) if doc else []
+
+
+def version(number: int):
+    from app.models.practice_document import PracticeDocumentVersion
+    doc = _document()
+    if doc is None:
+        return None
+    return PracticeDocumentVersion.query.filter_by(document_id=doc.id, number=number).first()
+
+
+def latest():
+    found = versions()
+    return found[0] if found else None
+
+
+def get() -> dict:
+    """The policy in use: the latest saved version, or the template until one is saved."""
+    v = latest()
+    if v is not None:
+        return {'markdown': v.markdown, 'is_template': False, 'version': v,
+                'updated_by': v.saved_by_name, 'updated_at': v.saved_at}
+    return {'markdown': template_text(), 'is_template': True, 'version': None, 'updated_by': None,
             'updated_at': None}
 
 
-def save(markdown: str, user) -> None:
-    from app.models.system_setting import SystemSetting
+def _snapshot() -> dict | None:
+    try:
+        return {'appendix_a': enabled_ai()}
+    except Exception as exc:                 # the version is still saved without its list
+        current_app.logger.warning('ai_policy: enabled AI list failed: %s', type(exc).__name__)
+        return None
+
+
+def save(markdown: str, user, note: str = ''):
+    """Save the text as a new version, with Appendix A as it is now. Returns the new version, or
+    None if the text is the same as the latest version's."""
+    from app.extensions import db
+    from app.models.practice_document import PracticeDocumentVersion
     text = (markdown or '').replace('\r\n', '\n')
     if not text.strip():
         raise ValueError('The policy is empty.')
     if len(text) > MAX_LENGTH:
         raise ValueError(f'The policy is longer than {MAX_LENGTH:,} characters.')
-    SystemSetting.set(SETTING_KEY, {
-        'markdown': text,
-        'updated_by': getattr(user, 'display_name', None) or getattr(user, 'username', None),
-        'updated_at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
-    }, description='The practice AI-use policy (Governance → AI-use policy)')
+    current = latest()
+    if current is not None and current.markdown == text:
+        return None
+    doc = _document(create=True)
+    v = PracticeDocumentVersion(
+        document_id=doc.id, number=(current.number + 1) if current else 1, markdown=text,
+        note=(note or '').strip()[:300] or None, snapshot=_snapshot(),
+        saved_by_id=getattr(user, 'id', None), saved_by_name=_user_name(user))
+    db.session.add(v)
+    db.session.commit()
+    return v
 
 
-def reset() -> None:
-    """Back to the template (the saved wording is removed)."""
-    from app.models.system_setting import SystemSetting
-    SystemSetting.set(SETTING_KEY, None)
+def approve(number: int, user, review_due_on: date):
+    """Record the approval of the latest version, once, with the next review date."""
+    from app.extensions import db
+    v, current = version(number), latest()
+    if v is None:
+        raise ValueError('There is no such version.')
+    if current is None or v.id != current.id:
+        raise ValueError('Only the latest version can be approved.')
+    if v.approved_at:
+        raise ValueError(f'Version {v.number} is already approved.')
+    if not review_due_on or review_due_on <= date.today():
+        raise ValueError('Give the next review date, in the future.')
+    v.approved_by_id = getattr(user, 'id', None)
+    v.approved_by_name = _user_name(user)
+    v.approved_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    v.review_due_on = review_due_on
+    db.session.commit()
+    return v
 
 
 # ── Appendix A: what is enabled now ───────────────────────────────────────────
@@ -96,7 +187,8 @@ def _runs(p: dict) -> str:
 def _stamp(info: dict) -> str:
     where = f"{info['practice']}, " if info['practice'] else ''
     release = f"MedUI {info['version']}" if info['version'] else 'MedUI'
-    return f"Listed {info['listed_at']} from this installation ({where}{release})."
+    when = f" when version {info['saved_version']} was saved," if info.get('saved_version') else ''
+    return f"Listed {info['listed_at']}{when} from this installation ({where}{release})."
 
 
 def appendix_markdown(info: dict) -> str:
@@ -140,7 +232,9 @@ def appendix_html(info: dict) -> str:
     return '\n'.join(out)
 
 
-def _appendix(kind: str) -> str:
+def _appendix(kind: str, saved: dict | None = None) -> str:
+    if saved is not None:
+        return appendix_html(saved) if kind == 'html' else appendix_markdown(saved)
     try:
         info = enabled_ai()
     except Exception as exc:                 # the policy still shows without its list
@@ -156,9 +250,16 @@ def _appendix(kind: str) -> str:
 _ALLOWED_URL = re.compile(r'^(https?://|mailto:|#|/)', re.I)
 
 
-def to_html(markdown: str) -> Markup:
+def saved_appendix(v) -> dict | None:
+    """A version's Appendix A as it was when it was saved; None if it has none (e.g. carried over)."""
+    info = (v.snapshot or {}).get('appendix_a') if v is not None else None
+    return {**info, 'saved_version': v.number} if info else None
+
+
+def to_html(markdown: str, saved: dict | None = None, missing: str | None = None) -> Markup:
     """The policy as HTML. The text is the practice's, typed by an administrator: raw HTML in it
-    is shown as text, and links go only to web, mail or in-page addresses."""
+    is shown as text, and links go only to web, mail or in-page addresses. Appendix A is the list
+    as it is now, or `saved` (a version's own); `missing` replaces it when a version has none."""
     import markdown as md_lib
     text = MARKERS.sub(_SLOT, markdown) if MARKERS.search(markdown) else markdown
     text = text.replace('<', '&lt;')
@@ -168,7 +269,7 @@ def to_html(markdown: str) -> Markup:
         attr, value = m.group(1), m.group(2)
         return m.group(0) if _ALLOWED_URL.match(value) else f'{attr}="#"'
     html = re.sub(r'\b(href|src)="([^"]*)"', url, html)
-    appendix = _appendix('html')
+    appendix = f'<p><em>{escape(missing)}</em></p>' if missing else _appendix('html', saved)
     if _SLOT in html:
         html = re.sub(rf'<p>\s*{_SLOT}\s*</p>|{_SLOT}', lambda _: appendix, html, count=1)
     else:
@@ -176,9 +277,9 @@ def to_html(markdown: str) -> Markup:
     return Markup(html)
 
 
-def to_markdown(markdown: str) -> str:
-    """The policy as a Markdown file, with Appendix A filled in as it is now."""
-    appendix = _appendix('markdown')
+def to_markdown(markdown: str, saved: dict | None = None, missing: str | None = None) -> str:
+    """The policy as a Markdown file, with Appendix A as it is now, or a version's own."""
+    appendix = f'*{missing}*' if missing else _appendix('markdown', saved)
     if MARKERS.search(markdown):
         return MARKERS.sub(lambda _: appendix, markdown, count=1)
     return markdown.rstrip() + '\n\n## Appendix A: AI providers and models enabled\n\n' + appendix + '\n'
