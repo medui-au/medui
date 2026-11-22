@@ -20,6 +20,8 @@ def notes():
         v._eval_covid(80, False, set(), {}, set(), TODAY, [dose(date(2025, 1, 1), 'Comirnaty')]),
         v._eval_covid(40, False, set(), {}, set(), TODAY, [dose(date(2026, 6, 1), 'Comirnaty')]),
         v._eval_covid(40, False, {5}, {5: 'RISK CONDITION'}, {5}, TODAY, []),
+        v._eval_covid(70, False, set(), {}, set(), TODAY, []), v._eval_covid(55, True, set(), {}, set(), TODAY, []),
+        v._eval_covid(10, False, set(), {}, set(), TODAY, []),
         v._eval_pneumococcal(70, False, set(), {}, set(), TODAY, []),
         v._eval_pneumococcal(70, False, set(), {}, set(), TODAY, [dose(date(2026, 3, 1), 'Prevenar 13')]),
         v._eval_pneumococcal(70, False, set(), {}, set(), TODAY, [dose(date(2020, 3, 1), 'Prevenar 13')]),
@@ -62,6 +64,15 @@ def test_covid_nip_groups():
     assert not c(55)['eligible_for_funded_dose']                 # 50-64 without ATSI or risk: not funded
     assert c(40, risk=True)['eligible_for_funded_dose'] and c(40, risk=True)['confirm_with_gp']
     assert not c(16, risk=True)['eligible_for_funded_dose']      # under 18
+    # ADR-186: a second dose in the year, and the unfunded 18–64 group.
+    for row in (c(70), c(55, atsi=True)):
+        assert 'second dose in the year with a medical risk condition' in row['note']
+    assert 'The schedule allows a second dose in the year.' in c(40, risk=True)['note']
+    assert 'second dose' not in c(80)['note']
+    plain = c(40)
+    assert not plain['eligible_for_funded_dose'] and plain['eligibility_basis'] == 'Age 18–64 without severe immunocompromise'
+    assert 'Not funded under the NIP' in plain['note'] and 'a dose each year as an option' in plain['note']
+    assert 'Handbook' in c(16)['note']
     six_months_ago = [dose(date(2026, 4, 1), 'Comirnaty')]
     assert v._eval_covid(80, False, set(), {}, set(), TODAY, six_months_ago)['dose_due_now'] is True
     assert v._eval_covid(70, False, set(), {}, set(), TODAY, six_months_ago)['dose_due_now'] is False

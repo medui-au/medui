@@ -173,22 +173,33 @@ def _eval_influenza(age: int, is_atsi: bool, today: date, doses: list[dict]) -> 
 
 def _eval_covid(age: int, is_atsi: bool, item_codes: set[int], item_text_by_code: dict[int, str],
                 risk_codes: set[int], today: date, doses: list[dict]) -> dict:
-    """COVID-19 on the NIP (health.gov.au, updated 1 October 2026): free for adults 75+ (two doses a
-    year, about 6 months apart), 65–74 (one a year), Aboriginal and Torres Strait Islander people
-    50–74 (one a year) and adults 18–64 with severe immunocompromise (one a year); Medicare card or
-    eligibility needed. risk_codes: the NIP risk mapping for COVID-19 if there is one, else the
-    shingles immunocompromise list; a match is confirmed by the doctor."""
+    """COVID-19 on the NIP (ADR-186). Funded: adults 75+ (two doses a year, about 6 months apart);
+    65–74 and Aboriginal and Torres Strait Islander adults 50–74 (one a year; the schedule allows a
+    second in the year with a medical risk condition); adults 18–64 with severe immunocompromise (one
+    a year; a second in the year allowed). Adults 18–64 without severe immunocompromise: not funded;
+    the schedule lists a dose each year as an option. Medicare card or eligibility needed.
+    risk_codes: the NIP risk mapping for COVID-19 if there is one, else the shingles
+    immunocompromise list; a match is confirmed by the doctor."""
     matched = _matched_conditions(item_codes, item_text_by_code, risk_codes)
     confirm = False
+    second = ''
     if age >= 75:
         basis, interval_months, per_year = 'Age 75+', 6, 'two doses a year, about 6 months apart'
     elif age >= 65:
         basis, interval_months, per_year = 'Age 65–74', 12, 'one dose a year'
+        second = ' The schedule allows a second dose in the year with a medical risk condition.'
     elif is_atsi and age >= 50:
         basis, interval_months, per_year = 'Aboriginal and Torres Strait Islander, age 50–74', 12, 'one dose a year'
+        second = ' The schedule allows a second dose in the year with a medical risk condition.'
     elif age >= 18 and matched:
         basis, interval_months, per_year = 'Severe immunocompromise, age 18–64', 12, 'one dose a year'
+        second = ' The schedule allows a second dose in the year.'
         confirm = True
+    elif age >= 18:
+        return _row('COVID-19', 'COVID-19 vaccine', False, 'Age 18–64 without severe immunocompromise',
+                    False, [], doses, False,
+                    'Not funded under the NIP. The schedule lists a dose each year as an option, with or '
+                    'without other medical risk conditions; available privately.')
     else:
         return _row('COVID-19', 'COVID-19 vaccine', False, 'Not funded for this age or risk group under the NIP',
                     False, [], doses, False,
@@ -196,13 +207,13 @@ def _eval_covid(age: int, is_atsi: bool, item_codes: set[int], item_text_by_code
 
     last = doses[0] if doses else None
     if last is None:
-        note = f'Funded under the NIP ({basis}): {per_year}. No COVID-19 vaccine is recorded.'
+        note = f'Funded under the NIP ({basis}): {per_year}.{second} No COVID-19 vaccine is recorded.'
         due_now = True
     else:
         months_since = (today.year - last['date'].year) * 12 + (today.month - last['date'].month)
         due_now = months_since >= interval_months
-        note = (f'Funded under the NIP ({basis}): {per_year}. Last COVID-19 dose recorded {months_since} '
-                f'months ago.')
+        note = (f'Funded under the NIP ({basis}): {per_year}.{second} Last COVID-19 dose recorded '
+                f'{months_since} months ago.')
     note += ' Medicare card or eligibility needed.'
     if confirm:
         note = (f'Funded if a recorded condition ({", ".join(matched)}) is a severe immunocompromise under the '

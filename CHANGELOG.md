@@ -3,6 +3,17 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.59.2 — pre-release (November 2026)
+
+**Upgrade from 0.59.1**: `./upgrade.sh`. No migrations.
+
+- **COVID-19 NIP eligibility** (schedule as updated 1 October 2026). For 65–74 and Aboriginal and
+  Torres Strait Islander adults 50–74, the note now says the schedule allows a second dose in the
+  year with a medical risk condition. For adults 18–64 with severe immunocompromise, it says a
+  second dose in the year is allowed. Adults 18–64 without severe immunocompromise get their own
+  not-funded note, which says the schedule lists a dose each year as an option. When a dose is
+  shown as due is unchanged.
+
 ## 0.59.1 — pre-release (November 2026)
 
 **Upgrade from 0.59.0**: `./upgrade.sh`. No migrations.

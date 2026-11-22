@@ -153,12 +153,13 @@ COVID-19, pneumococcal, shingles (Shingrix) and RSV, from age, Aboriginal and To
 Islander status (as recorded; *not recorded* counts as no), the at-risk conditions listed in
 Admin → Mapping Tables (nip_risk_mapping), and the doses recorded at this practice.
 
-- **COVID-19** follows the NIP criteria (health.gov.au, updated 1 October 2026): free for adults 75+
-  (two doses a year, about 6 months apart), 65–74 (one a year), Aboriginal and Torres Strait
-  Islander people 50–74 (one a year), and adults 18–64 with severe immunocompromise (one a year;
-  a recorded condition from the immunocompromise list, which you confirm). A Medicare card or
-  eligibility is needed. Others aren't funded; the Australian Immunisation Handbook has
-  recommendations for other groups.
+- **COVID-19** follows the NIP criteria (health.gov.au): free for adults 75+ (two doses a year,
+  about 6 months apart); 65–74 and Aboriginal and Torres Strait Islander adults 50–74 (one a year,
+  and the schedule allows a second in the year with a medical risk condition); and adults 18–64
+  with severe immunocompromise (one a year, and a second in the year allowed; a recorded condition
+  from the immunocompromise list, which you confirm). A Medicare card or eligibility is needed.
+  Adults 18–64 without severe immunocompromise aren't funded: the schedule lists a dose each year
+  as an option. Under 18, the Australian Immunisation Handbook has the recommendations.
 - Beside Immunisations, a small grey line, **"NIP-funded for this age or risk group; no dose
   recorded within the schedule's interval: …"**, names those vaccines, each with the last dose
   recorded here (or *none recorded*). Hover over it for the schedule it follows (the 2026 NIP
