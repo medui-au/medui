@@ -11,7 +11,7 @@ To install MedUI the usual way, use the [installation guide](install/README.md) 
 |---|---|
 | MedUI | A Flask web application, run by Gunicorn in a container |
 | MedUI's own database | PostgreSQL 17, in a container: users, settings, prompts, workflows, run history. Changed only by Alembic migrations, which never run during web startup. |
-| Best Practice | BP's SQL Server, read-only, through Microsoft ODBC Driver 18 (in the container). Every BP query is a `.sql` file in `app/sql/`, run through a read-only session. |
+| Best Practice | BP's SQL Server, read-only, through Microsoft ODBC Driver 18 (in the container, under [Microsoft's licence terms](https://aka.ms/odbc18eula); see [NOTICE](../NOTICE)). Every BP query is a `.sql` file in `app/sql/`, run through a read-only session. |
 | OCR (optional, recommended) | LiteParse, a local container, for scanned documents ([OCR](ocr.md)) |
 | HTTPS (optional) | Caddy, in front of MedUI, for workstations ([HTTPS](https.md)) |
 | Redaction | The `bps-redaction` library, a pinned wheel in `vendor/wheels/`, connected in `app/services/redaction_core.py` |

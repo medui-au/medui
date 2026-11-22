@@ -22,7 +22,8 @@ and removes patient identifiers before any text leaves the practice.
 | **Read the technical detail** | [How it's built](docs/technical.md) |
 | **Get help** | [Troubleshooting](docs/troubleshooting.md) · [Support](docs/support.md) · [Report a security problem](SECURITY.md) |
 
-What's new: [changelog](CHANGELOG.md). Licence: see [LICENSE](LICENSE).
+What's new: [changelog](CHANGELOG.md). Licence: [GNU AGPL v3](LICENSE); copyright, third-party
+components and what the licence asks of you if you change MedUI: [NOTICE](NOTICE).
 
 ## What it does
 
@@ -77,6 +78,10 @@ review and its responsibility. If you change the code, keep the safeguards: the 
 anything is sent to a cloud model, redaction (which comes from a separate library and is never
 edited in the app), the read-only BP connection, and the login and form protections. Changing what
 MedUI does, for example to diagnose, triage or recommend, takes it outside its intended purpose.
+
+MedUI is under the GNU Affero General Public License v3. If you change the code and let others use
+your version over a network (a practice's staff count), the licence asks you to offer them your
+version's source code. See [NOTICE](NOTICE).
 
 Using a coding agent (Claude Code, Codex or similar)? Have it read [AGENTS.md](AGENTS.md) first: it
 sets out the rules an agent must keep to.

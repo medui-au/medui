@@ -1,6 +1,6 @@
 # Release status
 
-**Version 0.57.0, pre-release (November 2026).** Synced with the upstream MedUI application, with
+**Version 0.57.2, pre-release (November 2026).** Synced with the upstream MedUI application, with
 the redaction core 0.2.20. Scope: a new practice installation, not migration of existing MedUI data.
 Each release is described in the [changelog](../CHANGELOG.md); this page is the summary of what
 is in place and what is left before a release to another practice.
@@ -84,15 +84,13 @@ No claim of clinical validation is made by these installation and startup tests.
   usage record.
 
 **Product**
-- **Choose the distribution licence: decided last**, after the discussion with Best Practice
-  (which may affect how the queries are distributed). Until then the code is all rights
-  reserved ([LICENSE](../LICENSE)), and to keep every option open:
+- **Licence: GNU AGPL v3** ([LICENSE](../LICENSE), copyright and third-party components in
+  [NOTICE](../NOTICE)). The redaction core is a separate library under the Apache License 2.0.
+  To keep the option of also licensing MedUI on other terms (dual licensing):
+  - no outside contributions without a short contributor agreement;
   - dependencies stay permissive or weak copyleft: `test_dependency_licences` fails on a new
     GPL or AGPL dependency, so adding one is a deliberate decision;
-  - no outside contributions without a short contributor agreement;
-  - no code copied in from GPL projects;
-  - a trial at another practice has written permission (use, confidentiality, no
-    redistribution).
+  - no code copied in from GPL projects.
 - A final review of the [request to BP for database access](templates/bp-database-access-request.md)
   template, wording and tone, before practices use it.
 - The public copy: a fresh history, its name and owner, and turning on private vulnerability

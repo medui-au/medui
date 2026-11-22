@@ -247,6 +247,7 @@ if "${DOCKER[@]}" image inspect "$PROJECT-app:latest" >/dev/null 2>&1; then
   run "${DOCKER[@]}" image tag "$PROJECT-app:latest" "$PROJECT-app:previous"
   ok "Current image kept as $PROJECT-app:previous"
 fi
+echo "  The image includes Microsoft ODBC Driver 18 for SQL Server; building it accepts Microsoft's licence terms: https://aka.ms/odbc18eula"
 compose_run --profile app build app
 [ "$OCR" = 1 ] && compose_run --profile ocr build liteparse
 ok "Built"

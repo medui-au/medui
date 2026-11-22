@@ -3,6 +3,24 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.57.2 — pre-release (November 2026)
+
+**Upgrade from 0.57.1**: `./upgrade.sh`. Nothing in the app changes.
+
+- NOTICE gives an additional permission (AGPL section 7) to combine MedUI with Microsoft's ODBC
+  Driver for SQL Server, names that driver and its licence terms, and lists the services MedUI runs
+  beside it (PostgreSQL, LiteParse, Caddy, and SQL Server for the demo) with their licences.
+- `install.sh` and `upgrade.sh` say, before they build MedUI's image, that the build accepts Microsoft's licence
+  terms for the ODBC driver.
+
+## 0.57.1 — pre-release (November 2026)
+
+**Upgrade from 0.57.0**: `./upgrade.sh`. Nothing in the app changes.
+
+- **Licence: GNU Affero General Public License v3** (LICENSE). Copyright, the third-party
+  components (the redaction core is under the Apache License 2.0) and what the licence asks if you
+  change MedUI are in NOTICE.
+
 ## 0.57.0 — pre-release (November 2026)
 
 **Upgrade from 0.56.0**: `./upgrade.sh`. No migrations. The seed resync adds the guidelines the

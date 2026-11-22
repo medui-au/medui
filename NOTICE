@@ -1,0 +1,60 @@
+MedUI
+Copyright (C) 2026 H. Eviston (Medical) Pty Ltd
+
+This program is free software: you can redistribute it and/or modify it under the terms of the
+GNU Affero General Public License as published by the Free Software Foundation, version 3 of the
+License (see LICENSE).
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+Affero General Public License for more details.
+
+If you change MedUI and let people use your changed version over a network (for example, staff of
+a practice through their browsers), section 13 of the licence requires you to offer those people
+the source code of your version. Running MedUI unchanged needs nothing more than keeping this
+notice and the licence with it.
+
+Additional permission under section 7 of the GNU Affero General Public License: if you modify
+MedUI, or any covered work, by linking or combining it with the Microsoft ODBC Driver for SQL
+Server (or a modified version of that driver), containing parts covered by the terms of Microsoft's
+licence for that driver, the licensor grants you additional permission to convey the resulting
+work. Corresponding Source for a non-source form of such a combination need not include the source
+code for the parts of the Microsoft ODBC Driver for SQL Server used.
+
+What MedUI is for, and what it is not for, is set out in docs/intended_purpose.md.
+
+Third-party components keep their own licences:
+
+- bps_redaction (the redaction core, vendor/wheels/): Apache License 2.0. Its LICENSE and NOTICE
+  are inside the wheel, in bps_redaction-<version>.dist-info/licenses/. Changes to it are made in
+  its own repository and released, never in this one.
+- JavaScript libraries in app/static/vendor/: each with its licence file beside it (see
+  app/static/vendor/README.md).
+- Python packages installed from requirements.txt: each under its own licence, recorded in its
+  package metadata. None is under the GPL or AGPL without a recorded decision
+  (tests/test_distribution.py, test_dependency_licences).
+- Microsoft ODBC Driver 18 for SQL Server, which MedUI uses to read Best Practice: installed into
+  MedUI's image when it is built (Dockerfile), under Microsoft's licence terms
+  (https://aka.ms/odbc18eula). Building MedUI's image accepts those terms; install.sh says so
+  before it builds.
+
+Services MedUI runs beside it. These are separate programs that MedUI talks to over a network
+connection; they are not part of MedUI and are not distributed with it. The practice's own Docker
+downloads each one from its publisher, or builds it on the practice's computer from the upstream
+source, under its own licence:
+
+- PostgreSQL (MedUI's database): the official postgres image, under the PostgreSQL License.
+- LiteParse (the reading of scanned documents, docker/liteparse/): built on the practice's
+  computer from run-llama/liteparse-server (MIT License) with LiteParse (Apache License 2.0). The
+  image also holds LibreOffice (Mozilla Public License 2.0) and ImageMagick (ImageMagick License).
+- Caddy (HTTPS, if turned on): the official caddy image, under the Apache License 2.0.
+- Microsoft SQL Server 2022 Express (the demo installation only): Microsoft's image, under
+  Microsoft's licence terms, which install.sh asks you to accept (https://aka.ms/useterms).
+
+The images are built on Debian, Ubuntu or Alpine Linux, and their packages keep their own licences.
+MedUI's own files for these services (compose.yaml and the Dockerfiles) are covered by MedUI's
+licence.
+
+"Best Practice" and "Bp Premier" are names of Best Practice Software. MedUI is independent of Best
+Practice Software and is not endorsed by it. A practice needs its own agreement with Best Practice
+for database access.

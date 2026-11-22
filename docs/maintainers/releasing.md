@@ -39,8 +39,9 @@ always say which release it runs.
    - Regression tests pass, and any rule change has been replayed against recorded runs with no
      newly visible identifiers.
 3. **Licences**
-   - No GPL or AGPL dependency without a recorded decision (`test_dependency_licences`); the
-     distribution licence itself is decided last ([release status](../release-status.md)).
+   - No GPL or AGPL dependency without a recorded decision (`test_dependency_licences`).
+   - LICENSE is the GNU AGPL v3, unchanged; NOTICE names the copyright holder and lists the
+     third-party components; the vendored redaction core wheel carries its own LICENSE and NOTICE.
 4. **Tests and installation**
    - `pytest` passes, including the database tests against a throwaway PostgreSQL.
    - A fresh install with `install.sh` and, for Windows, `scripts/windows/create_medui_wsl2.ps1`

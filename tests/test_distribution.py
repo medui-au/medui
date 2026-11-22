@@ -762,7 +762,7 @@ def test_help_check():
 
 
 def test_dependency_licences():
-    # MedUI's licence is decided last (docs/release-status.md). To keep every choice open,
+    # MedUI is under the AGPL v3; to keep the option of also licensing it on other terms,
     # no dependency may be under a strong copyleft licence (GPL, AGPL) without a decision:
     # add it to ALLOWED with the reason. Weak copyleft (LGPL, MPL) doesn't bind MedUI's code.
     import re
@@ -872,3 +872,31 @@ def test_practice_name_takes_at_most_two_lines():
     assert '-webkit-line-clamp: 2' in brand and 'overflow:           hidden' in brand
     nav = (Path(__file__).resolve().parent.parent / 'app/templates/components/topnav.html').read_text()
     assert 'title="{{ _pname }}"' in nav and 'topnav-brand--long' in nav
+
+
+def test_licence_files():
+    """LICENSE is the GNU AGPL v3 text unchanged; NOTICE names the holder; the redaction core's
+    wheel carries its own Apache licence and notice."""
+    import hashlib
+    import zipfile
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    licence = (root / 'LICENSE').read_bytes()
+    assert hashlib.sha256(licence).hexdigest() == '0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0'
+    notice = (root / 'NOTICE').read_text()
+    assert 'Copyright (C) 2026 H. Eviston (Medical) Pty Ltd' in notice and 'Affero' in notice
+    for wheel in (root / 'vendor' / 'wheels').glob('bps_redaction-*.whl'):
+        names = zipfile.ZipFile(wheel).namelist()
+        assert any(n.endswith('licenses/LICENSE') for n in names), wheel.name
+        assert any(n.endswith('licenses/NOTICE') for n in names), wheel.name
+
+
+def test_notice_covers_the_odbc_driver_and_services():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    notice = (root / 'NOTICE').read_text()
+    assert 'section 7' in notice and 'Microsoft ODBC Driver for SQL Server' in notice
+    for name in ('PostgreSQL', 'LiteParse', 'Caddy', 'SQL Server 2022 Express'):
+        assert name in notice, name
+    for script in ('install.sh', 'upgrade.sh'):
+        assert 'aka.ms/odbc18eula' in (root / script).read_text(), script

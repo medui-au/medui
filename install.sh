@@ -514,6 +514,8 @@ ok "Running and healthy"
 
 # ---- 5. MedUI -----------------------------------------------------------------------------------------------------
 say "5. MedUI image, database schema and starter data"
+echo "  The image includes Microsoft ODBC Driver 18 for SQL Server, which MedUI uses to read Best Practice."
+echo "  Building it accepts Microsoft's licence terms for that driver: https://aka.ms/odbc18eula"
 compose --profile app build app
 flask_cmd() { compose --profile app run --rm app flask --app wsgi "$@"; }
 flask_cmd db upgrade
