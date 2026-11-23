@@ -2,7 +2,7 @@
 title: Patient record
 area: Patients
 roles: [doctor, nurse]
-reviewed: 2026-11-22
+reviewed: 2026-11-23
 related: [results-outside-range, setup]
 ---
 
@@ -172,3 +172,11 @@ Admin → Mapping Tables (nip_risk_mapping), and the doses recorded at this prac
 What you stay responsible for: vaccines given elsewhere may not be recorded here (check the
 Australian Immunisation Register), and an at-risk condition counts only if it meets the NIP
 criteria, which you confirm.
+
+## Results Rollup {#results-rollup}
+
+**Patient Data → Results Rollup** gathers the full text of the patient's pathology and
+radiology reports and copies it to the clipboard, for pasting into a letter or referral. A
+best-guess batch is ticked when it opens; tick or untick any report, or use **Deselect all**
+to start from none. **Copy to Clipboard** puts the selected reports' text on the clipboard;
+a ✓ shows when it is there. Check what you paste.

@@ -1,6 +1,6 @@
 # Release status
 
-**Version 0.59.2, pre-release (November 2026).** Synced with the upstream MedUI application, with
+**Version 0.59.4, pre-release (November 2026).** Synced with the upstream MedUI application, with
 the redaction core 0.2.20. Scope: a new practice installation, not migration of existing MedUI data.
 Each release is described in the [changelog](../CHANGELOG.md); this page is the summary of what
 is in place and what is left before a release to another practice.
@@ -49,6 +49,9 @@ is in place and what is left before a release to another practice.
   sent.
 
 **Intended purpose and documentation**
+- The [AI information sheet](ai-information-sheet.md): every shipped AI function, its purpose, what
+  it reads, where it can run and its limits, with the version and support contact (a test checks
+  it names every seeded workflow).
 - [Intended purpose](intended_purpose.md), quoted unchanged in the README, AGENTS.md and the
   app's About page; it includes the practice's responsibility for prompts it writes itself.
 - In-app help with search and **?** buttons on the main screens, checked by `flask help check`.
@@ -72,7 +75,6 @@ No claim of clinical validation is made by these installation and startup tests.
 ## Before release to another practice
 
 **Regulatory and intended purpose** (TGA position: plans kept with the maintainers)
-- The AI information sheet in the docs, with version and support contact.
 - Seeded prompt wording against the intended purpose (cited guideline content, no tailoring to
   the patient), after testing old and new wording side by side.
 

@@ -350,6 +350,7 @@ code, pre {
   margin:           0;
 }
 .topnav-item.open .dropdown-menu { display: block; }
+.dropdown-menu--right { left: auto; right: 0; min-width: 140px; }
 
 .dropdown-item {
   display:         block;

@@ -1,8 +1,9 @@
 # MedUI — Intended purpose
 
 This is MedUI's intended purpose: what it is for, who it is for and what it does not do. The same
-statement appears in the README, AGENTS.md, the About page in the app (linked from the version
-number at the foot of every page) and the release notes. Change it here first; see
+statement appears in the README, AGENTS.md, the [AI information sheet](ai-information-sheet.md), the
+About page in the app (linked from the version number at the foot of every page) and the release
+notes. Change it here first; see
 [releasing](maintainers/releasing.md).
 
 ## Statement

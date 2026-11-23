@@ -2,7 +2,7 @@
 title: Logging in and access
 area: Getting started
 roles: [reception, nurse, doctor, admin]
-reviewed: 2026-11-10
+reviewed: 2026-11-23
 related: [patient-search]
 ---
 
@@ -46,3 +46,8 @@ login. Your name at the top right opens **My settings**, for your own preference
 
 MedUI checks your password against Best Practice and doesn't keep a copy of it. To change it,
 change it in Best Practice. Sign out at the top right when you leave a shared computer.
+
+## Help and About {#help-about}
+
+**Help ▾** at the top right opens **Help** (this guide) and **About**, which shows which
+version of MedUI is running. Give the version when you report a problem.

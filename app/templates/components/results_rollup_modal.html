@@ -17,6 +17,7 @@
 .results-rollup-row-test { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-primary); }
 .results-rollup-actions { display:flex; align-items:center; gap:0.6rem; margin-top:0.8rem; }
 .results-rollup-count { font-size:0.72rem; color:var(--text-muted); margin-right:auto; }
+.results-rollup-deselect { margin-left:0.6rem; }
 .results-rollup-tick { display:inline-block; color:var(--success); font-size:0.9rem; font-weight:700; opacity:0; }
 .results-rollup-tick.show { animation: resultsRollupTickPop 1.3s ease; }
 @keyframes resultsRollupTickPop {
@@ -42,9 +43,11 @@
     <div class="results-rollup-sub" id="results-rollup-sub">Loading investigations…</div>
     <div class="results-rollup-list" id="results-rollup-list"></div>
     <div class="results-rollup-actions">
-      <span class="results-rollup-count" id="results-rollup-count"></span>
+      <span class="results-rollup-count"><span id="results-rollup-count"></span>
+        <a href="#" class="results-rollup-deselect" id="results-rollup-deselect"
+           onclick="deselectAllResultsRollup(); return false;">Deselect all</a></span>
       <button type="button" class="btn btn-outline" style="font-size:0.78rem;" onclick="closeResultsRollupModal()">Close</button>
-      <button type="button" id="results-rollup-generate-btn" class="btn btn-primary" style="font-size:0.78rem;" onclick="generateResultsRollup()"><span id="results-rollup-generate-label">Generate &amp; Copy</span></button>
+      <button type="button" id="results-rollup-generate-btn" class="btn btn-primary" style="font-size:0.78rem;" onclick="generateResultsRollup()"><span id="results-rollup-generate-label">Copy to Clipboard</span></button>
       <span class="results-rollup-tick" id="results-rollup-tick">✓</span>
     </div>
   </div>
@@ -89,7 +92,7 @@
       updateResultsRollupCount();
       return;
     }
-    sub.textContent = 'Best-guess batch is pre-selected — tick or untick any report before generating.';
+    sub.textContent = 'Best-guess batch is pre-selected — tick or untick any report before copying.';
 
     rrCandidates.forEach((c, idx) => {
       const row = document.createElement('label');
@@ -128,6 +131,12 @@
     document.getElementById('results-rollup-count').textContent =
       count ? (count + (count === 1 ? ' report selected' : ' reports selected')) : 'Nothing selected';
   }
+
+  window.deselectAllResultsRollup = function () {
+    document.querySelectorAll('#results-rollup-list input[type="checkbox"]')
+      .forEach(cb => { cb.checked = false; });
+    updateResultsRollupCount();
+  };
 
   window.generateResultsRollup = function () {
     const checked = Array.from(
@@ -184,7 +193,7 @@
       label.appendChild(spinner);
       label.appendChild(document.createTextNode('Generating…'));
     } else {
-      label.textContent = 'Generate & Copy';
+      label.textContent = 'Copy to Clipboard';
     }
   }
 

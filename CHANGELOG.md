@@ -3,6 +3,25 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.59.4 — pre-release (November 2026)
+
+**Upgrade from 0.59.3**: `./upgrade.sh`. No migrations.
+
+- **Help ▾ in the top bar**, with **Help** (the guide) and **About** (the version running and
+  MedUI's intended purpose). The version also stays at the foot of every page.
+- **Results Rollup**: a **Deselect all** link beside the count, and the button now reads **Copy
+  to Clipboard**.
+
+## 0.59.3 — pre-release (November 2026)
+
+**Upgrade from 0.59.2**: `./upgrade.sh`. Nothing in the app changes.
+
+- **The AI information sheet** ([docs/ai-information-sheet.md](docs/ai-information-sheet.md)). It
+  covers every AI function MedUI ships: what each is for, what it reads, where it can run (local or
+  cloud) and its limits. It also covers the intended purpose and regulatory status, what isn't AI,
+  and what the practice does before switching AI on. A test checks that it names every seeded
+  workflow and carries the release's version.
+
 ## 0.59.2 — pre-release (November 2026)
 
 **Upgrade from 0.59.1**: `./upgrade.sh`. No migrations.

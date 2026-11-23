@@ -18,7 +18,7 @@ and removes patient identifiers before any text leaves the practice.
 | **See what it does** | [What it does](#what-it-does), below; each screen's own help is in [app/help](app/help/) |
 | **Install it** | [Choose how to install](docs/install/README.md): one script, a few questions |
 | **Know how it keeps patient data safe** | [Privacy and security in brief](#privacy-and-security-in-brief), below |
-| **Know what it is for, and the rules if I change it** | [Intended purpose](docs/intended_purpose.md) · [If you change MedUI](#if-you-change-medui) |
+| **Know what it is for, and the rules if I change it** | [Intended purpose](docs/intended_purpose.md) · [AI information sheet](docs/ai-information-sheet.md) · [If you change MedUI](#if-you-change-medui) |
 | **Read the technical detail** | [How it's built](docs/technical.md) |
 | **Get help** | [Troubleshooting](docs/troubleshooting.md) · [Support](docs/support.md) · [Report a security problem](SECURITY.md) |
 

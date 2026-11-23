@@ -734,7 +734,7 @@ def test_intended_purpose_statement_matches():
     doc = (root / 'docs' / 'intended_purpose.md').read_text()
     statement = doc.split('## Statement\n\n', 1)[1].split('\n\n', 1)[0]
     assert 'MedUI does not diagnose' in statement
-    for name in ('README.md', 'AGENTS.md'):
+    for name in ('README.md', 'AGENTS.md', 'docs/ai-information-sheet.md'):
         text = (root / name).read_text()
         assert ' '.join(words(statement)) in ' '.join(words(text)), name
 
@@ -900,3 +900,22 @@ def test_notice_covers_the_odbc_driver_and_services():
         assert name in notice, name
     for script in ('install.sh', 'upgrade.sh'):
         assert 'aka.ms/odbc18eula' in (root / script).read_text(), script
+
+
+def test_ai_information_sheet_covers_every_shipped_workflow():
+    """docs/ai-information-sheet.md names every seeded AI workflow and the GPCCMP workflow, and its
+    version is the release's MAJOR.MINOR: a release that adds or changes one updates the sheet."""
+    import json
+    from pathlib import Path
+    from app.services.gpccmp_prompt_seed import PIPELINE_NAME
+    from app.version import __version__
+    root = Path(__file__).resolve().parents[1]
+    sheet = (root / 'docs' / 'ai-information-sheet.md').read_text()
+    starter = json.loads((root / 'app' / 'seed_assets' / 'starter.json').read_text())
+    names = [p['name'] for p in starter['pipelines']] + [PIPELINE_NAME]
+    missing = [n for n in names if f'*{n}*' not in sheet]
+    assert not missing, f'not in the AI information sheet: {missing}'
+    major_minor = '.'.join(__version__.split('.')[:2])
+    assert f'**Version:** MedUI {major_minor} ' in sheet, 'update the sheet\'s version line'
+    for link in ('intended_purpose.md', 'support.md', '../SECURITY.md'):
+        assert f']({link})' in sheet, link
