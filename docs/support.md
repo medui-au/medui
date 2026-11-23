@@ -13,7 +13,16 @@ how to ask without exposing patient data.
 
 ## Asking
 
-MedUI is pre-release, and support is limited. When you ask, include:
+MedUI is pre-release, and support is limited.
+
+- **A question** (how to install, set up or use MedUI): ask in
+  [Discussions](https://github.com/medui-au/medui/discussions), where other practices can
+  answer too.
+- **Something that isn't working, or a doc that's wrong:**
+  [open an issue](https://github.com/medui-au/medui/issues/new/choose) and pick the form that
+  fits.
+
+Both are public. When you ask, include:
 
 - the MedUI version (at the foot of every page);
 - Windows (WSL2) or Ubuntu, and live or demo;

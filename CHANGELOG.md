@@ -3,6 +3,15 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.59.8 — pre-release (November 2026)
+
+**Upgrade from 0.59.7**: `./upgrade.sh`. Nothing in the app changes.
+
+- **Asking and reporting on GitHub**: three issue forms (something isn't working, a doc that's
+  wrong or unclear, a suggestion), each with a required tick that it holds no patient details. A
+  blank issue isn't offered; the new-issue page points security problems to private reporting and
+  questions to Discussions. The README and [getting help](docs/support.md) say where each goes.
+
 ## 0.59.7 — pre-release (November 2026)
 
 **Upgrade from 0.59.6**: `./upgrade.sh`. Nothing in the app changes.

@@ -1,0 +1,77 @@
+name: Something isn't working
+description: An error, a step that fails, or MedUI doing something it shouldn't.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This page is public.** Never include patient details (names, dates of birth, addresses,
+        phone, Medicare or record numbers, clinical text), passwords, API keys or `.env`, here or in
+        a screenshot. Describe the shape of the problem ("a phone number written with two spaces
+        between its groups"), or make up an example. A security problem goes
+        [privately](https://github.com/medui-au/medui/security/advisories/new).
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Before you send
+      options:
+        - label: This report and its screenshots contain no patient details, passwords or keys.
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: MedUI version
+      description: At the foot of every page, or `curl -s http://127.0.0.1:5005/health`.
+      placeholder: "x.y.z"
+    validations:
+      required: true
+  - type: dropdown
+    id: setup
+    attributes:
+      label: Installation
+      options:
+        - Windows (WSL2), live
+        - Windows (WSL2), demo
+        - Ubuntu, live
+        - Ubuntu, demo
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: did
+    attributes:
+      label: What you did
+      description: The page, button or command, and the doc section you were following if any.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: Any error message, with patient details removed.
+    validations:
+      required: true
+  - type: textarea
+    id: support
+    attributes:
+      label: Support summary (optional)
+      description: "`./medui.sh support` in the installation's folder prints one: version, system, what is running. It holds no patient data or secrets."
+      render: text
+  - type: dropdown
+    id: severity
+    attributes:
+      label: How much it gets in the way
+      options:
+        - I can't go on
+        - I found a workaround
+        - Cosmetic
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Workaround (optional)

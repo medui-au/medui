@@ -20,7 +20,7 @@ and removes patient identifiers before any text leaves the practice.
 | **Know how it keeps patient data safe** | [Privacy and security in brief](#privacy-and-security-in-brief), below |
 | **Know what it is for, and the rules if I change it** | [Intended purpose](docs/intended_purpose.md) · [AI information sheet](docs/ai-information-sheet.md) · [If you change MedUI](#if-you-change-medui) |
 | **Read the technical detail** | [How it's built](docs/technical.md) |
-| **Get help** | [Troubleshooting](docs/troubleshooting.md) · [Support](docs/support.md) · [Report a security problem](SECURITY.md) |
+| **Get help** | [Troubleshooting](docs/troubleshooting.md) · [Support](docs/support.md) · [Ask a question](https://github.com/medui-au/medui/discussions) · [Report a problem](https://github.com/medui-au/medui/issues/new/choose) · [Report a security problem](SECURITY.md) |
 
 What's new: [changelog](CHANGELOG.md). Licence: [GNU AGPL v3](LICENSE); copyright, third-party
 components and what the licence asks of you if you change MedUI: [NOTICE](NOTICE).

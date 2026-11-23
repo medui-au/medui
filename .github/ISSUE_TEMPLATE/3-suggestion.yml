@@ -1,0 +1,29 @@
+name: Suggest a change
+description: Something MedUI could do better, within what it is for.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        MedUI is a workflow tool: it finds, organises, presents, summarises and drafts, and the
+        health professional decides. Suggestions that would have it diagnose, recommend treatment,
+        triage or raise its own alerts are outside its
+        [intended purpose](https://github.com/medui-au/medui/blob/main/docs/intended_purpose.md)
+        and are declined. **This page is public:** no patient details, passwords or keys.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Before you send
+      options:
+        - label: This suggestion and its screenshots contain no patient details, passwords or keys.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you're trying to do, and what gets in the way
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help (optional)

@@ -1,0 +1,38 @@
+name: The documentation is wrong or unclear
+description: A guide, recipe or help page that didn't match what you saw, or left you guessing.
+labels: [documentation]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This page is public.** Never include patient details, passwords or keys, here or in a
+        screenshot.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Before you send
+      options:
+        - label: This report and its screenshots contain no patient details, passwords or keys.
+          required: true
+  - type: input
+    id: where
+    attributes:
+      label: Which page and section
+      description: A link, or the help page's name in the app.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: MedUI version
+      placeholder: "x.y.z"
+  - type: textarea
+    id: says
+    attributes:
+      label: What it says, and what you found
+    validations:
+      required: true
+  - type: textarea
+    id: better
+    attributes:
+      label: What would have helped (optional)

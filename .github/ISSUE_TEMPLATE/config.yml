@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem (privately)
+    url: https://github.com/medui-au/medui/security/advisories/new
+    about: Anything that could expose patient data or let someone in. Only the maintainers see it.
+  - name: Ask a question
+    url: https://github.com/medui-au/medui/discussions
+    about: How to install, set up or use MedUI. Other practices can answer too.
+  - name: Getting help
+    url: https://github.com/medui-au/medui/blob/main/docs/support.md
+    about: Where to look first, and how to ask without exposing patient data.
