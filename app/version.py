@@ -5,4 +5,4 @@ release. Bump MINOR for new functions or any change to a seeded AI prompt, PATCH
 Change it here and add the release to CHANGELOG.md in the same commit (see docs/maintainers/releasing.md).
 """
 
-__version__ = '0.59.5'
+__version__ = '0.59.6'

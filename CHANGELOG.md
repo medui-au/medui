@@ -3,6 +3,13 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.59.6 — pre-release (November 2026)
+
+**Upgrade from 0.59.5**: `./upgrade.sh`. No migrations.
+
+- **Redaction core 0.2.21**: comments, docs and packaging only (a SECURITY.md, the licence and
+  NOTICE inside the wheel). No rule changes: redaction behaves exactly as in 0.2.20.
+
 ## 0.59.5 — pre-release (November 2026)
 
 **Upgrade from 0.59.4**: `./upgrade.sh`. Nothing in the app changes.

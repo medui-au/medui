@@ -61,4 +61,4 @@ WTForms==3.2.1
 
 # The redaction core (bps-redaction, Apache-2.0), vendored: install from the repo root.
 --find-links ./vendor/wheels
-bps-redaction==0.2.20
+bps-redaction==0.2.21
