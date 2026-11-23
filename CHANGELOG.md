@@ -3,6 +3,14 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.59.5 — pre-release (November 2026)
+
+**Upgrade from 0.59.4**: `./upgrade.sh`. Nothing in the app changes.
+
+- **AI information sheet**: the practice's responsibility to choose providers, a cloud
+  speech-to-text service included, that don't train on or keep its data; and who does what in the
+  care plan (the doctor, MedUI without AI, the AI), set out step by step; and where the data source charts' AI Analytics tab is.
+
 ## 0.59.4 — pre-release (November 2026)
 
 **Upgrade from 0.59.3**: `./upgrade.sh`. No migrations.

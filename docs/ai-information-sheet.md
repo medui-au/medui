@@ -22,6 +22,8 @@ A security problem goes privately: [SECURITY.md](../SECURITY.md).
   practitioners' names, and puts them back in the reply on screen. No redaction method is perfect.
 - **Audio is not redacted.** With a cloud speech-to-text service, the consultation recording goes
   to that service as it is. A local speech-to-text server keeps it in the practice.
+- **The practice chooses providers that don't train on or keep its data**, speech-to-text included
+  (see [For the practice](#for-the-practice)).
 - The practice sees what is sent: the Sending and Sent tabs show the request as the AI service
   receives it, and the instructions it was given.
 
@@ -104,10 +106,24 @@ before recording.
 | *[LIB] Library Pipeline* | Drafting or changing a practice document in the Library (an information sheet, a letter template) | The request and the document; no patient |
 | *GP Chronic Condition Management Plan (draft)* | Wording each issue of a care plan from the doctor's recorded decisions and the practice's own protocol | The decisions, the protocol and the record |
 
-For the care plan, MedUI itself writes the targets, prevention lines, review and consent, and checks
-the AI's draft against the doctor's decisions. The AI may not change or add to the decisions. The
-care-plan **recipe assistant** and the population chart's **analysis** use workflows the practice
-creates itself; none is shipped.
+**Who does what in the care plan:**
+
+- **The doctor** chooses the issues, sets each target and records the decisions for each issue
+  (services, directions, consent).
+- **MedUI, without AI,** writes the plan's header, the targets exactly as the doctor set them, the
+  prevention lines, the review date and the consent row.
+- **The AI** words each issue's goal, measures, patient and team actions, services and review aim,
+  from the doctor's decisions and the practice's protocol. It is told not to write targets,
+  judgements or consent, and it can't change or add to the doctor's decisions.
+- **MedUI then checks the AI's wording, without AI:** it checks that the issues and services are
+  exactly the doctor's (an issue the doctor didn't choose never reaches the draft), and flags any
+  numeric target, judgement word, consent wording, dose, or line without a source. The doctor
+  reviews and edits the draft before filing it.
+
+Two other AI uses have no shipped workflow: the care-plan **recipe assistant** (wording a reusable
+recipe, with no patient) and the **AI Analytics** tab on a data source chart (Charts menu), which
+appears only once the practice creates an active workflow named with [DATA]. A practice that wants
+them creates its own workflow.
 
 ## Limits that apply to every function
 
@@ -143,6 +159,12 @@ These work the same with AI switched off, and each shows its rule, inputs and so
   and models in use when it was saved.
 - Choose local or cloud models for each workflow. Cloud models get redacted requests only, under
   the practice's obligations under the *Privacy Act 1988*.
+- **Choose providers that don't train on or keep the practice's data.** Before enabling a cloud
+  provider or model, **including a cloud speech-to-text service**, the practice checks its terms and
+  data settings: it must not be permitted to train on the practice's requests or recordings, or to
+  keep them beyond a limited period for abuse and safety monitoring (zero data retention where the
+  provider offers it). Terms change, so the check is repeated at each policy review. The AI-use
+  policy template includes this rule and records the check in its Appendix A.
 - Report a problem with an AI output through the practice's own process, and to the MedUI
   maintainers without patient details ([getting help](support.md)).
 
