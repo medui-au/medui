@@ -26,8 +26,8 @@ What MedUI is for, and what it is not for, is set out in docs/intended_purpose.m
 Third-party components keep their own licences:
 
 - bps_redaction (the redaction core, vendor/wheels/): Apache License 2.0. Its LICENSE and NOTICE
-  are inside the wheel, in bps_redaction-<version>.dist-info/licenses/. Changes to it are made in
-  its own repository and released, never in this one.
+  are inside the wheel, in bps_redaction-<version>.dist-info/licenses/. Its source is at
+  https://github.com/medui-au/redaction-core. Changes to it are made there and released, never in this one.
 - JavaScript libraries in app/static/vendor/: each with its licence file beside it (see
   app/static/vendor/README.md).
 - Python packages installed from requirements.txt: each under its own licence, recorded in its

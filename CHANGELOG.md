@@ -3,6 +3,14 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.59.7 — pre-release (November 2026)
+
+**Upgrade from 0.59.6**: `./upgrade.sh`. Nothing in the app changes.
+
+- **Where the redaction core lives**: the README, NOTICE, AGENTS.md, the technical overview, the
+  release status and `requirements.txt` link to its source,
+  [medui-au/redaction-core](https://github.com/medui-au/redaction-core).
+
 ## 0.59.6 — pre-release (November 2026)
 
 **Upgrade from 0.59.5**: `./upgrade.sh`. No migrations.

@@ -75,8 +75,9 @@ Who it is for, and what it does and does not do: [intended purpose](docs/intende
 
 You can adapt prompts, workflows, lists and settings in the app; they are the practice's to
 review and its responsibility. If you change the code, keep the safeguards: the check before
-anything is sent to a cloud model, redaction (which comes from a separate library and is never
-edited in the app), the read-only BP connection, and the login and form protections. Changing what
+anything is sent to a cloud model, redaction (which comes from a separate library,
+[redaction-core](https://github.com/medui-au/redaction-core), and is never edited in the app),
+the read-only BP connection, and the login and form protections. Changing what
 MedUI does, for example to diagnose, triage or recommend, takes it outside its intended purpose.
 
 MedUI is under the GNU Affero General Public License v3. If you change the code and let others use

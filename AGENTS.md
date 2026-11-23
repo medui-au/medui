@@ -122,7 +122,7 @@ Each pipeline has a redaction policy:
 - `redact_pii_only` and `redact_none`: **local models only**. Inference refuses
   a cloud model.
 
-Redaction is the **bps-redaction** core (a pinned wheel in `vendor/wheels/`,
+Redaction is the **bps-redaction** core ([source](https://github.com/medui-au/redaction-core); a pinned wheel in `vendor/wheels/`,
 connected in `app/services/redaction_core.py`; `redaction_service.py`,
 `hcp_redaction_service.py` and `utils/token_vault.py` are thin shims over it). It
 replaces identifiers with reversible tokens such as `[Redacted Phone: PH-…]`. It is rule-based and

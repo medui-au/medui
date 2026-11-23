@@ -1,6 +1,6 @@
 # Release status
 
-**Version 0.59.6, pre-release (November 2026).** Synced with the upstream MedUI application, with
+**Version 0.59.7, pre-release (November 2026).** Synced with the upstream MedUI application, with
 the redaction core 0.2.21. Scope: a new practice installation, not migration of existing MedUI data.
 Each release is described in the [changelog](../CHANGELOG.md); this page is the summary of what
 is in place and what is left before a release to another practice.
@@ -87,7 +87,8 @@ No claim of clinical validation is made by these installation and startup tests.
 
 **Product**
 - **Licence: GNU AGPL v3** ([LICENSE](../LICENSE), copyright and third-party components in
-  [NOTICE](../NOTICE)). The redaction core is a separate library under the Apache License 2.0.
+  [NOTICE](../NOTICE)). The redaction core is a separate library under the Apache License 2.0
+  ([redaction-core](https://github.com/medui-au/redaction-core)).
   To keep the option of also licensing MedUI on other terms (dual licensing):
   - no outside contributions without a short contributor agreement;
   - dependencies stay permissive or weak copyleft: `test_dependency_licences` fails on a new

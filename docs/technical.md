@@ -14,7 +14,7 @@ To install MedUI the usual way, use the [installation guide](install/README.md) 
 | Best Practice | BP's SQL Server, read-only, through Microsoft ODBC Driver 18 (in the container, under [Microsoft's licence terms](https://aka.ms/odbc18eula); see [NOTICE](../NOTICE)). Every BP query is a `.sql` file in `app/sql/`, run through a read-only session. |
 | OCR (optional, recommended) | LiteParse, a local container, for scanned documents ([OCR](ocr.md)) |
 | HTTPS (optional) | Caddy, in front of MedUI, for workstations ([HTTPS](https.md)) |
-| Redaction | The `bps-redaction` library, a pinned wheel in `vendor/wheels/`, connected in `app/services/redaction_core.py` |
+| Redaction | The `bps-redaction` library ([source](https://github.com/medui-au/redaction-core)), a pinned wheel in `vendor/wheels/`, connected in `app/services/redaction_core.py` |
 
 The code is in three layers: routes (`app/blueprints/`) call services (`app/services/`), which call
 repositories and BP queries (`app/repositories/`, `app/sql/`). AI workflows run as a sequence of
