@@ -10,11 +10,12 @@ notes. Change it here first; see
 
 MedUI is a workflow tool for appropriately registered health professionals working in a medical
 practice. It helps them find, organise, present, summarise and document information that is already
-in the patient record or was stated in the consultation, shows what named published guidance says
-when they ask, and streamlines practice communication and administration. AI features produce
-drafts for the health professional to review, edit and approve. MedUI does not diagnose, recommend
-treatment or investigations, triage or monitor patients; it provides information, and clinical
-judgement, decisions about a patient's care and the record remain the health professional's.
+in the patient record or was stated in the consultation, shows what named, published guidance says,
+with its source, when they ask, and streamlines practice communication and administration. AI
+features produce drafts for the health professional to review, edit and approve.
+MedUI does not diagnose, recommend treatment or investigations, triage or monitor patients. It
+provides information. Clinical judgement, decisions about a patient's care and the record remain
+with the health professional.
 
 ## What it is
 

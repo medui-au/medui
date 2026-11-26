@@ -63,8 +63,8 @@ choose for themselves; a port you choose, or one an installation already has, ne
 | `--yes` | Don't ask (the seed changes are still listed) |
 | `--dry-run` | Show what would be done; change nothing (it still fetches) |
 
-While the repository is private, give the GitHub token for one run, so you type it once and
-it never reaches your shell history ([Upgrades](operations.md#upgrades)):
+Only an installation from a private copy of the repository needs a GitHub token. Give it for one
+run, so you type it once and it never reaches your shell history ([Upgrades](operations.md#upgrades)):
 
 ```bash
 read -rsp 'GitHub token: ' MEDUI_GIT_TOKEN && export MEDUI_GIT_TOKEN && ./upgrade.sh --dry-run && ./upgrade.sh; unset MEDUI_GIT_TOKEN

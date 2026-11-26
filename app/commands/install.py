@@ -14,7 +14,7 @@ def defaults():
     # The AI guardrails start on in this edition (upstream ADR-087..089): scope
     # instruction (practice default 'record'), request check recorded, notices.
     for key, value in {'privacy.protect_staff': True, 'data.retention_days': 180,
-                       'data.auto_cleanup': False, 'ui.default_theme': 'light',
+                       'ui.default_theme': 'light',
                        'scope.enabled': True, 'scope.default_key': 'record',
                        'scope.check_mode': 'record', 'notice.enabled': True,
                        # The criterion review (upstream ADR-109, ADR-165), a record-coding audit,

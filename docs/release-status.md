@@ -1,9 +1,12 @@
 # Release status
 
-**Version 0.59.8, pre-release (November 2026).** Synced with the upstream MedUI application, with
+**Version 0.61.3, public pre-release (November 2026).** Synced with the upstream MedUI application, with
 the redaction core 0.2.21. Scope: a new practice installation, not migration of existing MedUI data.
-Each release is described in the [changelog](../CHANGELOG.md); this page is the summary of what
-is in place and what is left before a release to another practice.
+MedUI is public at [github.com/medui-au/medui](https://github.com/medui-au/medui), with its demo
+data at [medui-au/medui_demodata](https://github.com/medui-au/medui_demodata) and the redaction core
+at [medui-au/redaction-core](https://github.com/medui-au/redaction-core). Each release is described
+in the [changelog](../CHANGELOG.md); this page is the summary of what is in place and what is left
+before version 1.0.
 
 ## In place
 
@@ -55,8 +58,20 @@ is in place and what is left before a release to another practice.
 - [Intended purpose](intended_purpose.md), quoted unchanged in the README, AGENTS.md and the
   app's About page; it includes the practice's responsibility for prompts it writes itself.
 - In-app help with search and **?** buttons on the main screens, checked by `flask help check`.
-- [SECURITY.md](../SECURITY.md), [getting help](support.md), and the release checklist and wording
-  rules ([releasing](maintainers/releasing.md)).
+- [SECURITY.md](../SECURITY.md) with private vulnerability reporting, [getting help](support.md)
+  (questions in Discussions, problems in issue forms), and the release checklist and wording rules
+  ([releasing](maintainers/releasing.md)).
+
+**Licence**
+- **GNU AGPL v3** ([LICENSE](../LICENSE), copyright and third-party components in
+  [NOTICE](../NOTICE)). The redaction core is a separate library under the Apache License 2.0
+  ([redaction-core](https://github.com/medui-au/redaction-core)); the demo data is CC0, its scripts
+  Apache 2.0. To keep the option of also licensing MedUI on other terms (dual licensing):
+  - no outside contributions without a short contributor agreement; until there is one, code
+    contributions aren't accepted ([CONTRIBUTING.md](../CONTRIBUTING.md));
+  - dependencies stay permissive or weak copyleft: `test_dependency_licences` fails on a new
+    GPL or AGPL dependency, so adding one is a deliberate decision;
+  - no code copied in from GPL projects.
 
 ## Tried on real installations
 
@@ -68,11 +83,11 @@ is in place and what is left before a release to another practice.
 - **Demo:** installed from MedUI's demo databases, and earlier from BP's sample databases.
 - **The development host:** fresh installs, re-runs with data unchanged, upgrades and rollbacks
   rehearsed on throwaway installations, HTTPS end to end.
-- **Tests:** 612 passing, including the database tests against a throwaway PostgreSQL.
+- **Tests:** 715 passing, including the database tests against a throwaway PostgreSQL.
 
 No claim of clinical validation is made by these installation and startup tests.
 
-## Before release to another practice
+## Before version 1.0
 
 **Regulatory and intended purpose** (TGA position: plans kept with the maintainers)
 - Seeded prompt wording against the intended purpose (cited guideline content, no tailoring to
@@ -86,16 +101,6 @@ No claim of clinical validation is made by these installation and startup tests.
   usage record.
 
 **Product**
-- **Licence: GNU AGPL v3** ([LICENSE](../LICENSE), copyright and third-party components in
-  [NOTICE](../NOTICE)). The redaction core is a separate library under the Apache License 2.0
-  ([redaction-core](https://github.com/medui-au/redaction-core)).
-  To keep the option of also licensing MedUI on other terms (dual licensing):
-  - no outside contributions without a short contributor agreement;
-  - dependencies stay permissive or weak copyleft: `test_dependency_licences` fails on a new
-    GPL or AGPL dependency, so adding one is a deliberate decision;
-  - no code copied in from GPL projects.
-- The public copy: a fresh history, its name and owner, and turning on private vulnerability
-  reporting for [SECURITY.md](../SECURITY.md).
 - Check every role and access path; finish the optional features' screens.
 - Define supported hosts and resources from measured use (a WSL2 instance with 4 GB of
   memory has run MedUI with OCR).

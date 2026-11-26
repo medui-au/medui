@@ -51,10 +51,10 @@ the app, keeps the previous image as `<project>-app:previous`, and if a step fai
 prints the exact commands to restore the backup and the previous code and image.
 Once it knows the new version, it carries on with that version's own `upgrade.sh` ("Continuing
 with … upgrade script"), so steps a release adds run in the upgrade that brings it.
-**While the repository is private, the fetch needs a GitHub token** with read access, the same
-as the clone (see the [installation recipes](install/README.md)). Git asks for it: the username, then
-the token at the password prompt. Or give it for that one run without it reaching your shell
-history:
+The repository is public, so the fetch needs no login. Only an installation cloned from a
+private copy (a private fork, say) needs a GitHub token with read access. Git asks for it: the
+username, then the token at the password prompt. Or give it for that one run without it reaching
+your shell history:
 
 ```bash
 read -rsp 'GitHub token: ' MEDUI_GIT_TOKEN && export MEDUI_GIT_TOKEN && ./upgrade.sh; unset MEDUI_GIT_TOKEN

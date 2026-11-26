@@ -48,6 +48,30 @@ def unique_provider_key(base: str) -> str:
     return f'{base}_{n}'
 
 
+# Models URL to start a new provider with, by its base URL's host (ADR-191). OpenRouter lists
+# only its zero-data-retention endpoints, so a practice picks from models that don't keep its
+# requests; Groq's own /models list. Any provider can change or clear it in Setup → AI Providers.
+SUGGESTED_MODELS_ENDPOINTS = {
+    'openrouter.ai': 'https://openrouter.ai/api/v1/endpoints/zdr',
+    'api.groq.com':  'https://api.groq.com/openai/v1/models',
+}
+
+
+def suggested_models_endpoint(base_url: str | None) -> str | None:
+    """The models URL a provider at this base URL starts with, or None for the default."""
+    from urllib.parse import urlparse
+    host = (urlparse(base_url or '').hostname or '').lower()
+    return SUGGESTED_MODELS_ENDPOINTS.get(host)
+
+
+def models_endpoint_hint(base_url: str | None) -> str:
+    """Placeholder for the Models URL field: the suggested URL, else the default it uses."""
+    suggested = suggested_models_endpoint(base_url)
+    if suggested:
+        return suggested
+    return ((base_url or '').rstrip('/') + '/models') if base_url else '/models'
+
+
 def create_from_preset(provider_key: str, overrides: dict) -> AIProviderConfig:
     """Create a new AIProviderConfig pre-filled from a preset + admin overrides."""
     preset = AIProviderPreset.query.filter_by(provider_key=provider_key).first()
@@ -67,6 +91,8 @@ def create_from_preset(provider_key: str, overrides: dict) -> AIProviderConfig:
         supports_model_fetching=preset.supports_model_fetching,
         notes=overrides.get('notes'),
     )
+    cfg.models_endpoint = (overrides.get('models_endpoint')
+                           or suggested_models_endpoint(cfg.base_url))
     if overrides.get('api_key'):
         cfg.api_key = overrides['api_key']
 

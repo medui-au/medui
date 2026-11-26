@@ -16,7 +16,6 @@ changed unless you choose to delete one and type its name to confirm.
 | Virtualisation | Enabled in the firmware (BIOS/UEFI). |
 | Network | Internet access for the Ubuntu image, Ubuntu packages, GitHub and Docker Hub. |
 | Disk | About 10 GB free. |
-| Repository access | While the repository is private: a GitHub personal access token with read access to it. Prefer a fine-grained token with read-only **Contents** access to this one repository, and revoke it after installing. |
 | Administrator | Only for the firewall rules that open SSH, or MedUI over HTTPS, to the network (a Windows prompt at those steps), and to install WSL if it is missing. |
 
 ## Running it
@@ -42,12 +41,12 @@ installed and you are not an administrator, it prints the command for one to run
 | Question | Default | Notes |
 |---|---|---|
 | Instances to delete | none | Each deletion needs the exact name typed. Deleting an instance deletes any MedUI database in it. |
-| Live or demo | live | A demo ([recipe](../../docs/install/windows-demo.md)) has invented patients in a SQL Server of its own and never reads Best Practice. It gets its own defaults: instance `medui_demo`, folder `~/medui_demo`, ports 5006, 55433, 5708, so it can sit beside a live instance. Its GitHub token must also read medui_demodata while that is private. `install.sh` then asks you to accept Microsoft's SQL Server licence terms and for the demo users' password. |
+| Live or demo | live | A demo ([recipe](../../docs/install/windows-demo.md)) has invented patients in a SQL Server of its own and never reads Best Practice. It gets its own defaults: instance `medui_demo`, folder `~/medui_demo`, ports 5006, 55433, 5708, so it can sit beside a live instance. A token for a private copy must also read its demo data. `install.sh` then asks you to accept Microsoft's SQL Server licence terms and for the demo users' password. |
 | Name of the new instance | `medui` | Must not exist already. |
 | Linux username and password | `medui`, generated | A generated password is shown once at the end: store it. |
 | Ports for MedUI, PostgreSQL, OCR | 5005, 55432, 5707 | Checked against Windows, since mirrored networking shares one network: a port in use gets the next free one suggested. All three listen on localhost only. |
 | Branch | `main` | Lets you test a branch before it is merged. |
-| GitHub token | blank | Paste with a right-click: Ctrl+V and Ctrl+Shift+V do not paste into this hidden prompt (each sends one character). Each character shows as one `*`, so a token shows as a long row. Checked against GitHub straight away, with the branch, and asked again if it doesn't work, before anything is installed. Used once, for the clone, through a temporary helper. Never written to disk or shown on a command line. Leave blank for a public repository. |
+| GitHub token | blank | Paste with a right-click: Ctrl+V and Ctrl+Shift+V do not paste into this hidden prompt (each sends one character). Each character shows as one `*`, so a token shows as a long row. Checked against GitHub straight away, with the branch, and asked again if it doesn't work, before anything is installed. Used once, for the clone, through a temporary helper. Never written to disk or shown on a command line. Leave blank: the repository is public. Only a private copy needs one. |
 | SSH | yes | For IT or a remote coding agent: hardened sshd, fail2ban, a firewall rule for Private and Domain networks only. With a public key, login is **key only** (passwords refused, since the Linux password also gives sudo); without one, password login. Local forwarding is allowed, so `ssh -L` can reach MedUI from another PC; reverse tunnels are refused. The firewall rule needs an administrator: the script first explains what the rule permits and asks **Y/n**; the Windows prompt appears only after a yes. Answer no, or cancel the prompt, to keep SSH to this PC only (the script prints the command to add it later). |
 | HTTPS for workstations | no | Until HTTPS is on, MedUI answers on this PC only; other PCs, and the scribe's microphone on them, need it. On a yes it asks the HTTPS port (443), the port of the setup page each workstation opens once (80), the name workstations will type (this PC's name) and this PC's address (`none` for the name only; an address must stay the same). MedUI's certificate covers only that name and address: changing them later means setting up every workstation again. Set up last, with `install.sh --https`; a failure is reported and the installation stands. The firewall rules need an administrator: the script explains, asks Y/n, then Windows prompts. A no here leaves it for later: `./medui.sh https` ([HTTPS](../../docs/https.md)). |
 | Windows drives and programs | off | Turns off `/mnt/c` and starting Windows programs from the instance, so a login to the instance doesn't reach this PC's files. MedUI uses neither. |
@@ -108,7 +107,7 @@ powershell.exe -NoExit -ExecutionPolicy Bypass -File .\upgrade_medui_wsl2.ps1
    the snapshot. The instance is kept running afterwards, hidden, as the task does; the
    task itself takes over again within 5 minutes (or, for an instance created before
    this release, at the next logon).
-3. While the repository is private, asks for a GitHub token (paste with a right-click),
+3. For a private copy of the repository only, asks for a GitHub token (paste with a right-click),
    checks it with GitHub, and passes it to the instance for this run only, in an
    environment variable: never on a command line, never written to disk.
 4. Runs `upgrade.sh` in the instance, in this window: it shows what's new, backs up

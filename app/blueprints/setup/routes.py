@@ -4,6 +4,13 @@ from . import bp
 from app.extensions import db
 
 
+@bp.app_template_global('models_endpoint_hint')
+def _models_endpoint_hint(base_url):
+    """Setup → AI Providers: the Models URL placeholder for a provider (ADR-191)."""
+    from app.services import ai_provider_service
+    return ai_provider_service.models_endpoint_hint(base_url)
+
+
 def _require_admin(f):
     from functools import wraps
     @wraps(f)
@@ -109,13 +116,9 @@ def _compute_tab_statuses() -> dict:
     except Exception:
         pass
 
-    try:
-        auto = SystemSetting.get('data.auto_cleanup')
-        s['maintenance'] = ('complete'
-                            if str(auto).lower() in ('true', '1', 'yes')
-                            else 'warning')
-    except Exception:
-        s['maintenance'] = 'warning'
+    # Retention windows have defaults and purging is the administrator's choice, so there is
+    # nothing left to set up (ADR-188 removed the automatic cleanup switch no code ever read).
+    s['maintenance'] = 'complete'
 
     return s
 
@@ -613,8 +616,8 @@ def _maintenance_tab_data(**extra) -> dict:
     return {
         'retention_transcripts': SystemSetting.get('data.retention.transcripts', 30),
         'retention_messages':    SystemSetting.get('data.retention.messages', 90),
+        'retention_chats':       SystemSetting.get('data.retention.chats', 90),
         'retention_runs':        SystemSetting.get('data.retention.pipeline_runs', 180),
-        'auto_cleanup':          SystemSetting.get('data.auto_cleanup', False),
         'hide_staff_records':    SystemSetting.get('privacy.hide_staff_records', False),
         'privacy_review_page':   SystemSetting.get('privacy.review_page', False),
         **extra,
@@ -627,46 +630,16 @@ def _render_maintenance_tab(**extra):
 
 
 def _purge_counts() -> dict:
-    """Return counts of rows eligible for purge under current retention settings."""
-    from datetime import datetime, timezone, timedelta
-    from app.models.system_setting import SystemSetting
-    from app.models.consultation_transcript import ConsultationTranscript
-    from app.models.patient_message import PatientMessage, MessageStatus
-    from app.models.pipeline import PipelineRun
-
-    now = datetime.now(timezone.utc)
-
-    tr_days  = int(SystemSetting.get('data.retention.transcripts', 30) or 30)
-    msg_days = int(SystemSetting.get('data.retention.messages', 90) or 90)
-    run_days = int(SystemSetting.get('data.retention.pipeline_runs', 180) or 180)
-
-    tr_cutoff  = now - timedelta(days=tr_days)
-    msg_cutoff = now - timedelta(days=msg_days)
-    run_cutoff = now - timedelta(days=run_days)
-
-    transcripts = (ConsultationTranscript.query
-                   .filter(db.or_(
-                       ConsultationTranscript.expires_at < now,
-                       ConsultationTranscript.created_at < tr_cutoff,
-                   )).count())
-
-    messages = (PatientMessage.query
-                .filter(
-                    PatientMessage.status.in_([
-                        MessageStatus.sent, MessageStatus.failed, MessageStatus.revoked
-                    ]),
-                    PatientMessage.created_at < msg_cutoff,
-                ).count())
-
-    runs = (PipelineRun.query
-            .filter(PipelineRun.started_at < run_cutoff)
-            .count())
-
+    """What a purge would delete now under the retention windows (ADR-188)."""
+    from app.services import retention_service
+    n = retention_service.eligible()
     return {
-        'purge_transcripts': transcripts,
-        'purge_messages':    messages,
-        'purge_runs':        runs,
-        'purge_total':       transcripts + messages + runs,
+        'purge_transcripts': n['transcripts'],
+        'purge_messages':    n['messages'],
+        'purge_chats':       n['chats'],
+        'purge_runs':        n['runs'],
+        'purge_runs_kept':   n['runs_kept'],
+        'purge_total':       n['total'],
     }
 
 
@@ -683,59 +656,41 @@ def maintenance_save():
         except ValueError:
             return default
 
-    SystemSetting.set('data.retention.transcripts',   _int('retention_transcripts', 30))
-    SystemSetting.set('data.retention.messages',       _int('retention_messages', 90))
-    SystemSetting.set('data.retention.pipeline_runs',  _int('retention_runs', 180))
-    SystemSetting.set('data.auto_cleanup',  'auto_cleanup' in request.form)
-    SystemSetting.set('privacy.hide_staff_records', 'hide_staff_records' in request.form)
-    SystemSetting.set('privacy.review_page', 'privacy_review_page' in request.form,
-                      description='Admin → Privacy Review page (ADR-120)')
-    return _render_maintenance_tab(flash_msg='Settings saved.', flash_ok=True)
+    # Each section of the tab saves only its own settings (ADR-190); a post without a section
+    # saves both, as before.
+    section = request.form.get('section', '')
+    if section in ('', 'retention'):
+        SystemSetting.set('data.retention.transcripts',   _int('retention_transcripts', 30))
+        SystemSetting.set('data.retention.messages',       _int('retention_messages', 90))
+        SystemSetting.set('data.retention.chats',          _int('retention_chats', 90))
+        SystemSetting.set('data.retention.pipeline_runs',  _int('retention_runs', 180))
+    if section in ('', 'privacy'):
+        SystemSetting.set('privacy.hide_staff_records', 'hide_staff_records' in request.form)
+        SystemSetting.set('privacy.review_page', 'privacy_review_page' in request.form,
+                          description='Admin → Privacy Review page (ADR-120)')
+    msg = {'retention': 'Retention saved.', 'privacy': 'Privacy settings saved.'}.get(section,
+                                                                                 'Settings saved.')
+    return _render_maintenance_tab(flash_msg=msg, flash_ok=True, **_purge_counts())
 
 
 @bp.post('/maintenance/purge')
 @login_required
 @_require_admin
 def maintenance_purge():
-    from datetime import datetime, timezone, timedelta
     from flask import current_app
-    from app.models.system_setting import SystemSetting
-    from app.models.consultation_transcript import ConsultationTranscript
-    from app.models.patient_message import PatientMessage, MessageStatus
-    from app.models.pipeline import PipelineRun
-
-    now = datetime.now(timezone.utc)
-    tr_days  = int(SystemSetting.get('data.retention.transcripts', 30) or 30)
-    msg_days = int(SystemSetting.get('data.retention.messages', 90) or 90)
-    run_days = int(SystemSetting.get('data.retention.pipeline_runs', 180) or 180)
-
-    deleted_tr = (ConsultationTranscript.query
-                  .filter(db.or_(
-                      ConsultationTranscript.expires_at < now,
-                      ConsultationTranscript.created_at < now - timedelta(days=tr_days),
-                  )).delete(synchronize_session=False))
-
-    deleted_msg = (PatientMessage.query
-                   .filter(
-                       PatientMessage.status.in_([
-                           MessageStatus.sent, MessageStatus.failed, MessageStatus.revoked
-                       ]),
-                       PatientMessage.created_at < now - timedelta(days=msg_days),
-                   ).delete(synchronize_session=False))
-
-    deleted_runs = (PipelineRun.query
-                    .filter(PipelineRun.started_at < now - timedelta(days=run_days))
-                    .delete(synchronize_session=False))
-
-    db.session.commit()
-    total = deleted_tr + deleted_msg + deleted_runs
+    from app.services import retention_service
+    n = retention_service.purge()
     current_app.logger.info(
-        'maintenance_purge: deleted %d transcripts, %d messages, %d runs',
-        deleted_tr, deleted_msg, deleted_runs,
+        'maintenance_purge: deleted %d transcripts, %d messages, %d chats, %d runs; '
+        'kept %d referenced runs',
+        n['transcripts'], n['messages'], n['chats'], n['runs'], n['runs_kept'],
     )
+    kept = (f" {n['runs_kept']} older AI run record(s) kept, because a chat, care plan, message "
+            f"or other record still refers to them." if n['runs_kept'] else '')
     return _render_maintenance_tab(
-        flash_msg=f'Purge complete — {total} row(s) deleted '
-                  f'({deleted_tr} transcripts, {deleted_msg} messages, {deleted_runs} pipeline runs).',
+        flash_msg=f"Purge complete — {n['total']} row(s) deleted "
+                  f"({n['transcripts']} transcripts, {n['messages']} messages, {n['chats']} chats, "
+                  f"{n['runs']} pipeline runs).{kept}",
         flash_ok=True,
         **_purge_counts(),
     )

@@ -63,8 +63,8 @@ always say which release it runs.
      `$DemoRepoUrl` in `scripts/windows/create_medui_wsl2.ps1`, `$RepoUrl` in
      `upgrade_medui_wsl2.ps1`, `DEMO_REPO` in `scripts/demo_data.sh`); the docs and `medui.sh`
      have them in the text. `grep -rn 'github.com/' --exclude-dir=.git .` lists them all.
-   - Remove the "while the repository is private" token steps (`grep -rni 'private' docs scripts
-     README.md`): a public clone needs no token.
+   - The "while the repository is private" token steps were removed in 0.61.3: a public clone
+     needs no token. The scripts still accept one, for a private copy.
    - Make [medui_demodata](https://github.com/medui-au/medui_demodata) public at the same time,
      or first: the setup guide, cheat sheet and `./medui.sh bp` point test and demo installations
      to it. Check again that every row in it is invented.

@@ -65,7 +65,7 @@ database password, encryption key and project name with it.
 | Symptom | Fix |
 |---|---|
 | `destination path 'medui_os' already exists` | A folder of that name is there already, and may hold an installation, its settings or local work: look at what it holds, and don't delete it to make the error go away. For another installation, clone into a folder of its own (`git clone … ~/medui_test`). |
-| `Repository not found` / `Authentication failed` | While the repository is private, git needs your GitHub username and a **token** with read access to its Contents (not your GitHub password). Being able to log in to the computer is not enough. |
+| `Repository not found` / `Authentication failed` | Check the address: `https://github.com/medui-au/medui.git`. A private copy of the repository needs your GitHub username and a **token** with read access to its Contents (not your GitHub password). |
 | `Could not resolve host: github.com` | The computer can't reach GitHub: check its internet connection and DNS. MedUI isn't involved yet. |
 | `Permission denied` creating the folder | You aren't in your own home folder: `cd ~` and clone again. Don't use `sudo`. |
 | `install.sh` says systemd isn't running (WSL2) | Add `systemd=true` under `[boot]` in `/etc/wsl.conf`, run `wsl --shutdown` in Windows, open the instance again and rerun `./install.sh`. |
@@ -74,9 +74,9 @@ database password, encryption key and project name with it.
 
 | Symptom | Fix |
 |---|---|
-| The token prompt shows one `*` | Ctrl+V and Ctrl+Shift+V don't paste into the hidden prompt: **right-click**. A token shows as a long row of `*`. |
+| The token prompt shows one `*` (a private copy only) | Ctrl+V and Ctrl+Shift+V don't paste into the hidden prompt: **right-click**. A token shows as a long row of `*`. |
 | "GitHub rejected the token" / "cannot read this repository" | The token has expired, or lacks read access to the repository's Contents: make a new one. |
-| Step 6 "The download failed" | Read the git message above it: usually the token or the network. |
+| Step 6 "The download failed" | Read the git message above it: usually the network (or, for a private copy, the token). |
 | "already exists and will not be touched" | Choose another instance name, or remove the half-built one (below). |
 
 To start again after a failed run, check the instance name, then remove it. This

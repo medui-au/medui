@@ -25,6 +25,11 @@ on each.
 Each installation has its own empty PostgreSQL database. Don't point MedUI at another
 installation's database.
 
+## How data moves
+
+Three diagrams (where data goes, the guards on one AI request, and the switches and fixed guards)
+are on a page of their own: [how data moves](how-data-moves.md).
+
 ## Optional features
 
 All are off until set to `true` in `.env`:

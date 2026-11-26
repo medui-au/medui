@@ -3,7 +3,7 @@ title: The chatbots
 area: AI functions
 roles: [doctor]
 requires_ai: true
-reviewed: 2026-10-24
+reviewed: 2026-11-26
 related: [ai-drafts, ai-assistant]
 ---
 
@@ -21,6 +21,9 @@ to check against the record.
   **Email** (open Comms for this patient).
 - **💾 Save** keeps a question you ask often; **📋 Insert** puts a saved one back.
 - **New Conversation** starts afresh; earlier conversations can be opened again from the list.
+  Conversations aren't kept for ever: the practice sets how long (Application Setup →
+  Maintenance), counted from the last message, and then they are deleted. Keep anything you
+  need by putting it in Best Practice (**BP →**, or copy it into the record).
 
 ## The general chatbot {#general}
 

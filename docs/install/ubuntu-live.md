@@ -37,7 +37,6 @@ For a demo (invented patients, never BP), see [Ubuntu, demo](ubuntu-demo.md) ins
 | About 10 GB of free disk; internet access | The install | Ubuntu packages, GitHub, Docker Hub. |
 | A network path to the Best Practice SQL Server | Reading BP | |
 | A fixed address or DHCP reservation, and a name workstations can resolve | HTTPS | MedUI's certificate is made for that name and address. |
-| A GitHub token | Downloading MedUI while the repository is private | Read-only **Contents** access to `medui_os`. Revoke it afterwards. |
 | The practice's timezone | "Today" on the day sheet | A server is often set to UTC, so check it. |
 | A username and password for MedUI's own administrator | Your first login | Username not a number; password at least 12 characters. |
 
@@ -53,8 +52,7 @@ Log in as your own user, start in your home folder, and download MedUI:
 cd ~ && git clone https://github.com/medui-au/medui.git ~/medui_os
 ```
 
-While the repository is private, git asks for a username (your GitHub username) and a password
-(paste the **token**, not your GitHub password). Don't use `sudo` here: your user should own the
+Don't use `sudo` here: your user should own the
 folder. If `git` is missing: `sudo apt install -y git`. If the download fails:
 [troubleshooting](../troubleshooting.md#downloading-medui-git-clone).
 

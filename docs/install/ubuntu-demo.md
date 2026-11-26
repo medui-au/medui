@@ -15,7 +15,7 @@ cd ~ && git clone https://github.com/medui-au/medui.git ~/medui_demo
 ```
 
 ```bash
-cd ~/medui_demo && read -rsp 'GitHub token: ' MEDUI_GIT_TOKEN && export MEDUI_GIT_TOKEN && ./install.sh --demo; unset MEDUI_GIT_TOKEN
+cd ~/medui_demo && ./install.sh --demo
 ```
 
 **You end up with:** a demo installation in its own folder, `~/medui_demo`, with a SQL Server
@@ -31,7 +31,6 @@ same computer.
 | 8 GB of memory or more | The demo's SQL Server | It takes up to 2 GB on top of MedUI. Under 6 GB the script warns. |
 | Your own login with `sudo` | Installing packages | **Not root**: the script refuses to run as root, and asks for your `sudo` password when it needs it. |
 | About 12 GB of free disk; internet access | The install | Ubuntu packages, GitHub, Docker Hub, and about 1.6 GB for Microsoft's SQL Server image. |
-| A GitHub token | Downloading MedUI and the demo data while the repositories are private | Read-only **Contents** access to **both** `medui_os` and `medui_demodata`. Revoke it afterwards. |
 | Microsoft's SQL Server licence terms | The demo's SQL Server | You are asked to accept them ([aka.ms/useterms](https://aka.ms/useterms)). SQL Server Express is free. |
 | A password for the demo users | Logging in as the demo practice's staff | One password, shared by all the demo's staff logins. Choose one you can give to trainees. |
 | The practice's timezone | "Today" on the day sheet | A server is often set to UTC, so check it. |
@@ -50,20 +49,18 @@ practice's live installation; the installer refuses it for a demo.
 cd ~ && git clone https://github.com/medui-au/medui.git ~/medui_demo
 ```
 
-While the repository is private, git asks for a username (your GitHub username) and a password
-(paste the **token**, not your GitHub password). Don't use `sudo` here: your user should own the
+Don't use `sudo` here: your user should own the
 folder. If `git` is missing: `sudo apt install -y git`. If the download fails:
 [troubleshooting](../troubleshooting.md#downloading-medui-git-clone).
 
-While `medui_demodata` is private, the installer needs the token too. This line asks for it
-without showing it, runs the installer, then forgets it:
+Then run the installer. It downloads the demo data
+([medui_demodata](https://github.com/medui-au/medui_demodata)) itself:
 
 ```bash
-cd ~/medui_demo && read -rsp 'GitHub token: ' MEDUI_GIT_TOKEN && export MEDUI_GIT_TOKEN && ./install.sh --demo; unset MEDUI_GIT_TOKEN
+cd ~/medui_demo && ./install.sh --demo
 ```
 
-Once `medui_demodata` is public, `cd ~/medui_demo && ./install.sh --demo` is enough. To see what
-it would do first, without changing anything, add `--dry-run`.
+To see what it would do first, without changing anything, add `--dry-run`.
 
 ## 3. What it asks, in order
 

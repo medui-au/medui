@@ -163,3 +163,14 @@ def test_docs_template_is_the_apps_template():
     assert sep and rest == app_copy
     assert 'best read and edited within MedUI' in header and 'Governance → AI-use policy' in header
     assert DOCS_POLICY_DIVIDER not in app_copy
+
+
+def test_a_docs_diagram_is_embedded_in_the_guide(app):
+    # The guide has no route for files, so a doc's own SVG is embedded; the image files are
+    # copied into the app image with docs/.
+    html = str(guide_docs.render('how-data-moves')[1])
+    assert html.count('src="data:image/svg+xml;base64,') == 3
+    assert 'images/medui-' not in html
+    for name in ('where-data-goes', 'guards-on-a-request', 'switches-and-guards'):
+        svg = (guide_docs.root() / f'docs/images/medui-{name}.svg').read_text()
+        assert svg.startswith('<svg') and 'prefers-color-scheme: dark' in svg

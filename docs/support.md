@@ -32,6 +32,7 @@ Both are public. When you ask, include:
 screenshot or an AI tool. Describe the shape of the problem instead ("a phone number written with
 two spaces between its groups"), or make up an example.
 
-A security problem goes privately: see [SECURITY.md](../SECURITY.md).
+A security problem goes privately: see [SECURITY.md](../SECURITY.md). Wanting to help: see
+[contributing](../CONTRIBUTING.md).
 
 [Back to MedUI](../README.md)

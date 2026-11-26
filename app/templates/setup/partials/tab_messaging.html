@@ -57,10 +57,10 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <div style="display:grid; grid-template-columns:1fr 110px; gap:0.6rem;">
-                    <div>{{ field('SMTP Host', 'email.smtp_host', d.get('email.smtp_host',''), placeholder='smtp.fastmail.com') }}</div>
+                    <div>{{ field('SMTP Host', 'email.smtp_host', d.get('email.smtp_host',''), placeholder='smtp.example.com') }}</div>
                     <div>{{ field('Port', 'email.smtp_port', d.get('email.smtp_port', 587), type='number', placeholder='587') }}</div>
                 </div>
-                {{ field('Username', 'email.smtp_username', d.get('email.smtp_username',''), placeholder='user@fastmail.com') }}
+                {{ field('Username', 'email.smtp_username', d.get('email.smtp_username',''), placeholder='user@example.com') }}
                 {{ field('Password', 'email.smtp_password', '',
                          type='password',
                          placeholder=('••••••••  (stored)' if d.get('email_password_set') else 'Enter password'),
@@ -72,9 +72,9 @@
                     Password overridden by <code>EMAIL_SMTP_PASSWORD</code> env var — field above is ignored.
                 </div>
                 {% endif %}
-                {{ field('Sender Name', 'email.sender_name', d.get('email.sender_name',''), placeholder='Bayside Medical Centre') }}
+                {{ field('Sender Name', 'email.sender_name', d.get('email.sender_name',''), placeholder='Example Medical Practice') }}
                 {{ field('Sender Address', 'email.sender_address', d.get('email.sender_address',''),
-                         type='email', placeholder='noreply@clinic.com.au') }}
+                         type='email', placeholder='noreply@practice.example') }}
                 {{ toggle('Use STARTTLS', 'email.use_tls', d.get('email.use_tls', True),
                           hint='Recommended for port 587. Disable for port 465 (implicit SSL).') }}
 
@@ -117,9 +117,9 @@
                     <div>{{ field('Port', 'sms.smtp_port', d.get('sms.smtp_port', 25), type='number', placeholder='25') }}</div>
                 </div>
                 {{ field('Sender Address', 'sms.sender_address', d.get('sms.sender_address',''),
-                         type='email', placeholder='sms@clinic.local') }}
+                         type='email', placeholder='sms@practice.example') }}
                 {{ field('Recipient Template', 'sms.recipient_template', d.get('sms.recipient_template',''),
-                         placeholder='{number}@sms.provider.com',
+                         placeholder='{number}@sms-provider.example',
                          hint='Use {number} as the placeholder for the digits-only mobile number.') }}
 
                 {{ toggle('Requires Authentication', 'sms.requires_auth', d.get('sms.requires_auth', False),

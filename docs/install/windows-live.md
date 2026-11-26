@@ -4,7 +4,7 @@
 |---|---|
 | **Use this when** | MedUI is for the practice's real work, reading its Best Practice, and runs on a Windows PC. |
 | **Not this one** | To try MedUI or train staff with invented patients: [Windows PC, demo](windows-demo.md). On a computer running Ubuntu: [Ubuntu, live](ubuntu-live.md). |
-| **The script** | [`create_medui_wsl2.ps1`](https://github.com/medui-au/medui/blob/main/scripts/windows/create_medui_wsl2.ps1). On its GitHub page, choose **Download raw file** (↓). While the repository is private, sign in to GitHub first. |
+| **The script** | [`create_medui_wsl2.ps1`](https://github.com/medui-au/medui/blob/main/scripts/windows/create_medui_wsl2.ps1). On its GitHub page, choose **Download raw file** (↓). |
 | **Answer** | `L` (or Enter) to "Live or demo?". |
 | **The PC** | Windows 11 22H2 or later; about 10 GB of free disk; stays on and signed in. |
 | **Time** | Allow about 30 minutes to install, and about 30 minutes more to set MedUI up for the practice (the [Administrator setup guide](../setup-guide.md)) if the practice already has its BP database access account (EDBA). |
@@ -51,7 +51,6 @@ The BP server itself can be used, if the practice's IT is comfortable with that.
 | Virtualisation enabled in the BIOS/UEFI | WSL2 | Usually already on. |
 | Internet access | The install | Ubuntu image, Ubuntu packages, GitHub, Docker Hub. |
 | An administrator's approval, at up to three points | Installing WSL if it is missing; opening SSH to the network; opening HTTPS to the workstations | You do **not** run the script as administrator (section 3). |
-| A GitHub token | Downloading MedUI while the repository is private | A fine-grained token with read-only **Contents** access to `medui_os`. Revoke it afterwards. |
 | The practice's timezone | "Today" on the day sheet | Offered from Windows; just confirm it. |
 | A username and password for MedUI's own administrator | Your first login | Username not a number; password at least 12 characters. |
 | *(Optional)* an SSH public key | Remote access for IT or a coding agent | Default location `C:\Users\<you>\.ssh\id_ed25519.pub`. |
@@ -97,7 +96,7 @@ accepts the default shown in brackets.
 | 6 | Ports for MedUI, PostgreSQL, OCR | 5005, 55432, 5707 | All three listen on this PC only. If one is in use, the next free one is suggested. |
 | 7 | Practice timezone | from Windows | A menu of Australian capitals; pick the practice's. |
 | 8 | Branch | `main` | Leave as `main` unless you are testing a branch. |
-| 9 | GitHub token | blank | **Paste with a right-click**; Ctrl+V doesn't work in this hidden prompt. It is checked with GitHub at once, used for the one download, and never stored. Blank once the repository is public. |
+| 9 | GitHub token | blank | **Press Enter**: MedUI's repository is public. Only a private copy of it needs a token (paste it with a right-click; it is checked at once and never stored). |
 | 10 | Set up SSH? (Y/n) | Y | For IT or a coding agent to log in from another computer. Say `n` if nobody will. If yes, it asks the port (22, or 2222 if 22 is taken) and the public key file. With a key, passwords are refused; without one, login is by the Linux password. |
 | 11 | Open MedUI to the practice's workstations over HTTPS? (y/N) | N | **Say `y` for a practice installation** unless MedUI will only ever be used on this PC. If yes, it asks four things: the HTTPS port (443); the port of the setup page each workstation opens once (80); the name workstations will type (this PC's name); and this PC's address, or `none`. Choose with care: MedUI's certificate covers only that name and address, and changing them later means setting up every workstation again. Give an address only if it stays the same (a fixed address or a DHCP reservation). If another program on the PC already uses 443 or 80, choose other ports, such as 8443 and 8080. |
 | 12 | Turn off Windows drives and programs inside the instance? (Y/n) | Y | Keep `Y`. Someone who gets into the instance then can't reach this PC's files. MedUI needs neither. |

@@ -330,10 +330,10 @@
                     <div style="grid-column:1/-1;">
                         <label class="form-label-xs">
                             Models URL
-                            <span style="color:var(--text-muted); font-weight:400;">— override for fetching model list (e.g. OpenRouter ZDR). Leave blank to use default.</span>
+                            <span style="color:var(--text-muted); font-weight:400;">— where the model list is fetched from. OpenRouter starts with its zero-data-retention list. Blank = the base URL's /models.</span>
                         </label>
                         <input type="text" name="models_endpoint" value="{{ p.models_endpoint or '' }}"
-                               placeholder="https://openrouter.ai/api/v1/models  (blank = default)"
+                               placeholder="{{ models_endpoint_hint(p.base_url) }}"
                                class="form-control-xs" style="width:100%;">
                     </div>
                     <div style="grid-column:1/-1;">

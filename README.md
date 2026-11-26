@@ -17,10 +17,10 @@ and removes patient identifiers before any text leaves the practice.
 |---|---|
 | **See what it does** | [What it does](#what-it-does), below; each screen's own help is in [app/help](app/help/) |
 | **Install it** | [Choose how to install](docs/install/README.md): one script, a few questions |
-| **Know how it keeps patient data safe** | [Privacy and security in brief](#privacy-and-security-in-brief), below |
+| **Know how it keeps patient data safe** | [Privacy and security in brief](#privacy-and-security-in-brief), below · [How data moves](docs/how-data-moves.md) (three diagrams) |
 | **Know what it is for, and the rules if I change it** | [Intended purpose](docs/intended_purpose.md) · [AI information sheet](docs/ai-information-sheet.md) · [If you change MedUI](#if-you-change-medui) |
 | **Read the technical detail** | [How it's built](docs/technical.md) |
-| **Get help** | [Troubleshooting](docs/troubleshooting.md) · [Support](docs/support.md) · [Ask a question](https://github.com/medui-au/medui/discussions) · [Report a problem](https://github.com/medui-au/medui/issues/new/choose) · [Report a security problem](SECURITY.md) |
+| **Get help** | [Troubleshooting](docs/troubleshooting.md) · [Support](docs/support.md) · [Ask a question](https://github.com/medui-au/medui/discussions) · [Report a problem](https://github.com/medui-au/medui/issues/new/choose) · [Report a security problem](SECURITY.md) · [Contributing](CONTRIBUTING.md) |
 
 What's new: [changelog](CHANGELOG.md). Licence: [GNU AGPL v3](LICENSE); copyright, third-party
 components and what the licence asks of you if you change MedUI: [NOTICE](NOTICE).
@@ -43,12 +43,13 @@ no model chosen.
 ## Intended purpose
 
 > MedUI is a workflow tool for appropriately registered health professionals working in a medical
-> practice. It helps them find, organise, present, summarise and document information that is already
-> in the patient record or was stated in the consultation, shows what named published guidance says
-> when they ask, and streamlines practice communication and administration. AI features produce
-> drafts for the health professional to review, edit and approve. MedUI does not diagnose, recommend
-> treatment or investigations, triage or monitor patients; it provides information, and clinical
-> judgement, decisions about a patient's care and the record remain the health professional's.
+> practice. It helps them find, organise, present, summarise and document information that is
+> already in the patient record or was stated in the consultation, shows what named, published
+> guidance says, with its source, when they ask, and streamlines practice communication and
+> administration. AI features produce drafts for the health professional to review, edit and
+> approve. MedUI does not diagnose, recommend treatment or investigations, triage or monitor
+> patients. It provides information. Clinical judgement, decisions about a patient's care and the
+> record remain with the health professional.
 
 Who it is for, and what it does and does not do: [intended purpose](docs/intended_purpose.md).
 

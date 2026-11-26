@@ -4,7 +4,7 @@
 |---|---|
 | **Use this when** | You want to demonstrate MedUI, train staff or make recordings on a Windows PC, with invented patients. It never reads Best Practice. |
 | **Not this one** | For the practice's real work: [Windows PC, live](windows-live.md). On a computer running Ubuntu: [Ubuntu, demo](ubuntu-demo.md). |
-| **The script** | [`create_medui_wsl2.ps1`](https://github.com/medui-au/medui/blob/main/scripts/windows/create_medui_wsl2.ps1), the same one as for a live installation. On its GitHub page, choose **Download raw file** (↓). While the repository is private, sign in to GitHub first. |
+| **The script** | [`create_medui_wsl2.ps1`](https://github.com/medui-au/medui/blob/main/scripts/windows/create_medui_wsl2.ps1), the same one as for a live installation. On its GitHub page, choose **Download raw file** (↓). |
 | **Answer** | `d` to "Live or demo?". |
 | **The PC** | Windows 11 22H2 or later, Intel or AMD; 8 GB of memory or more; about 12 GB of free disk. |
 | **Time** | Allow 30 to 40 minutes to install. |
@@ -44,7 +44,6 @@ It needs no network path to Best Practice.
 | Virtualisation enabled in the BIOS/UEFI | WSL2 | Usually already on. |
 | Internet access | The install | Ubuntu image, Ubuntu packages, GitHub, Docker Hub, Microsoft's SQL Server image. |
 | An administrator's approval, at up to three points | Installing WSL if it is missing; opening SSH to the network; opening HTTPS to the trainees' PCs | You do **not** run the script as administrator (section 3). |
-| A GitHub token | Downloading MedUI and the demo data while the repositories are private | A fine-grained token with read-only **Contents** access to **both** `medui_os` and `medui_demodata`. The script checks both before installing anything. Revoke it afterwards. |
 | Microsoft's SQL Server licence terms | The demo's SQL Server | You are asked to accept them ([aka.ms/useterms](https://aka.ms/useterms)). SQL Server Express is free. |
 | A password for the demo users | Logging in as the demo practice's staff | One password, shared by all the demo's staff logins. Choose one you can give to trainees. |
 | A username and password for MedUI's own administrator | Your first login | Username not a number; password at least 12 characters. |
@@ -90,7 +89,7 @@ accepts the default shown in brackets.
 | 6 | Ports for MedUI, PostgreSQL, OCR | 5006, 55433, 5708 | All three listen on this PC only, apart from a live installation's. If one is in use, the next free one is suggested. |
 | 7 | Practice timezone | from Windows | A menu of Australian capitals. |
 | 8 | Branch | `main` | Leave as `main` unless you are testing a branch. |
-| 9 | GitHub token | blank | **Paste with a right-click**; Ctrl+V doesn't work in this hidden prompt. It is checked with GitHub at once, for both repositories, used for the downloads, and never stored. Blank once both repositories are public. |
+| 9 | GitHub token | blank | **Press Enter**: MedUI and its demo data are public. Only a private copy needs a token (paste it with a right-click; it is checked at once, for both repositories, and never stored). |
 | 10 | Set up SSH? (Y/n) | Y | For IT or a coding agent to log in from another computer. Say `n` if nobody will. If yes, it asks the port (22, or 2222 if 22 is taken) and the public key file. |
 | 11 | Open MedUI to other PCs over HTTPS? (y/N) | N | Say `y` if trainees will use their own PCs. If yes, it asks the HTTPS port (443), the setup page's port (80), the name they will type (this PC's name) and this PC's address, or `none`. **If a live installation on this PC already has HTTPS, type other ports**, such as 8443 and 8080: 443 and 80 are taken, and the script may not notice. |
 | 12 | Turn off Windows drives and programs inside the instance? (Y/n) | Y | Keep `Y`. MedUI needs neither. |

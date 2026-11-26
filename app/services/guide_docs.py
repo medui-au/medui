@@ -14,11 +14,14 @@ from flask import current_app, url_for
 from markupsafe import Markup, escape
 
 # Outside docs/: the pages docs/ links to. They are copied into the image (Dockerfile).
-TOP_LEVEL = ('README.md', 'CHANGELOG.md', 'SECURITY.md', 'AGENTS.md', 'scripts/windows/README.md')
+TOP_LEVEL = ('README.md', 'CHANGELOG.md', 'SECURITY.md', 'AGENTS.md', 'CONTRIBUTING.md',
+             'scripts/windows/README.md')
 TOP_PREFIX = 'repo/'          # their names in the guide's address: /setup/guide/repo/README
 
 _ENABLED_AI = re.compile(r'<!-- medui:enabled-ai -->.*?<!-- /medui:enabled-ai -->', re.S)
 _LINK = re.compile(r'<a href="([^"]*)">(.*?)</a>', re.S)
+# A doc's own diagram: <img ... src="images/x.svg">, embedded so the guide needs no file route.
+_IMG = re.compile(r'(<img\b[^>]*?\bsrc=")([^"]+\.svg)(")')
 _SCHEME = re.compile(r'^[a-z][a-z0-9+.-]*:', re.I)
 
 
@@ -61,7 +64,18 @@ def _rewrite(html: str, rel: str) -> str:
         # Not a page the guide shows: say where the file is instead of a link that goes nowhere.
         return (f'{text} <span class="guide-file" title="A file in the MedUI folder">'
                 f'(<code>{escape(path)}</code> in the MedUI folder)</span>')
-    return _LINK.sub(link, html)
+    def image(m):
+        src = m.group(2)
+        if src.startswith('/') or _SCHEME.match(src):
+            return m.group(0)
+        path = posixpath.normpath(posixpath.join(here, src))
+        file = root() / path
+        if path.startswith('..') or not path.startswith('docs/') or not file.is_file():
+            return m.group(0)
+        import base64
+        data = base64.b64encode(file.read_bytes()).decode('ascii')
+        return f'{m.group(1)}data:image/svg+xml;base64,{data}{m.group(3)}'
+    return _IMG.sub(image, _LINK.sub(link, html))
 
 
 def render(name: str) -> tuple[str, Markup] | None:

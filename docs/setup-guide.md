@@ -327,8 +327,8 @@ What `--demo` does, besides an ordinary installation:
 - It starts SQL Server (service `bpsql`, about 1.6 GB to download, up to 2 GB of memory). It has no
   port on the computer: only this installation's containers reach it.
 - It downloads medui_demodata into `demodata/`, restores its three databases, and creates a
-  read-only login that it writes to `.env` with the server (`BPSDB_HOST=bpsql`). While
-  medui_demodata is private, give a GitHub token that can read it, as for upgrades
+  read-only login that it writes to `.env` with the server (`BPSDB_HOST=bpsql`). A private
+  copy of the demo data needs a GitHub token that can read it, as for upgrades
   ([operations](operations.md#upgrades)): `MEDUI_GIT_TOKEN`.
 - It asks for one password for all the demo users. They log in by name on MedUI's login page:
   Dr Imogen Thistlewood (practice owner), Dr Callum Ravensworth (doctor), Rosalind Quenby
@@ -357,7 +357,7 @@ On Windows, `scripts/windows/upgrade_medui_wsl2.ps1` can also save a snapshot of
 whole WSL instance first ([Windows](../scripts/windows/README.md)).
 
 The version shown at the foot of each page should then match the release. The steps by hand,
-and the private-repository token: [operations](operations.md#upgrades). Prompts or workflows
+and the token a private copy needs: [operations](operations.md#upgrades). Prompts or workflows
 you have edited are kept when the seeds are updated: [seed data](seed-data.md#after-an-upgrade-seed-resync).
 
 ## When something goes wrong

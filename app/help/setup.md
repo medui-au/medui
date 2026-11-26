@@ -2,7 +2,7 @@
 title: Application Setup
 area: Administration
 roles: [admin]
-reviewed: 2026-11-21
+reviewed: 2026-11-26
 related: [prompts, my-settings, ai-drafts]
 ---
 
@@ -52,7 +52,10 @@ information.
 ## AI providers {#providers}
 
 - **AI Providers:** the AI services MedUI may use, local (on the practice's equipment) or cloud,
-  with their address and key. **Fetch Models** lists what a provider offers.
+  with their address and key. **Fetch Models** lists what a provider offers, from its **Models
+  URL**. A new OpenRouter provider starts with OpenRouter's zero-data-retention list, so only
+  models whose providers don't keep the requests are offered; a new Groq provider starts with
+  Groq's own list. You can change or clear the Models URL; blank uses the base URL's `/models`.
 - **Default models:** used where a workflow doesn't name its own; the **default local model**
   is used where only a local model is allowed. **Default chatbot models** are separate.
 
@@ -166,12 +169,20 @@ everyone: users then see it marked *Set by your practice*.
 
 ## Maintenance {#maintenance}
 
-- **Data retention:** how many days MedUI keeps scribe transcripts, sent messages and AI run
-  records, and whether it removes older ones automatically each day. **Purge** removes them
-  now (it can't be undone; keep backups).
+The tab has two parts, each with its own **Save**: the privacy switches, then data retention
+with **Purge** under it.
+
 - **Staff privacy:** hides staff members' own patient records from colleagues; only that staff
   member can open their own record. It matches staff by their Best Practice user ID.
 - **Privacy Review:** shows administrators the **Admin → Privacy Review** page, a list of the AI
   requests in which the pre-send privacy check found something, for review. Switching it off
   hides the page and keeps the reviews already saved; the check itself always runs. See
   [Privacy Review](help:privacy-review.overview).
+- **Data retention:** how many days MedUI keeps scribe transcripts, sent messages, chatbot
+  conversations and AI run records. A chat counts from its last message, whether it is still
+  open, was ended with **New conversation** or was removed from the list; it goes with its
+  messages and files, since chats are stored with the patient's details restored. Anything worth
+  keeping belongs in Best Practice. Nothing is removed automatically: **Purge** removes the
+  older ones when you choose (it can't be undone; keep backups). An AI run record that a chat, care plan, patient message
+  or other record still refers to is kept, so that record keeps its AI detail; the page says how
+  many were kept.

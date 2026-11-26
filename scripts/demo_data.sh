@@ -68,7 +68,7 @@ cmd_fetch() {
     GIT_ASKPASS="$ask" GIT_TERMINAL_PROMPT=0 git clone --quiet "$DEMO_REPO" "$DEMO_DIR" || { rm -f "$ask"; die "Couldn't download the demo data with the token given."; }
     rm -f "$ask"
   else
-    git clone --quiet "$DEMO_REPO" "$DEMO_DIR" || die "Couldn't download the demo data. While medui_demodata is private, give a GitHub token that can read it:
+    git clone --quiet "$DEMO_REPO" "$DEMO_DIR" || die "Couldn't download the demo data from $DEMO_REPO: check the internet connection. A private copy needs a GitHub token that can read it:
   read -rsp 'GitHub token: ' MEDUI_GIT_TOKEN && export MEDUI_GIT_TOKEN && ./install.sh --demo; unset MEDUI_GIT_TOKEN"
   fi
   ok "Demo data: $(git -C "$DEMO_DIR" log -1 --format='%h %ad' --date=short)"

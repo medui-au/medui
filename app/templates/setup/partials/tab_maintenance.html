@@ -9,74 +9,12 @@
 </div>
 {% endif %}
 
+{# Each section saves only its own settings (ADR-190): an unticked switch isn't sent, so one
+   shared form would turn the other section's switches off. #}
 <form hx-post="{{ url_for('setup.maintenance_save') }}"
       hx-target="#setup-content" hx-swap="innerHTML">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-{# ── Data Retention ──────────────────────────────────────────────────── #}
-<div class="setup-section">
-    <div class="setup-h2">Data Retention{{ help('setup.maintenance') }}</div>
-    <p style="font-size:var(--text-sm); color:var(--text-muted); margin-bottom:1rem;">
-        Rows older than the configured window are eligible for purge. Minimum 1 day for each.
-    </p>
-
-    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem; max-width:580px; margin-bottom:1.25rem;">
-        <div>
-            <label style="display:block; font-size:0.72rem; font-weight:600;
-                          color:var(--text-muted); margin-bottom:0.3rem;">
-                Transcripts (days)
-            </label>
-            <input type="number" name="retention_transcripts"
-                   value="{{ retention_transcripts }}" min="1"
-                   style="width:100%; padding:0.35rem 0.5rem; font-size:var(--text-sm);
-                          border:1px solid var(--border-color); border-radius:var(--radius-sm);
-                          background:var(--bg-primary); color:var(--text-primary);">
-            <p style="margin:0.2rem 0 0; font-size:0.68rem; color:var(--text-muted);">
-                Encrypted voice scribe transcripts
-            </p>
-        </div>
-        <div>
-            <label style="display:block; font-size:0.72rem; font-weight:600;
-                          color:var(--text-muted); margin-bottom:0.3rem;">
-                Patient messages (days)
-            </label>
-            <input type="number" name="retention_messages"
-                   value="{{ retention_messages }}" min="1"
-                   style="width:100%; padding:0.35rem 0.5rem; font-size:var(--text-sm);
-                          border:1px solid var(--border-color); border-radius:var(--radius-sm);
-                          background:var(--bg-primary); color:var(--text-primary);">
-            <p style="margin:0.2rem 0 0; font-size:0.68rem; color:var(--text-muted);">
-                Sent, failed, and revoked messages only
-            </p>
-        </div>
-        <div>
-            <label style="display:block; font-size:0.72rem; font-weight:600;
-                          color:var(--text-muted); margin-bottom:0.3rem;">
-                Pipeline runs (days)
-            </label>
-            <input type="number" name="retention_runs"
-                   value="{{ retention_runs }}" min="1"
-                   style="width:100%; padding:0.35rem 0.5rem; font-size:var(--text-sm);
-                          border:1px solid var(--border-color); border-radius:var(--radius-sm);
-                          background:var(--bg-primary); color:var(--text-primary);">
-            <p style="margin:0.2rem 0 0; font-size:0.68rem; color:var(--text-muted);">
-                Completed and failed run records
-            </p>
-        </div>
-    </div>
-
-    <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.25rem;">
-        <label class="toggle-switch">
-            <input type="checkbox" name="auto_cleanup" value="true"
-                   {% if auto_cleanup %}checked{% endif %}>
-            <span class="toggle-switch-slider"></span>
-        </label>
-        <span style="font-size:var(--text-sm);">Enable automatic daily cleanup</span>
-    </div>
-    <p style="margin:0.25rem 0 0 3rem; font-size:0.7rem; color:var(--text-muted);">
-        When enabled, eligible rows are purged once per day during an admin session.
-    </p>
-</div>
+<input type="hidden" name="section" value="privacy">
 
 {# ── Staff Privacy ───────────────────────────────────────────────────── #}
 <div class="setup-section">
@@ -117,7 +55,88 @@
 
 <div style="padding:0 1.5rem 1rem;">
     <button type="submit" class="btn btn-primary" style="font-size:var(--text-sm);">
-        Save Settings
+        Save Privacy Settings
+    </button>
+</div>
+
+</form>
+
+<form hx-post="{{ url_for('setup.maintenance_save') }}"
+      hx-target="#setup-content" hx-swap="innerHTML">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="section" value="retention">
+
+{# ── Data Retention ──────────────────────────────────────────────────── #}
+<div class="setup-section">
+    <div class="setup-h2">Data Retention{{ help('setup.maintenance') }}</div>
+    <p style="font-size:var(--text-sm); color:var(--text-muted); margin-bottom:1rem;">
+        Rows older than the configured window are eligible for purge. Minimum 1 day for each.
+    </p>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:1rem; max-width:760px; margin-bottom:1.25rem;">
+        <div>
+            <label style="display:block; font-size:0.72rem; font-weight:600;
+                          color:var(--text-muted); margin-bottom:0.3rem;">
+                Transcripts (days)
+            </label>
+            <input type="number" name="retention_transcripts"
+                   value="{{ retention_transcripts }}" min="1"
+                   style="width:100%; padding:0.35rem 0.5rem; font-size:var(--text-sm);
+                          border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                          background:var(--bg-primary); color:var(--text-primary);">
+            <p style="margin:0.2rem 0 0; font-size:0.68rem; color:var(--text-muted);">
+                Encrypted voice scribe transcripts
+            </p>
+        </div>
+        <div>
+            <label style="display:block; font-size:0.72rem; font-weight:600;
+                          color:var(--text-muted); margin-bottom:0.3rem;">
+                Patient messages (days)
+            </label>
+            <input type="number" name="retention_messages"
+                   value="{{ retention_messages }}" min="1"
+                   style="width:100%; padding:0.35rem 0.5rem; font-size:var(--text-sm);
+                          border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                          background:var(--bg-primary); color:var(--text-primary);">
+            <p style="margin:0.2rem 0 0; font-size:0.68rem; color:var(--text-muted);">
+                Sent, failed, and revoked messages only
+            </p>
+        </div>
+        <div>
+            <label style="display:block; font-size:0.72rem; font-weight:600;
+                          color:var(--text-muted); margin-bottom:0.3rem;">
+                Chats (days)
+            </label>
+            <input type="number" name="retention_chats"
+                   value="{{ retention_chats }}" min="1"
+                   style="width:100%; padding:0.35rem 0.5rem; font-size:var(--text-sm);
+                          border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                          background:var(--bg-primary); color:var(--text-primary);">
+            <p style="margin:0.2rem 0 0; font-size:0.68rem; color:var(--text-muted);">
+                Chatbot conversations with no activity in this time, including ones removed from the list
+            </p>
+        </div>
+        <div>
+            <label style="display:block; font-size:0.72rem; font-weight:600;
+                          color:var(--text-muted); margin-bottom:0.3rem;">
+                Pipeline runs (days)
+            </label>
+            <input type="number" name="retention_runs"
+                   value="{{ retention_runs }}" min="1"
+                   style="width:100%; padding:0.35rem 0.5rem; font-size:var(--text-sm);
+                          border:1px solid var(--border-color); border-radius:var(--radius-sm);
+                          background:var(--bg-primary); color:var(--text-primary);">
+            <p style="margin:0.2rem 0 0; font-size:0.68rem; color:var(--text-muted);">
+                AI run records no chat, care plan or message still refers to
+            </p>
+        </div>
+    </div>
+
+</div>
+
+<div style="padding:0 1.5rem 1rem;">
+    <button type="submit" class="btn btn-primary" style="font-size:var(--text-sm);">
+        Save Retention
     </button>
 </div>
 
@@ -128,17 +147,18 @@
     <div class="setup-h2">Purge Eligible Data</div>
     <p style="font-size:var(--text-sm); color:var(--text-muted); margin-bottom:1rem;">
         Permanently deletes rows that exceed the configured retention windows above.
-        Save any retention changes before running a purge.
+        Save any retention changes (above) before running a purge.
     </p>
 
     <div id="purge-preview">
 
         {% if purge_total is defined %}
-        <div style="display:grid; grid-template-columns:repeat(3,1fr) auto; gap:0.75rem;
-                    align-items:center; max-width:640px; margin-bottom:1rem;">
+        <div style="display:grid; grid-template-columns:repeat(4,1fr) auto; gap:0.75rem;
+                    align-items:center; max-width:760px; margin-bottom:1rem;">
             {% for label, count in [
                 ('Transcripts', purge_transcripts),
                 ('Messages',    purge_messages),
+                ('Chats',       purge_chats),
                 ('Pipeline runs', purge_runs),
             ] %}
             <div style="padding:0.6rem 0.75rem; border:1px solid var(--border-color);
@@ -154,6 +174,13 @@
                 = {{ purge_total }} total
             </div>
         </div>
+
+        {% if purge_runs_kept %}
+        <p style="font-size:0.72rem; color:var(--text-muted); margin:0 0 0.75rem;">
+            {{ purge_runs_kept }} older AI run record(s) are kept, because a chat, care plan,
+            message or other record still refers to them. They become eligible once it no longer does.
+        </p>
+        {% endif %}
 
         {% if purge_total > 0 %}
         <form hx-post="{{ url_for('setup.maintenance_purge') }}"

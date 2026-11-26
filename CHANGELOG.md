@@ -3,6 +3,102 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.61.3 — public pre-release (November 2026)
+
+**Upgrade from 0.61.2**: `./upgrade.sh`. Nothing in the app changes.
+
+- **No GitHub token needed**: the repositories are public, so the install recipes, upgrades,
+  cheat sheet, setup guide, troubleshooting and the Windows scripts' guide drop the "while the
+  repository is private" token steps. At the Windows script's token question, press Enter. The
+  scripts still accept a token, for a private copy.
+- **Release status** now describes the public pre-release and what is left before 1.0.
+- **Diagrams of how data moves**, on a page of their own without the technical detail
+  ([how data moves](docs/how-data-moves.md), linked from the README and how MedUI is built): where
+  data goes, the guards on one AI request, and the switches and fixed guards. The guards diagram is
+  also in the [AI information sheet](docs/ai-information-sheet.md). The in-app guide shows them too.
+- **Contributing** ([CONTRIBUTING.md](CONTRIBUTING.md), linked from the README and getting help):
+  questions, issues and ideas welcome; code contributions not accepted yet, until a contributor
+  agreement is in place (to keep the option of licensing MedUI on other terms).
+
+## 0.61.2 — pre-release (November 2026)
+
+**Upgrade from 0.61.1**: `./upgrade.sh`. Nothing to migrate.
+
+- **The intended-purpose statement's last sentence is split in two**, so it can't be read as
+  MedUI providing clinical judgement: "It provides information. Clinical judgement, decisions
+  about a patient's care and the record remain with the health professional." The meaning and
+  scope are unchanged. Updated in docs/intended_purpose.md, the README, AGENTS.md, the About page
+  and the AI information sheet.
+- **AI information sheet:** the chatbot with no patient is called the generic chatbot throughout
+  its section, and "no patient context" replaces "no patient" (Chatbot Generic, the Library
+  workflow, the recipe assistant).
+
+## 0.61.1 — pre-release (November 2026)
+
+**Upgrade from 0.61.0**: `./upgrade.sh`. Nothing to migrate.
+
+- **New OpenRouter and Groq providers start with their models URL** (upstream ADR-191). Added
+  from its preset, an OpenRouter provider fetches OpenRouter's zero-data-retention list
+  (`https://openrouter.ai/api/v1/endpoints/zdr`), so only models whose providers don't keep the
+  requests are offered; a Groq provider fetches `https://api.groq.com/openai/v1/models`. The
+  Models URL can be changed or cleared; its hint now shows each provider's own URL. Providers
+  already set up are not changed.
+- **Messaging setup placeholders** use example domains and an invented practice name.
+
+## 0.61.0 — pre-release (November 2026)
+
+**Upgrade from 0.60.1**: `./upgrade.sh`. Nothing to migrate. A MINOR release: chats gain a
+retention period.
+
+- **Chats have a retention period** (upstream ADR-189). Application Setup → Maintenance → Data
+  retention has a fourth window, **Chats (days)**, 90 to start. When an administrator presses
+  **Purge**, chatbot conversations with no activity in that time are deleted with their messages
+  and generated files, whether still open, ended with **New conversation** or removed from the
+  list (removing one from the list only hides it). Before this, chats were never deleted. Chats are
+  stored with the patient's details restored, so they aren't kept indefinitely; anything worth
+  keeping belongs in Best Practice. The AI run records only those chats referred to go in the same
+  purge. The purge preview counts chats, and the chatbot help says conversations are deleted after
+  the practice's period.
+- **Maintenance tab rearranged** (upstream ADR-190): Staff Privacy and Privacy Review first, with
+  **Save Privacy Settings**; then Data Retention, with **Save Retention**, directly above
+  **Purge**. Each Save changes only its own settings. After a Save the purge preview now shows
+  its counts instead of "Loading purge preview…".
+- **AI information sheet:** "For the practice" says what MedUI keeps, how long, and what the
+  usage record keeps without a patient reference.
+
+## 0.60.1 — pre-release (November 2026)
+
+**Upgrade from 0.60.0**: `./upgrade.sh`. Nothing to migrate.
+
+- **Purge works when old AI runs are still in use** (upstream ADR-188). Application Setup →
+  Maintenance → **Purge** failed, deleting nothing, as soon as an old AI run record was still
+  referred to by a chat reply, care plan, GPCCMP session, patient message or privacy report.
+  Purge now keeps those runs, so the record keeps its AI detail, and the preview and the result
+  say how many were kept. They become eligible once nothing refers to them.
+- **"Enable automatic daily cleanup" removed.** The switch was saved but nothing used it; purging
+  is done with **Purge**, when the administrator chooses. The Maintenance tab no longer shows
+  amber for it, and a new installation no longer adds the setting.
+
+## 0.60.0 — pre-release (November 2026)
+
+**Upgrade from 0.59.8**: `./upgrade.sh`. Nothing in the app changes. A MINOR release: the
+intended purpose is reworded.
+
+- **Intended purpose: guidance is shown with its source.** "shows what named published guidance
+  says when they ask" becomes "shows what named, published guidance says, with its source, when
+  they ask", in [intended purpose](docs/intended_purpose.md), the README, AGENTS.md, the
+  [AI information sheet](docs/ai-information-sheet.md) and the About page. This matches the full
+  statement's Reference entry, which already shows the source. The statement is now:
+
+  > MedUI is a workflow tool for appropriately registered health professionals working in a
+  > medical practice. It helps them find, organise, present, summarise and document information
+  > that is already in the patient record or was stated in the consultation, shows what named,
+  > published guidance says, with its source, when they ask, and streamlines practice
+  > communication and administration. AI features produce drafts for the health professional to
+  > review, edit and approve. MedUI does not diagnose, recommend treatment or investigations,
+  > triage or monitor patients; it provides information, and clinical judgement, decisions about a
+  > patient's care and the record remain the health professional's.
+
 ## 0.59.8 — pre-release (November 2026)
 
 **Upgrade from 0.59.7**: `./upgrade.sh`. Nothing in the app changes.

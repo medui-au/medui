@@ -4,7 +4,7 @@
 anyone reviewing them. **You'll know:** every AI function MedUI ships, what each is for, what it
 reads, where it can run, its limits, and where it sits against MedUI's intended purpose.
 
-**Version:** MedUI 0.59 (pre-release, November 2026). This sheet changes with any release that adds,
+**Version:** MedUI 0.61 (pre-release, November 2026). This sheet changes with any release that adds,
 removes or rewords a shipped AI function; see the [changelog](../CHANGELOG.md).
 **Support:** [getting help](support.md), or an issue at
 [github.com/medui-au/medui/issues](https://github.com/medui-au/medui/issues), without patient details.
@@ -31,11 +31,12 @@ A security problem goes privately: [SECURITY.md](../SECURITY.md).
 
 MedUI is a workflow tool for appropriately registered health professionals working in a medical
 practice. It helps them find, organise, present, summarise and document information that is already
-in the patient record or was stated in the consultation, shows what named published guidance says
-when they ask, and streamlines practice communication and administration. AI features produce
-drafts for the health professional to review, edit and approve. MedUI does not diagnose, recommend
-treatment or investigations, triage or monitor patients; it provides information, and clinical
-judgement, decisions about a patient's care and the record remain the health professional's.
+in the patient record or was stated in the consultation, shows what named, published guidance says,
+with its source, when they ask, and streamlines practice communication and administration. AI
+features produce drafts for the health professional to review, edit and approve. MedUI does not
+diagnose, recommend treatment or investigations, triage or monitor patients. It provides
+information. Clinical judgement, decisions about a patient's care and the record remain with the
+health professional.
 
 The full statement, including what MedUI is not for, is in [intended purpose](intended_purpose.md).
 MedUI has not been assessed by the Therapeutic Goods Administration and is not included in the
@@ -78,10 +79,10 @@ can misread; check the summary against the document.
 | Workflow | What it is for | Reads |
 |---|---|---|
 | *Patient Chatbot* | Questions about what is recorded for a patient, answered only from the record, one run per question | The patient's record and the conversation |
-| *PII Erasure* | The general chatbot's first step: a **local** model removes identifying details from the question. Local models only; nothing is sent out | The question |
-| *Chatbot Generic* | Reference questions with no patient (a medicine, a guideline, a form), with sources | The question, after rule-based redaction |
+| *PII Erasure* | The generic chatbot's first step: a **local** model removes identifying details from the question. Local models only; nothing is sent out | The question |
+| *Chatbot Generic* | Reference questions with no patient context (a medicine, a guideline, a form), with sources | The question, after rule-based redaction |
 
-**Limits:** the general chatbot has no patient record and is not for a particular patient's
+**Limits:** the generic chatbot has no patient record and is not for a particular patient's
 presentation. If a question includes a patient's details, the reply says so and gives general
 information only. Sources are suggested by the AI and can be wrong: check them. Without a local
 model there is no erasure step, and the chat says so.
@@ -103,7 +104,7 @@ before recording.
 
 | Workflow | What it is for | Reads |
 |---|---|---|
-| *[LIB] Library Pipeline* | Drafting or changing a practice document in the Library (an information sheet, a letter template) | The request and the document; no patient |
+| *[LIB] Library Pipeline* | Drafting or changing a practice document in the Library (an information sheet, a letter template) | The request and the document; no patient context |
 | *GP Chronic Condition Management Plan (draft)* | Wording each issue of a care plan from the doctor's recorded decisions and the practice's own protocol | The decisions, the protocol and the record |
 
 **Who does what in the care plan:**
@@ -121,9 +122,15 @@ before recording.
   reviews and edits the draft before filing it.
 
 Two other AI uses have no shipped workflow: the care-plan **recipe assistant** (wording a reusable
-recipe, with no patient) and the **AI Analytics** tab on a data source chart (Charts menu), which
+recipe, with no patient context) and the **AI Analytics** tab on a data source chart (Charts menu), which
 appears only once the practice creates an active workflow named with [DATA]. A practice that wants
 them creates its own workflow.
+
+![The guards on one AI request, in order: start, assemble and redact, security pre-check (refuses
+a cloud model unless fully redacted), privacy check, model, restore names, draft for
+review.](images/medui-guards-on-a-request.svg)
+
+All three diagrams, on a page of their own: [how data moves](how-data-moves.md).
 
 ## Limits that apply to every function
 
@@ -165,6 +172,13 @@ These work the same with AI switched off, and each shows its rule, inputs and so
   keep them beyond a limited period for abuse and safety monitoring (zero data retention where the
   provider offers it). Terms change, so the check is repeated at each policy review. The AI-use
   policy template includes this rule and records the check in its Appendix A.
+- **Decide how long MedUI keeps AI records** (Application Setup → Maintenance → Data retention).
+  Chats are stored with the patient's details restored, and AI run records with the reply; both
+  hold patient identifiers. MedUI deletes them, with scribe transcripts and sent messages, when
+  an administrator presses **Purge**: chats with no activity in the chosen period (90 days to
+  start), in any state, and run records past theirs (180 days to start) that no kept record still
+  refers to. Anything worth keeping belongs in Best Practice. The usage record (who, when, which
+  task and model, local or cloud) holds no patient reference and is kept.
 - Report a problem with an AI output through the practice's own process, and to the MedUI
   maintainers without patient details ([getting help](support.md)).
 
