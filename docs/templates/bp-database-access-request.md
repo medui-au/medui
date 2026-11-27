@@ -24,21 +24,34 @@ and adapt it to your practice.*
 
 > [Practice name] requests read-only access to its Bp Premier databases (`BPSPatients`,
 > `BPSDocumentsInbox` and the `BPSDocuments` databases) for use with MedUI, open-source software
-> that the practice runs on its own premises.
+> that the practice runs on its own network.
 >
-> The access would be used to:
-> - read and summarise information in the practice's own records, including documents in
->   clinicians' inboxes, [with AI that runs on the practice's own computers / with AI services,
->   after patient and practitioner identifiers have been removed];
-> - produce reports for the practice's own administration and quality improvement.
+> **Without AI**, the access would be used to:
+> - find, organise and present information in the practice's own records, including results and
+>   documents in clinicians' inboxes;
+> - prepare documents from the record for a clinician to complete, such as care plans, handover
+>   summaries, charts and consultation agendas;
+> - produce reports for the practice's doctors, for quality improvement, continuing professional
+>   development and accreditation;
+> - support practice administration: staff rostering, reports, and notes on a patient's record
+>   such as Medicare items they may be eligible for, or details that are missing or out of date.
+>
+> **With artificial intelligence (AI) services**, which may run on the practice's own computers or
+> in the cloud, the access would also be used to:
+> - summarise information in the record and draft the documents above. AI output is a draft that
+>   a clinician reviews, edits and approves;
+> - remove patient and practitioner identifiers from the text before any of it is sent to a cloud
+>   AI service.
 >
 > The application only reads the databases and does not change anything in Bp Premier. It is used
-> only by the practice's own staff. AI output is a draft that a clinician reviews. The practice
-> will use the access only as the agreement permits.
+> only by the practice's own staff. The practice is responsible for its use of the software,
+> including its obligations under privacy law, and will use the access only as the agreement
+> permits.
 
 ## After access is granted
 
 - Keep the signed agreement with the practice's records. If the practice's use changes (for
-  example, starting to use a cloud AI service), check that the agreement still covers it first.
+  example, using the access for a purpose not described above), check that the agreement still
+  covers it first.
 - The [Administrator setup guide](../setup-guide.md#what-the-administrator-needs) explains where the
   login goes in MedUI.

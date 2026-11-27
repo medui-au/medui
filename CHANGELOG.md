@@ -3,6 +3,15 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.61.5 — public pre-release (November 2026)
+
+**Upgrade from 0.61.4**: `./upgrade.sh`. Nothing in the app changes.
+
+- **EDBA request template** ([request to BP](docs/templates/bp-database-access-request.md)): the
+  suggested wording lists uses without AI and with AI separately, and says from the outset that AI
+  services may run locally or in the cloud, so a practice doesn't need a new agreement when it
+  starts using a cloud service.
+
 ## 0.61.4 — public pre-release (November 2026)
 
 **Upgrade from 0.61.3**: `./upgrade.sh`. Nothing in the app changes.
