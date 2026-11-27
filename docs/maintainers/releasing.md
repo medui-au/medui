@@ -88,12 +88,35 @@ alone. In all of these:
 
 ## Publishing
 
-After the release commit is merged to `main`:
+The maintainers work in a private repository, and `medui-au/medui` holds the releases: each
+release is published there as one commit. After the release commit is merged to `main` in the
+working repository:
 
-```bash
-git tag -a v1.0.0 -m "MedUI 1.0.0"
-git push origin v1.0.0
-```
+1. **Build the public copy.** In a clone of `medui-au/medui`, remove everything except `.git`,
+   then unpack the working repository's `main` into it:
+   `git -C <working repository> archive main | tar -x`.
+2. **Point the addresses at the public repositories.** Replace the working repository's GitHub
+   addresses with `medui-au/medui` and `medui-au/medui_demodata` (`grep -rn 'github.com/'
+   --exclude-dir=.git .` lists them all). Change nothing else in the copy: a fix goes into the
+   working repository first, then into the next release.
+3. **Scan it** for internal addresses and hostnames, practice and staff names, personal emails,
+   home paths, key-shaped strings and real-looking patient values (names, Medicare and phone
+   numbers, dates of birth). Compare the hits with the last release's: each new one is either
+   invented or removed.
+4. **Test it:** the full test suite, with the database tests on an empty, disposable PostgreSQL
+   database (`MEDUI_TEST_DATABASE_URL`, a name ending in `_test`).
+5. **Commit and push** as one commit, with author and committer `MedUI <github@medui.com.au>` and
+   the message `MedUI x.y.z`. Never force-push: installations follow `main`.
+6. **Tag it** `vx.y.z` and push the tag. The tag must match `app/version.py`:
 
-The tag must match `app/version.py`. Practices upgrade by checking out the tag, then following
-[operations → upgrades](../operations.md#upgrades).
+   ```bash
+   git tag -a v0.61.4 -m "MedUI 0.61.4"
+   git push origin main v0.61.4
+   ```
+
+Practices upgrade with `./upgrade.sh`, which follows `main`, or go to one release with
+`./upgrade.sh --to vx.y.z` ([operations → upgrades](../operations.md#upgrades)).
+
+The demo databases (`medui-au/medui_demodata`, built by its `tools/make_public_copy.sh`) and the
+redaction core (`medui-au/redaction-core`, tagged at each core version) are published the same
+way from their own working repositories, when they change.

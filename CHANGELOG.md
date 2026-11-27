@@ -3,6 +3,14 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.61.4 — public pre-release (November 2026)
+
+**Upgrade from 0.61.3**: `./upgrade.sh`. Nothing in the app changes.
+
+- **Releasing** ([releasing](docs/maintainers/releasing.md#publishing)) says how each release is
+  published to `medui-au/medui`: one commit per release, tagged `vx.y.z`, never force-pushed;
+  `./upgrade.sh --to vx.y.z` goes to one release.
+
 ## 0.61.3 — public pre-release (November 2026)
 
 **Upgrade from 0.61.2**: `./upgrade.sh`. Nothing in the app changes.
