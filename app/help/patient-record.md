@@ -2,7 +2,7 @@
 title: Patient record
 area: Patients
 roles: [doctor, nurse]
-reviewed: 2026-11-23
+reviewed: 2026-11-28
 related: [results-outside-range, setup]
 ---
 
@@ -109,6 +109,8 @@ eGFR, urine albumin, HbA1c, TSH, PSA, ferritin, FIB-4, weight and blood pressure
 - Weight is shown as recorded, to one decimal place (it was rounded to whole kilograms
   before MedUI 0.38.4, BMI included).
 - The eGFR caption lists the KDIGO categories for reference.
+- **Print** (or the browser's Print, Ctrl+P) prints the charts in black and white, under one
+  line with the patient's name, date of birth and the date printed.
 
 What you stay responsible for: reading the results against the patient's circumstances,
 including any target that applies to them.

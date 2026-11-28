@@ -59,6 +59,8 @@
         height: 280px !important;
     }
 
+    .charts-print-patient { display: none; }
+
     .charts-empty {
         padding: 2rem;
         text-align: center;
@@ -100,8 +102,19 @@
         /* Hide everything except the chart content */
         .topnav,
         .workspace-sidebar,
-        #charts-print-btn {
+        /* The title, its help [?] and the Print button don't print (ADR-192) */
+        .charts-header {
             display: none !important;
+        }
+
+        /* Who and when, on the printed page only (ADR-192) */
+        .charts-print-patient {
+            display: block !important;
+            font-size: 0.85rem;
+            color: #000 !important;
+            padding-bottom: 0.2cm;
+            margin-bottom: 0.3cm;
+            border-bottom: 1px solid #ccc;
         }
 
         /* Expand workspace to fill the page */
@@ -131,14 +144,6 @@
             overflow: visible !important;
             height: auto !important;
             background: white !important;
-        }
-
-        .charts-header {
-            border-color: #ccc !important;
-        }
-
-        .charts-header h2 {
-            color: #000 !important;
         }
 
         .charts-row {
@@ -194,6 +199,11 @@
                        background:var(--accent-primary);color:white;
                        border:none;border-radius:0.3rem;cursor:pointer;"
                 title="Print charts">Print</button>
+    </div>
+    <div class="charts-print-patient">
+        <strong>{{ patient.get('SURNAME','') | upper }}, {{ patient.get('FIRSTNAME','') }}</strong>
+        &nbsp;·&nbsp; DOB {{ patient.get('DOB') | clinical_date }}
+        &nbsp;·&nbsp; Printed <span id="charts-printed-date"></span>
     </div>
     {{ html_content | safe }}
 </div>
@@ -356,6 +366,9 @@
                 type: 'line',
                 data: { datasets },
                 options: {
+                    // Printing: draw at once (ADR-192). An animated chart draws its first
+                    // frame on the next animation frame, after the print has been taken.
+                    animation: isPrinting ? false : undefined,
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
@@ -406,16 +419,28 @@
         Object.keys(chartInstances).forEach(k => delete chartInstances[k]);
     }
 
-    window.printCharts = function () {
-        document.documentElement.classList.add('printing');
+    /* Redraw in print colours, without animation, whenever the page is printed: from the
+       Print button or the browser's own Print (Ctrl+P). The browser takes the print after
+       'beforeprint' returns, so the charts must be drawn by then (ADR-192). */
+    let printMode = false;
+
+    function redraw(isPrinting) {
+        if (isPrinting) {
+            const printed = document.getElementById('charts-printed-date');
+            if (printed) printed.textContent = new Date().toLocaleDateString('en-AU',
+                { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+        if (printMode === isPrinting) return;
+        printMode = isPrinting;
         destroyAll();
-        createCharts(true);
+        createCharts(isPrinting);
+    }
+
+    window.addEventListener('beforeprint', () => redraw(true));
+    window.addEventListener('afterprint',  () => redraw(false));
+
+    window.printCharts = function () {
         window.print();
-        setTimeout(() => {
-            document.documentElement.classList.remove('printing');
-            destroyAll();
-            createCharts(false);
-        }, 1200);
     };
 
     /* ── Init ────────────────────────────────────────────────────────── */

@@ -1,6 +1,6 @@
 # Release status
 
-**Version 0.61.5, public pre-release (November 2026).** Synced with the upstream MedUI application, with
+**Version 0.61.6, public pre-release (November 2026).** Synced with the upstream MedUI application, with
 the redaction core 0.2.21. Scope: a new practice installation, not migration of existing MedUI data.
 MedUI is public at [github.com/medui-au/medui](https://github.com/medui-au/medui), with its demo
 data at [medui-au/medui_demodata](https://github.com/medui-au/medui_demodata) and the redaction core

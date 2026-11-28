@@ -3,6 +3,16 @@
 MedUI's releases. The version is in `app/version.py`, shown at the foot of every page and in
 `/health`. See [releasing](docs/maintainers/releasing.md).
 
+## 0.61.6 — public pre-release (November 2026)
+
+**Upgrade from 0.61.5**: `./upgrade.sh`.
+
+- **Patient Charts print with their charts** ([issue 1](https://github.com/medui-au/medui/issues/1)):
+  printing gave the chart boxes without the charts. The Print button and the browser's own Print
+  (Ctrl+P) now draw the charts in black and white before the page is printed, under one line with
+  the patient's name, date of birth and the date printed. The title, its [?] and the Print button
+  don't print.
+
 ## 0.61.5 — public pre-release (November 2026)
 
 **Upgrade from 0.61.4**: `./upgrade.sh`. Nothing in the app changes.
